@@ -38,4 +38,12 @@ class cfg_file :
         self.dict [key] = val
     # end def __setitem__
 
+    def has_key (self, key) :
+        return self.dict.has_key (key)
+    # end def has_key
+
+    def get (self, key, val) :
+        return self.dict.get (key, val)
+    # end def get
+
 # end class cfg_file

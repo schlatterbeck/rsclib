@@ -1,3 +1,5 @@
+import sys
+
 class cfg_file :
     """
         Configuration information
@@ -11,24 +13,29 @@ class cfg_file :
         self.dict = {}
         for key in kw :
             self.dict [key] = kw [key]
-        sys.path.insert (0, normpath (dir))
+        sys.path.insert (0, dir)
         mod = __import__ (pkg)
         for comp in pkg.split ('.') [1:] :
             mod = getattr (mod, comp)
         del (sys.path [0])
         for key in mod.__dict__ :
             if key [0] != '_' :
-                self [key] = mod.__dict__ [d]
+                self [key] = mod.__dict__ [key]
     # end def __init__
 
     def __getattr__ (self, key) :
-        if key [0] != '_'
+        if key [0] != '_' :
             return self [key]
-        raise AttributeError, "No such attribute '%s'" % key
+        raise AttributeError, \
+            "%s instance has no attribute '%s'" % (self.__class__.__name__, key)
     # end def __getattr__
 
     def __getitem__ (self, key) :
         return self.dict [key]
     # end def __getitem__
+
+    def __setitem__ (self, key, val) :
+        self.dict [key] = val
+    # end def __setitem__
 
 # end class cfg_file

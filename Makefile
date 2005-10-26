@@ -17,4 +17,4 @@ dist: all
 clean:
 	rm -f MANIFEST \
 	    rsclib/Version.py
-	rm -rf dist
+	rm -rf dist build

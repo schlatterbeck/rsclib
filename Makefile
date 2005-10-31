@@ -9,12 +9,11 @@ all: $(VERSION)
 $(VERSION): $(SRC)
 
 dist: all
-	python setup.py sdist
+	python setup.py sdist --formats=gztar,zip
 
 %.py: %.v
 	sed -e 's/RELEASE/$(LASTRELASE)/' $< > $@
 
 clean:
-	rm -f MANIFEST \
-	    rsclib/Version.py
+	rm -f MANIFEST rsclib/Version.py
 	rm -rf dist build

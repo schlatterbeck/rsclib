@@ -31,6 +31,8 @@ class PM_Value (autosuper) :
         >>> a = b = PM_Value (None)
         >>> a == 0
         True
+        >>> not a
+        True
         >>> a.missing
         1
         >>> a + b
@@ -42,6 +44,8 @@ class PM_Value (autosuper) :
         >>> a += 1
         >>> a
         1
+        >>> not a
+        False
         >>> a == 1
         True
         >>> b
@@ -91,6 +95,10 @@ class PM_Value (autosuper) :
     def __cmp__ (self, other) :
         return cmp (self.value, getattr (other, 'value', other))
     # end def __cmp__
+
+    def __nonzero__ (self) :
+        return not not self.value
+    # end def __nonzero__
 
 # end class PM_Value
 

@@ -93,19 +93,35 @@ def _define_binop (name) :
             ( op (self.value, getattr (r, 'value', r))
             , self.missing + getattr (r, 'missing', 0)
             )
-    _.__doc__  = getattr (int, name).__doc__
+    _.__doc__ = getattr (int, name).__doc__
+    try :
+        _.__name__ = name
+    except TypeError :
+        pass
     setattr (PM_Value, name, _)
 # end _define_binop
 
 def _define_unop (name) :
+    op = getattr (operator, name)
     def _ (self) :
-        return PM_Value (getattr (self.value, name)(), self.missing)
+        return PM_Value (op (self.value), self.missing)
+    _.__doc__  = getattr (int, name).__doc__
+    try :
+        _.__name__ = name
+    except TypeError :
+        pass
     setattr (PM_Value, name, _)
 # end _define_unop
 
-def _define_convop (name) :
+def _define_convop (func) :
+    name = '__%s__' % func.__name__
     def _ (self) :
-        return getattr (self.value, name)()
+        return func (self.value)
+    _.__doc__  = getattr (int, name).__doc__
+    try :
+        _.__name__ = name
+    except TypeError :
+        pass
     setattr (PM_Value, name, _)
 # end _define_convop
 
@@ -119,10 +135,8 @@ for name in \
 for name in ('__neg__', '__pos__', '__abs__', '__invert__') :
     _define_unop (name)
 
-for name in \
-    ( '__int__', '__long__', '__float__', '__complex__'
-    , '__oct__', '__hex__'
-    , '__str__', '__repr__'
-    ) :
-    _define_convop (name)
+for func in (int, long, float, oct, hex, str, repr) :
+    _define_convop (func)
+
+del name, func
 

@@ -29,6 +29,8 @@ class PM_Value (autosuper) :
         information how many missing values have been used in the
         computation of value.
         >>> a = b = PM_Value (None)
+        >>> a == 0
+        True
         >>> a.missing
         1
         >>> a + b
@@ -40,6 +42,8 @@ class PM_Value (autosuper) :
         >>> a += 1
         >>> a
         1
+        >>> a == 1
+        True
         >>> b
         0
         >>> a.missing
@@ -85,7 +89,7 @@ class PM_Value (autosuper) :
     # end def __init__
 
     def __cmp__ (self, other) :
-        return cmp (self, other)
+        return cmp (self.value, getattr (other, 'value', other))
     # end def __cmp__
 
 # end class PM_Value

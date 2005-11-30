@@ -84,7 +84,7 @@ class PM_Value (autosuper) :
             self.missing += 1
     # end def __init__
 
-    def __cmp__ (self, other)
+    def __cmp__ (self, other) :
         return cmp (self, other)
     # end def __cmp__
 

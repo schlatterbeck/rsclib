@@ -102,6 +102,15 @@ class PM_Value (autosuper) :
 
 # end class PM_Value
 
+def _set_method (name, fct) :
+    fct.__doc__ = getattr (int, name).__doc__
+    try :
+        fct.__name__ = name
+    except TypeError :
+        pass
+    setattr (PM_Value, name, fct)
+# end def _set_method
+
 def _define_binop (name) :
     op = getattr (operator, name)
     def _ (self, r) :
@@ -109,36 +118,21 @@ def _define_binop (name) :
             ( op (self.value, getattr (r, 'value', r))
             , self.missing + getattr (r, 'missing', 0)
             )
-    _.__doc__ = getattr (int, name).__doc__
-    try :
-        _.__name__ = name
-    except TypeError :
-        pass
-    setattr (PM_Value, name, _)
+    _set_method (name, _)
 # end _define_binop
 
 def _define_unop (name) :
     op = getattr (operator, name)
     def _ (self) :
         return PM_Value (op (self.value), self.missing)
-    _.__doc__  = getattr (int, name).__doc__
-    try :
-        _.__name__ = name
-    except TypeError :
-        pass
-    setattr (PM_Value, name, _)
+    _set_method (name, _)
 # end _define_unop
 
 def _define_convop (func) :
     name = '__%s__' % func.__name__
     def _ (self) :
         return func (self.value)
-    _.__doc__  = getattr (int, name).__doc__
-    try :
-        _.__name__ = name
-    except TypeError :
-        pass
-    setattr (PM_Value, name, _)
+    _set_method (name, _)
 # end _define_convop
 
 for name in \

@@ -97,7 +97,7 @@ class PM_Value (autosuper) :
     # end def __cmp__
 
     def __nonzero__ (self) :
-        return not not self.value
+        return bool (self.value)
     # end def __nonzero__
 
 # end class PM_Value

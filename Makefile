@@ -1,6 +1,6 @@
 LASTRELASE:=$(shell if x=`lastrelease -d` ;then echo $$x ;else echo 'NO_TAG' ;fi)
 RSCLIB=__init__.py Config_File.py autosuper.py
-VERSION=rsclib/Version.py
+VERSION=rsclib/version.py
 SRC=Makefile setup.py \
     $(RSCLIB:%.py=rsclib/%.py)
 
@@ -15,5 +15,5 @@ dist: all
 	sed -e 's/RELEASE/$(LASTRELASE)/' $< > $@
 
 clean:
-	rm -f MANIFEST rsclib/Version.py
+	rm -f MANIFEST rsclib/version.py
 	rm -rf dist build

@@ -1,5 +1,5 @@
 LASTRELASE:=$(shell if x=`lastrelease -d` ;then echo $$x ;else echo 'NO_TAG' ;fi)
-RSCLIB=__init__.py Config_File.py autosuper.py
+RSCLIB=__init__.py config_file.py autosuper.py pm_value.py
 VERSION=rsclib/version.py
 SRC=Makefile setup.py \
     $(RSCLIB:%.py=rsclib/%.py)

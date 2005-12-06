@@ -21,7 +21,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-from rsclib.Version import VERSION
+from rsclib.version import VERSION
 from distutils.core import setup, Extension
 
 license     = 'GNU Library or Lesser General Public License (LGPL)'

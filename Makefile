@@ -1,4 +1,4 @@
-LASTRELEASE:=$(shell ../svntools/lastrelease rsclib)
+LASTRELEASE:=$(shell ../svntools/lastrelease)
 RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP4_Address.py
 VERSION=rsclib/Version.py
 SRC=Makefile setup.py \
@@ -12,7 +12,6 @@ dist: all
 	python setup.py sdist --formats=gztar,zip
 
 %.py: %.v
-	echo $(LASTRELEASE)
 	sed -e 's/RELEASE/$(LASTRELEASE)/' $< > $@
 
 clean:

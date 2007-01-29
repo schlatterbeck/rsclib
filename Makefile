@@ -1,4 +1,4 @@
-LASTRELASE:=$(shell if x=`lastrelease -d` ;then echo $$x ;else echo 'NO_TAG' ;fi)
+LASTRELEASE:=$(shell ../svntools/lastrelease rsclib)
 RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP4_Address.py
 VERSION=rsclib/Version.py
 SRC=Makefile setup.py \
@@ -12,7 +12,8 @@ dist: all
 	python setup.py sdist --formats=gztar,zip
 
 %.py: %.v
-	sed -e 's/RELEASE/$(LASTRELASE)/' $< > $@
+	echo $(LASTRELEASE)
+	sed -e 's/RELEASE/$(LASTRELEASE)/' $< > $@
 
 clean:
 	rm -f MANIFEST rsclib/Version.py

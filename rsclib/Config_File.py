@@ -36,13 +36,16 @@ class Config_File :
         for key in kw :
             self.dict [key] = kw [key]
         sys.path.insert (0, dir)
-        mod = __import__ (pkg)
-        for comp in pkg.split ('.') [1:] :
-            mod = getattr (mod, comp)
-        del (sys.path [0])
-        for key in mod.__dict__ :
-            if key [0] != '_' :
-                self [key] = mod.__dict__ [key]
+        try :
+            mod = __import__ (pkg)
+            for comp in pkg.split ('.') [1:] :
+                mod = getattr (mod, comp)
+            del (sys.path [0])
+            for key in mod.__dict__ :
+                if key [0] != '_' :
+                    self [key] = mod.__dict__ [key]
+        except ImportError :
+            pass
     # end def __init__
 
     def __getattr__ (self, key) :

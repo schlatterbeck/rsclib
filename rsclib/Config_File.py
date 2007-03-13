@@ -40,12 +40,12 @@ class Config_File :
             mod = __import__ (pkg)
             for comp in pkg.split ('.') [1:] :
                 mod = getattr (mod, comp)
-            del (sys.path [0])
             for key in mod.__dict__ :
                 if key [0] != '_' :
                     self [key] = mod.__dict__ [key]
         except ImportError :
             pass
+        del (sys.path [0])
     # end def __init__
 
     def __getattr__ (self, key) :

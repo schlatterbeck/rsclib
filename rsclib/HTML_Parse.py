@@ -14,8 +14,7 @@ def tag (name) :
     return "{%s}%s" % (namespace, name)
 
 class Page_Tree (autosuper) :
-    def __init__ \
-        (self, site = site, url = url, charset = 'latin1', verbose = 0) :
+    def __init__ (self, site, url, charset = 'latin1', verbose = 0) :
         self.site    = site
         self.url     = '/'.join ((site, url))
         self.charset = charset
@@ -26,30 +25,28 @@ class Page_Tree (autosuper) :
     # end def __init__
 
     def as_string (self, n = None, indent = 0, with_text = False) :
-        s = ["    " * indent]
+        s = [u"    " * indent]
         if n is None :
             n = self.tree.getroot ()
         s.append (n.tag)
         for attr in sorted (n.attrib.keys ()) :
-            s.append (' %s="%s"' % (attr, n.attrib [attr]))
+            s.append (u' %s="%s"' % (attr, n.attrib [attr]))
             if with_text :
                 if n.text :
-                    s.append (" TEXT: %s" % n.text)
+                    s.append (u" TEXT: %s" % n.text)
                 if n.tail :
-                    s.append (" TAIL: %s" % n.tail)
-        except UnicodeEncodeError :
-            pass
+                    s.append (u" TAIL: %s" % n.tail)
         return ''.join (s).encode (self.charset)
     # end def as_string
 
     def tree_as_string (self, n = None, indent = 0, with_text = False) :
         if n is None :
             n = self.tree.getroot ()
-        s = [self.as_string (n, with_text = with_text)]
+        s = [self.as_string (n, indent = indent, with_text = with_text)]
         for sub in n :
             s.append \
                 (self.tree_as_string (sub, indent + 1, with_text = with_text))
-        return ''.join (s)
+        return '\n'.join (s)
     # end def tree_as_string
 
     def parse (self) :

@@ -1,9 +1,9 @@
 #!/usr/bin/python2.4
 
-from elementtidy      import TidyHTMLTreeBuilder
-from urllib           import urlopen
-from StringIO         import StringIO
-from rsclib.autosuper import autosuper
+from urllib                          import urlopen
+from elementtidy.TidyHTMLTreeBuilder import TidyHTMLTreeBuilder
+from elementtree.ElementTree         import ElementTree
+from rsclib.autosuper                import autosuper
 
 namespace   = 'http://www.w3.org/1999/xhtml'
 
@@ -12,7 +12,13 @@ def tag (name) :
 
 class Page_Tree (autosuper) :
     def __init__ \
-        (self, site = None, url = None, charset = 'latin1', verbose = 0) :
+        ( self
+        , site         = None
+        , url          = None
+        , charset      = 'latin1'
+        , verbose      = 0
+        , html_charset = None
+        ) :
         if site :
             self.site = site
         if url :
@@ -21,7 +27,9 @@ class Page_Tree (autosuper) :
         self.charset = charset
         self.verbose = verbose
         text         = urlopen (self.url).read ().replace ('\0', '')
-        self.tree    = TidyHTMLTreeBuilder.parse (StringIO (text))
+        builder      = TidyHTMLTreeBuilder (encoding = html_charset)
+        builder.feed (text)
+        self.tree    = ElementTree (builder.close ())
         self.parse ()
     # end def __init__
 

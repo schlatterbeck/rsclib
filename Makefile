@@ -1,5 +1,6 @@
 LASTRELEASE:=$(shell ../svntools/lastrelease)
-RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP4_Address.py
+RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP4_Address.py \
+    HTML_Parse.py PDF_Parse.py
 VERSION=rsclib/Version.py
 SRC=Makefile setup.py \
     $(RSCLIB:%.py=rsclib/%.py)

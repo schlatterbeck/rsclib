@@ -1,8 +1,5 @@
 #!/usr/bin/python2.4
 
-import csv
-import re
-import sys
 from elementtidy      import TidyHTMLTreeBuilder
 from urllib           import urlopen
 from StringIO         import StringIO
@@ -14,9 +11,13 @@ def tag (name) :
     return "{%s}%s" % (namespace, name)
 
 class Page_Tree (autosuper) :
-    def __init__ (self, site, url, charset = 'latin1', verbose = 0) :
-        self.site    = site
-        self.url     = '/'.join ((site, url))
+    def __init__ \
+        (self, site = None, url = None, charset = 'latin1', verbose = 0) :
+        if site :
+            self.site = site
+        if url :
+            self.url  = url
+        self.url     = '/'.join ((self.site, self.url))
         self.charset = charset
         self.verbose = verbose
         text         = urlopen (self.url).read ().replace ('\0', '')

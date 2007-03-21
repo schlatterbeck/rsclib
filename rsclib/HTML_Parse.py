@@ -31,11 +31,11 @@ class Page_Tree (autosuper) :
         s.append (n.tag)
         for attr in sorted (n.attrib.keys ()) :
             s.append (u' %s="%s"' % (attr, n.attrib [attr]))
-            if with_text :
-                if n.text :
-                    s.append (u" TEXT: %s" % n.text)
-                if n.tail :
-                    s.append (u" TAIL: %s" % n.tail)
+        if with_text :
+            if n.text :
+                s.append (u" TEXT: %s" % n.text)
+            if n.tail :
+                s.append (u" TAIL: %s" % n.tail)
         return ''.join (s).encode (self.charset)
     # end def as_string
 

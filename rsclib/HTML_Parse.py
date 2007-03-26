@@ -1,6 +1,7 @@
 #!/usr/bin/python2.4
 
 import urllib
+from   time                            import sleep
 from   elementtidy.TidyHTMLTreeBuilder import TidyHTMLTreeBuilder
 from   elementtree.ElementTree         import ElementTree
 from   rsclib.autosuper                import autosuper
@@ -40,7 +41,7 @@ class Page_Tree (autosuper) :
             self.html_charset = html_charset
         # By default avoid overloading a web-site
         if self.delay >= 1 :
-            time.sleep (self.delay)
+            sleep (self.delay)
             self.set_useragent ('rsclib/HTML_Parse %s' % VERSION)
         text         = urllib.urlopen (self.url).read ().replace ('\0', '')
         builder      = TidyHTMLTreeBuilder (encoding = self.html_charset)

@@ -42,7 +42,7 @@ class Page_Tree (autosuper) :
         # By default avoid overloading a web-site
         if self.delay >= 1 :
             sleep (self.delay)
-            self.set_useragent ('rsclib/HTML_Parse %s' % VERSION)
+            set_useragent ('rsclib/HTML_Parse %s' % VERSION)
         text         = urllib.urlopen (self.url).read ().replace ('\0', '')
         builder      = TidyHTMLTreeBuilder (encoding = self.html_charset)
         builder.feed (text)

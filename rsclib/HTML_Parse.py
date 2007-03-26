@@ -19,6 +19,8 @@ def set_useragent (ua) :
     urllib._urlopener = AppURLopener()
 # end def set_useragent
 
+translation = ''.join (chr (x) for x in range (256))
+
 class Page_Tree (autosuper) :
     html_charset = 'latin1'
     delay = 1
@@ -43,7 +45,8 @@ class Page_Tree (autosuper) :
         if self.delay >= 1 :
             sleep (self.delay)
             set_useragent ('rsclib/HTML_Parse %s' % VERSION)
-        text         = urllib.urlopen (self.url).read ().replace ('\0', '')
+        text         = urllib.urlopen (self.url).read ().translate \
+            (translation, '\0\015')
         builder      = TidyHTMLTreeBuilder (encoding = self.html_charset)
         builder.feed (text)
         self.tree    = ElementTree (builder.close ())

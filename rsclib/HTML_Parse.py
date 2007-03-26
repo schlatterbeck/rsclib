@@ -39,7 +39,7 @@ class Page_Tree (autosuper) :
         if html_charset :
             self.html_charset = html_charset
         # By default avoid overloading a web-site
-        if self.delay > = 1 :
+        if self.delay >= 1 :
             time.sleep (self.delay)
             self.set_useragent ('rsclib/HTML_Parse %s' % VERSION)
         text         = urllib.urlopen (self.url).read ().replace ('\0', '')

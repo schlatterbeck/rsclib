@@ -31,6 +31,7 @@ class Page_Tree (autosuper) :
         , charset      = 'latin1'
         , verbose      = 0
         , html_charset = None
+        , ** kw
         ) :
         if site :
             self.site = site

@@ -98,7 +98,7 @@ class Page_Tree (autosuper) :
         if node.text :
             text.append (node.text)
         for n in node :
-            text.append (self.get_text (n))
+            text.append (self.get_text (n, strip = False))
         if node.tail :
             text.append (node.tail)
         text = ''.join (text)

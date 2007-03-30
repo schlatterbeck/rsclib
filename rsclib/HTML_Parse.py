@@ -89,6 +89,20 @@ class Page_Tree (autosuper) :
                 elem.tag = elem.tag [length:]
     # end def convert_to_html
 
+    def get_text (self, node = None) :
+        """ Return all text below starting node n (default root) """
+        if node is None :
+            node = self.tree.getroot ()
+        text = []
+        if node.text :
+            text.append (node.text)
+        for n in node :
+            text.append (self.get_text (n))
+        if node.tail :
+            text.append (node.tail)
+        return ''.join (text)
+    # end def get_text
+
     def parse (self) :
         raise NotImplementedError
     # end def parse

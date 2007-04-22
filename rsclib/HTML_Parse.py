@@ -23,7 +23,8 @@ translation = ''.join (chr (x) for x in range (256))
 
 class Page_Tree (autosuper) :
     html_charset = 'latin1'
-    delay = 1
+    delay   = 1
+    retries = 10
     def __init__ \
         ( self
         , site         = None
@@ -31,6 +32,7 @@ class Page_Tree (autosuper) :
         , charset      = 'latin1'
         , verbose      = 0
         , html_charset = None
+        , data         = None
         , ** kw
         ) :
         if site :
@@ -40,14 +42,24 @@ class Page_Tree (autosuper) :
         self.url     = '/'.join ((self.site, self.url))
         self.charset = charset
         self.verbose = verbose
+        self.retry   = 0
         if html_charset :
             self.html_charset = html_charset
         # By default avoid overloading a web-site
         if self.delay >= 1 :
             sleep (self.delay)
             set_useragent ('rsclib/HTML_Parse %s' % VERSION)
-        text         = urllib.urlopen (self.url).read ().translate \
-            (translation, '\0\015')
+        args = []
+        if data is not None :
+            args = [data]
+        f = None
+        while not f and self.retry < self.retries :
+            try :
+                f = urllib.urlopen (self.url, *args)
+                break
+            except AttributeError :
+                self.retry += 1
+        text         = f.read ().translate (translation, '\0\015')
         builder      = TidyHTMLTreeBuilder (encoding = self.html_charset)
         builder.feed (text)
         self.tree    = ElementTree (builder.close ())

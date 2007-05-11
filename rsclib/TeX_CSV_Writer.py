@@ -21,12 +21,25 @@
 # ****************************************************************************
 
 class TeX_CSV_Writer :
-    """Implement csv functionality for TeX readers -- quote TeX-specific
-       characters, use '{' and '}' for quoting fields containing special
-       characters.
+    """ Implement csv functionality for TeX readers -- quote TeX-specific
+        characters, use '{' and '}' for quoting fields containing special
+        characters.
+
+        >>> from StringIO import StringIO
+        >>> io = StringIO ()
+        >>> x = TeX_CSV_Writer (io)
+        >>> x.writerow (['1&%$#[]{}\\\\','2\\n3'])
+        >>> io.getvalue ()
+        '{1\\\\&\\\\%\\\\$\\\\#\\\\[\\\\]\\\\{\\\\}\\\\backslash};2\\\\\\\\3\\n'
+        >>> io = StringIO ()
+        >>> x = TeX_CSV_Writer (io)
+        >>> x.writerow (['3','4'])
+        >>> x.writerow (['5','6\\n7'])
+        >>> io.getvalue ()
+        '3;4\\n5;6\\\\\\\\7\\n'
     """
 
-    quote = ['#{}[]$&']
+    quote = dict.fromkeys ('#{}[]$&%')
     replace = \
         { '\\' : '\\backslash'
         , '\n' : '\\\\'

@@ -26,7 +26,7 @@ class TeX_CSV_Writer :
        characters.
     """
 
-    quote = ['#{}[]']
+    quote = ['#{}[]$&']
     replace = \
         { '\\' : '\\backslash'
         , '\n' : '\\\\'

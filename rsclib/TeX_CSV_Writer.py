@@ -20,7 +20,9 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-class TeX_CSV_Writer :
+from rsclib.autosuper import autosuper
+
+class TeX_CSV_Writer (autosuper) :
     """ Implement csv functionality for TeX readers -- quote TeX-specific
         characters, use '{' and '}' for quoting fields containing special
         characters.
@@ -39,8 +41,12 @@ class TeX_CSV_Writer :
         '3;4\\n5;6\\\\\\\\7\\n'
     """
 
-    quote = dict.fromkeys ('#{}[]$&%')
-    replace = \
+    quote      = \
+        { 'german'  : ('"`',  '"\'')
+        , 'english' : ('\\`', '\\\'')
+        }
+    need_quote = dict.fromkeys ('#{}[]$&%')
+    replace    = \
         { '\\' : '\\backslash'
         , '\n' : '\\\\'
         }
@@ -51,23 +57,29 @@ class TeX_CSV_Writer :
         , delimiter      = ';'
         , quotechar      = '\\'
         , lineterminator = '\n'
+        , language       = 'german'
         , **kw
         ) :
         self.file           = file
         self.quotechar      = quotechar
         self.delimiter      = delimiter
         self.lineterminator = lineterminator
+        self.language       = language
     # end def __init__
 
     def writerow (self, columns) :
         newcols = []
         for col in columns :
-            delimit = False
-            newcol  = []
+            quote_idx = False
+            delimit   = False
+            newcol    = []
             for c in col :
-                if c == self.quotechar :
+                if c == self.delimiter :
                     delimit = True
-                if c in self.quote :
+                if c == '"' :
+                    newcol.append (self.quote [self.language][quote_idx])
+                    quote_idx = not quote_idx
+                elif c in self.need_quote :
                     newcol.append (self.quotechar + c)
                 elif c in self.replace :
                     newcol.append (self.replace [c])
@@ -79,5 +91,16 @@ class TeX_CSV_Writer :
             newcols.append (result)
         self.file.write (self.delimiter.join (newcols))
         self.file.write (self.lineterminator)
+    # end def writerow
+# end class TeX_CSV_Writer
+
+class TeX_CSV_Dict_Writer (TeX_CSV_Writer) :
+    def __init__ (self, file, fields, ** kw) :
+        self.__super.__init__ (file, ** kw)
+        self.fields = fields
+    # end def __init__
+
+    def writerow (self, rowdict) :
+        self.__super.writerow (rowdict [k] for k in self.fields)
     # end def writerow
 # end class TeX_CSV_Writer

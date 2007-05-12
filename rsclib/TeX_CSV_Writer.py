@@ -20,6 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+import re
 from rsclib.autosuper import autosuper
 
 class TeX_CSV_Writer (autosuper) :
@@ -32,13 +33,19 @@ class TeX_CSV_Writer (autosuper) :
         >>> x = TeX_CSV_Writer (io)
         >>> x.writerow (['1&%$#[]{}\\\\','2\\n3'])
         >>> io.getvalue ()
-        '{1\\\\&\\\\%\\\\$\\\\#\\\\[\\\\]\\\\{\\\\}\\\\backslash};2\\\\\\\\3\\n'
+        '1\\\\&\\\\%\\\\$\\\\#\\\\[\\\\]\\\\{\\\\}\\\\backslash;2\\\\\\\\3\\n'
         >>> io = StringIO ()
         >>> x = TeX_CSV_Writer (io)
         >>> x.writerow (['3','4'])
+        >>> x.writerow (['3;4','4;5'])
         >>> x.writerow (['5','6\\n7'])
         >>> io.getvalue ()
-        '3;4\\n5;6\\\\\\\\7\\n'
+        '3;4\\n{3;4};{4;5}\\n5;6\\\\\\\\7\\n'
+        >>> io = StringIO ()
+        >>> x = TeX_CSV_Writer (io)
+        >>> x.writerow (['1-2', '1--2', '1 -- 2', '1 - 2', 'a - b', 'a-b'])
+        >>> io.getvalue ()
+        '1--2;1--2;1--2;1--2;a -- b;a-b\\n'
     """
 
     quote      = \
@@ -50,6 +57,7 @@ class TeX_CSV_Writer (autosuper) :
         { '\\' : '\\backslash'
         , '\n' : '\\\\'
         }
+    numpattern = re.compile (r'(\d)[ ]*--?[ ]*(\d)')
 
     def __init__ \
         ( self
@@ -79,6 +87,8 @@ class TeX_CSV_Writer (autosuper) :
                 if c == '"' :
                     newcol.append (self.quote [self.language][quote_idx])
                     quote_idx = not quote_idx
+                elif c == '/' :
+                    newcol.append ('\\discretionary{/}{}{/}')
                 elif c in self.need_quote :
                     newcol.append (self.quotechar + c)
                 elif c in self.replace :
@@ -86,6 +96,9 @@ class TeX_CSV_Writer (autosuper) :
                 else :
                     newcol.append (c)
             result = ''.join (newcol)
+            # fix broken dashes:
+            result = result.replace (' - ', ' -- ')
+            result = self.numpattern.sub (r'\1--\2', result)
             if delimit :
                 result = '{' + result + '}'
             newcols.append (result)

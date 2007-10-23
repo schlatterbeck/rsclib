@@ -42,6 +42,18 @@ class Mail (autosuper) :
                             return found
         return found
     # end def grep
+
+    def __getattr__ (self, name) :
+        """
+            Delegate everything to our msg
+        """
+        if not name.startswith ('__') :
+            result = getattr (self.msg, name)
+            setattr (self, name, result)
+            return result
+        raise AttributeError, name
+    # end def __getattr__
+
 # end class Mail
 
 if __name__ == "__main__" :

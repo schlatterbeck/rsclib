@@ -29,7 +29,7 @@ class Mail (autosuper) :
         self.msg    = message_from_file (fd)
     # end def __init__
 
-    def grep (self, pattern) :
+    def grep (self, pattern, stop_on_match = False) :
         pattern = re.compile (pattern)
         found = []
         for part in self.msg.walk () :
@@ -38,6 +38,8 @@ class Mail (autosuper) :
                 for line in payload.split ('\n') :
                     if pattern.search (line) :
                         found.append (line)
+                        if stop_on_match :
+                            return found
         return found
     # end def grep
 # end class Mail

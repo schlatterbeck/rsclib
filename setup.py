@@ -37,6 +37,7 @@ setup \
     , author_email     = "rsc@runtux.com"
     , packages         = ['rsclib']
     , platforms        = 'Any'
+    , url              = "http://rsclib.sourceforge.net/"
     , classifiers      = \
         [ 'Development Status :: 3 - Alpha'
         , 'License :: OSI Approved :: ' + license

@@ -1,0 +1,45 @@
+.. image:: http://sflogo.sourceforge.net/sflogo.php?group_id=212955&type=7
+    :height: 62
+    :width: 210
+    :alt: SourceForge.net Logo
+    :target: http://sourceforge.net
+
+rsclib: Utility Routines
+========================
+
+The library includes various utility modules used in other projects.
+
+ - Autosuper magic (originally from Guido van Rossums announcement of
+   Python 2.2): For refactoring it's a good idea that each class knows
+   its parents, achieved by adding a the __super attribute. Use as,
+   e.g., self.__super.method for calling method in the parent.
+ - Config_File for python-syntax configuration files used in several of
+   my projects.
+ - HTML_Parse for opening and parsing URLs
+ - PDF_Parse for opening and parsing PDFs, needs pdftotext installed
+ - PM_Value: Possibly missing value, encapsulate a number which may be
+   missing and associated arithmetics.
+ - grepmime: search for pattern in email attachments (even if these are
+   encoded)
+ - Tex_CSV_Writer: Write CVS files in a syntax that can be parsed by
+   TeX. Implements same interface as the csv module. Only implements
+   writing.
+
+Resources
+---------
+
+Download the source at https://sourceforge.net/projects/rsclib/
+and install using the standard python setup, e.g.::
+
+ python setup.py install --prefix=/usr/local
+
+
+Changes
+-------
+
+Version 0.7: Initial freshmeat announcement
+
+Small Python library with various things such as Configuration file
+parsing (in Python syntax), HTML and PDF parsing.
+
+ - First Release version

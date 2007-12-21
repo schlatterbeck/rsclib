@@ -2,8 +2,16 @@ LASTRELEASE:=$(shell ../svntools/lastrelease -n)
 RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP4_Address.py \
     HTML_Parse.py PDF_Parse.py TeX_CSV_Writer.py
 VERSION=rsclib/Version.py
-SRC=Makefile setup.py \
-    $(RSCLIB:%.py=rsclib/%.py)
+SRC=Makefile setup.py $(RSCLIB:%.py=rsclib/%.py) \
+    MANIFEST.in README README.html default.css
+
+USERNAME=schlatterbeck
+PROJECT=rsclib
+PACKAGE=rsclib
+CHANGES=changes
+NOTES=notes
+HOSTNAME=shell.sourceforge.net
+PROJECTDIR=/home/groups/r/rs/rsclib/htdocs
 
 all: $(VERSION)
 
@@ -15,6 +23,14 @@ dist: all
 %.py: %.v
 	sed -e 's/RELEASE/$(LASTRELEASE)/' $< > $@
 
+README.html: README default.css
+	rst2html --stylesheet=default.css $< > $@
+
+default.css: ../../content/html/stylesheets/default.css
+	cp ../../content/html/stylesheets/default.css .
+
 clean:
 	rm -f MANIFEST rsclib/Version.py
 	rm -rf dist build
+
+include ../make/Makefile-sf

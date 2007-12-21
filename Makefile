@@ -30,7 +30,7 @@ default.css: ../../content/html/stylesheets/default.css
 	cp ../../content/html/stylesheets/default.css .
 
 clean:
-	rm -f MANIFEST rsclib/Version.py
+	rm -f MANIFEST rsclib/Version.py notes changes default.css README.html
 	rm -rf dist build
 
 include ../make/Makefile-sf

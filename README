@@ -15,12 +15,15 @@ The library includes various utility modules used in other projects.
    e.g., self.__super.method for calling method in the parent.
  - Config_File for python-syntax configuration files used in several of
    my projects.
+ - grepmime: search for pattern in email attachments (even if these are
+   encoded)
  - HTML_Parse for opening and parsing URLs
+ - Math implements Euclids algorithm for greatest common divisor and as
+   a by-product the least common multiple
  - PDF_Parse for opening and parsing PDFs, needs pdftotext installed
  - PM_Value: Possibly missing value, encapsulate a number which may be
    missing and associated arithmetics.
- - grepmime: search for pattern in email attachments (even if these are
-   encoded)
+ - Rational: Implementation of Rational numbers
  - Tex_CSV_Writer: Write CVS files in a syntax that can be parsed by
    TeX. Implements same interface as the csv module. Only implements
    writing.

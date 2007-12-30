@@ -34,6 +34,12 @@ class Rational (autosuper) :
         3
         >>> R (21, 6) / R (7, 6)
         3
+        >>> R (1, 8) * R (4)
+        1 / 2
+        >>> R (1, 8) * 4
+        1 / 2
+        >>> R (0, 4711) * 10
+        0
     """
     def __init__ (self, p, q = 1) :
         if isinstance (p, Rational) :
@@ -45,7 +51,9 @@ class Rational (autosuper) :
             raise ValueError ("Unsupported operand type: %s" % type (p))
         if q == 0 :
             raise ZeroDivisionError ("integer division by zero")
-        if isinstance (q, int) or isinstance (q, long) :
+        if self.p == 0 :
+            self.q = 1
+        elif isinstance (q, int) or isinstance (q, long) :
             if q < 0 :
                 self.p = - self.p
             self.q  = abs (q)

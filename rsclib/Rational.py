@@ -27,17 +27,17 @@ class Rational (autosuper) :
     """ Rational number implemented as quotient of two (long) integers
         >>> R = Rational
         >>> R (21, 6) - R (7, 6)
-        7 / 3
+        7/3 = 2 1/3
         >>> R (21, 6) + R (7, 6)
-        14 / 3
+        14/3 = 4 2/3
         >>> R (21, 6) * R (6, 7)
         3
         >>> R (21, 6) / R (7, 6)
         3
         >>> R (1, 8) * R (4)
-        1 / 2
+        1/2
         >>> R (1, 8) * 4
-        1 / 2
+        1/2
         >>> R (0, 4711) * 10
         0
         >>> R (1,2) / R (0)
@@ -105,7 +105,10 @@ class Rational (autosuper) :
     def __repr__ (self) :
         if self.q == 1 :
             return "%d" % self.p
-        return "%d / %d" % (self.p, self.q)
+        g = ""
+        if self.p > self.q :
+            g = " = %d %d/" % divmod (self.p, self.q) + '%d' % self.q
+        return "%d/%d%s" % (self.p, self.q, g)
     # end def __repr__
 
     __str__ = __repr__

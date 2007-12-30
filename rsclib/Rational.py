@@ -40,6 +40,14 @@ class Rational (autosuper) :
         1 / 2
         >>> R (0, 4711) * 10
         0
+        >>> R (1,2) / R (0)
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: integer division by zero
+        >>> R (1,0)
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: integer division by zero
     """
     def __init__ (self, p, q = 1) :
         if isinstance (p, Rational) :

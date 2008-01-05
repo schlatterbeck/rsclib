@@ -70,6 +70,10 @@ class Rational (autosuper) :
         0L
         >>> long (R (4, 3))
         1L
+        >>> bool (R (3, 4))
+        True
+        >>> bool (R (0, 2))
+        False
     """
     def __init__ (self, p, q = 1) :
         if isinstance (p, Rational) :
@@ -135,6 +139,10 @@ class Rational (autosuper) :
     def __neg__ (self) :
         return self.__class__ (-self.p, self.q)
     # end def __neg__
+
+    def __nonzero__ (self) :
+        return bool (self.p)
+    # end def __nonzero__
 
     def __radd__ (self, other) :
         return self + other

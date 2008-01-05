@@ -48,6 +48,28 @@ class Rational (autosuper) :
         Traceback (most recent call last):
             ...
         ZeroDivisionError: integer division by zero
+        >>> R (12) == R (12, 1)
+        True
+        >>> R (3, 4) < R (5, 4)
+        True
+        >>> R (3, 4) >= R (5, 4)
+        False
+        >>> 2 + R (3, 4)
+        11/4 = 2 3/4
+        >>> 2 - R (3, 4)
+        5/4 = 1 1/4
+        >>> 2 * R (3, 4)
+        3/2 = 1 1/2
+        >>> 2 / R (3, 4)
+        8/3 = 2 2/3
+        >>> int (R (3, 4))
+        0
+        >>> int (R (4, 3))
+        1
+        >>> long (R (3, 4))
+        0L
+        >>> long (R (4, 3))
+        1L
     """
     def __init__ (self, p, q = 1) :
         if isinstance (p, Rational) :
@@ -82,6 +104,10 @@ class Rational (autosuper) :
         return self.__class__ (p, q)
     # end def __add__ (self, other)
 
+    def __cmp__ (self, other) :
+        return (self - other).p
+    # end def __cmp__
+
     def __div__ (self, other) :
         if not isinstance (other, self.__class__) :
             other = self.__class__ (other)
@@ -89,6 +115,14 @@ class Rational (autosuper) :
         q = self.q * other.p
         return self.__class__ (p, q)
     # end def __div__
+
+    def __int__ (self) :
+        return int (self.p / self.q)
+    # end def __int__
+
+    def __long__ (self) :
+        return long (self.p / self.q)
+    # end def __long__
 
     def __mul__ (self, other) :
         if not isinstance (other, self.__class__) :
@@ -102,6 +136,14 @@ class Rational (autosuper) :
         return self.__class__ (-self.p, self.q)
     # end def __neg__
 
+    def __radd__ (self, other) :
+        return self + other
+    # end def __radd__
+
+    def __rdiv__ (self, other) :
+        return self.__class__ (other) / self
+    # end def __rdiv__
+
     def __repr__ (self) :
         if self.q == 1 :
             return "%d" % self.p
@@ -110,6 +152,14 @@ class Rational (autosuper) :
             g = " = %d %d/" % divmod (self.p, self.q) + '%d' % self.q
         return "%d/%d%s" % (self.p, self.q, g)
     # end def __repr__
+
+    def __rmul__ (self, other) :
+        return self * other
+    # end def __rmul__
+
+    def __rsub__ (self, other) :
+        return self.__class__ (other) - self
+    # end def __rsub__
 
     __str__ = __repr__
 

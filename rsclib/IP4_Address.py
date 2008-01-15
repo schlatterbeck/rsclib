@@ -192,3 +192,17 @@ class IP4_Address :
     # end def _from_string
 
 # end class IP4_Address
+
+if __name__ == "__main__" :
+
+    import sys
+
+    def interfaces (ip, mask) :
+        x = IP4_Address (ip, mask)
+        print "address %s" % ip
+        print "netmask %s" % x.subnet_mask ()
+        print "network %s" % x.net ()
+        print "broadcast %s" % x.broadcast_address ()
+    # end def interfaces
+
+    interfaces (sys.argv [1], int (sys.argv [2]))

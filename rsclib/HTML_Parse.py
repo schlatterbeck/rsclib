@@ -19,12 +19,14 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-import urllib
+import urllib2
+import cookielib
 from   time                            import sleep
 from   elementtidy.TidyHTMLTreeBuilder import TidyHTMLTreeBuilder
 from   elementtree.ElementTree         import ElementTree
 from   rsclib.autosuper                import autosuper
 from   rsclib.Version                  import VERSION
+from   urllib                          import urlencode
 
 namespace   = 'http://www.w3.org/1999/xhtml'
 
@@ -32,10 +34,13 @@ def tag (name) :
     return "{%s}%s" % (namespace, name)
 
 def set_useragent (ua) :
-    """ Set the useragent used for retrieving urls with urlopen """
-    class AppURLopener (urllib.FancyURLopener) :
-        version = ua
-    urllib._urlopener = AppURLopener()
+    """ Set the useragent used for retrieving urls with urlopen2
+        Deprecated: Use
+        pt = Page_Tree
+        pt.set_useragent (ua)
+        instead
+    """
+    Page_Tree.headers ['User-Agent'] = ua
 # end def set_useragent
 
 translation = ''.join (chr (x) for x in range (256))
@@ -44,6 +49,8 @@ class Page_Tree (autosuper) :
     html_charset = 'latin1'
     delay   = 1
     retries = 10
+    headers = {}
+
     def __init__ \
         ( self
         , site         = None
@@ -52,6 +59,9 @@ class Page_Tree (autosuper) :
         , verbose      = 0
         , html_charset = None
         , data         = None
+        , post         = None
+        , username     = None
+        , password     = None
         , ** kw
         ) :
         if site :
@@ -62,19 +72,27 @@ class Page_Tree (autosuper) :
         self.charset = charset
         self.verbose = verbose
         self.retry   = 0
+        self.headers = self.headers # copy from class
         if html_charset :
             self.html_charset = html_charset
         # By default avoid overloading a web-site
         if self.delay >= 1 :
             sleep (self.delay)
             set_useragent ('rsclib/HTML_Parse %s' % VERSION)
-        args = []
-        if data is not None :
-            args = [data]
-        f = None
+        cj = cookielib.LWPCookieJar ()
+        op = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+        if username and password :
+            password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm ()
+            password_mgr.add_password (None, self.site, username, password)
+            handler = urllib2.HTTPBasicAuthHandler (password_mgr)
+            op.add_handler (handler)
+        if not data and post :
+            data = urlencode (post)
+        rq = urllib2.Request (self.url, data, self.headers)
+        f  = None
         while not f and self.retry < self.retries :
             try :
-                f = urllib.urlopen (self.url, *args)
+                f = op.open (rq) # urlopen
                 break
             except AttributeError :
                 self.retry += 1
@@ -82,6 +100,7 @@ class Page_Tree (autosuper) :
         builder      = TidyHTMLTreeBuilder (encoding = self.html_charset)
         builder.feed (text)
         self.tree    = ElementTree (builder.close ())
+        self.cookies = cj
         self.parse ()
     # end def __init__
 
@@ -139,6 +158,17 @@ class Page_Tree (autosuper) :
     # end def get_text
 
     def parse (self) :
-        raise NotImplementedError
+        """ If you want to do more here, this should be overridden in a
+            derived class
+        """
+        pass
     # end def parse
+
+    def set_header (self, key, val) :
+        self.headers [key] = val
+    # end def set_header
+
+    def set_useragent (self, ua) :
+        self.set_header ('User-Agent', ua)
+    # end def set_useragent
 # end class Page_Tree

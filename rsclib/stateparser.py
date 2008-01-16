@@ -71,7 +71,7 @@ class Transition (Debug) :
         pstate = self.state.parser.state
         line   = self.state.parser.line
         if self.action :
-            new = self.action (match, self.new_state)
+            new = self.action (self.state, self.new_state, match)
         new    = new or self.new_state
         self.debug \
             ( 1
@@ -161,13 +161,26 @@ class Parser (Debug) :
             self.state  = self.state.match ()
     # end def parse
 
-    def push (self, match = None, new_state = None) :
-        self.stack.append (self.state)
+    def push (self, state, new_state = None, match = None) :
+        self.stack.append (state)
+        stack = [s.name for s in self.stack]
+        self.debug (3, "push: %s, stack: %s" % (new_state.name, stack))
     # end def push
     
-    def pop (self, match = None, new_state = None) :
+    def pop (self, state = None, new_state = None, match = None) :
+        self.debug \
+            ( 3
+            , "before pop: %s" % self.state.name
+            , "stack:"
+            , [s.name for s in self.stack]
+            )
         state = self.stack.pop ()
-        self.debug (3, "pop: %s" % state.name)
+        self.debug \
+            ( 3
+            , "after  pop: %s" % state.name
+            , "stack:"
+            , [s.name for s in self.stack]
+            )
         self.debug (3, "stack:", [s.name for s in self.stack])
         state = state.match ()
         return state

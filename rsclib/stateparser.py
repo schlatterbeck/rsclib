@@ -63,29 +63,31 @@ class Transition (Debug) :
         self.verbose   = verbose
     # end def __init__
 
-    def _set_state (self, match = None) :
-        new  = None
-        line = self.state.parser.line
+    def _transition (self, match = None) :
+        new    = None
+        pstate = self.state.parser.state
+        line   = self.state.parser.line
         if self.action :
             new = self.action (match)
-        new = new or self.new_state
+        new    = new or self.new_state
         self.debug \
             ( 1
-            , "state: %s new: %s match: %s" % (self.state.name, new.name, line)
+            , "state: %s new: %s match: %s" % (pstate.name, new.name, line)
             )
         return new
-    # end def _set_state
+    # end def _transition
 
     def match (self) :
         line = self.state.parser.line
         if self.pattern is None or line == self.pattern :
             self.debug (2, "match:", self.pattern)
-            return self._set_state ()
+            return self._transition ()
         if not isinstance (self.pattern, str) :
             m = self.pattern.search (line)
             if m :
-                return self._set_state (m)
-        self.debug (3, "No match:", line)
+                self.debug (2, "match: <regex>")
+                return self._transition (m)
+        self.debug (4, "state: %s: No match: %s" % (self.state.name, line))
         return None
     # end def match
 
@@ -152,7 +154,7 @@ class Parser (Debug) :
 
     def parse (self, file) :
         for n, line in enumerate (file) :
-            self.line   = line.strip ()
+            self.line   = line.rstrip ()
             self.lineno = n + 1
             self.state  = self.state.match ()
     # end def parse
@@ -163,7 +165,8 @@ class Parser (Debug) :
     
     def pop (self, match = None) :
         state = self.stack.pop ()
-        self.debug (1, "pop: %s" % state)
+        self.debug (3, "pop: %s" % state.name)
+        self.debug (3, "stack:", [s.name for s in self.stack])
         state = state.match ()
         return state
     # end def pop

@@ -59,8 +59,11 @@ class Transition (Debug) :
         self.pattern   = pattern
         self.state     = state
         self.new_state = new_state
-        self.action    = action
         self.verbose   = verbose
+        self.act_name  = action
+        if action :
+            action = getattr (self.state.parser, action)
+        self.action    = action
     # end def __init__
 
     def _transition (self, match = None) :
@@ -72,7 +75,8 @@ class Transition (Debug) :
         new    = new or self.new_state
         self.debug \
             ( 1
-            , "state: %s new: %s match: %s" % (pstate.name, new.name, line)
+            , "state: %s new: %s call: %s match: %s"
+            % (pstate.name, new.name, self.act_name, line)
             )
         return new
     # end def _transition
@@ -145,8 +149,6 @@ class Parser (Debug) :
             new = self.states [newname]
         if not self.state :
             self.state = state
-        if action :
-            action = getattr (self, action)
         t = Transition \
             (pattern, state, new, action, verbose = self.verbose)
         state.append (t)

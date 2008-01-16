@@ -1,0 +1,171 @@
+#!/usr/bin/python
+# -*- coding: iso-8859-1 -*-
+# Copyright (C) 2007 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Reichergasse 131, A-3411 Weidling.
+# Web: http://www.runtux.com Email: office@runtux.com
+# All rights reserved
+# ****************************************************************************
+# This library is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Library General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# ****************************************************************************
+
+import re
+import sys
+from rsclib.autosuper import autosuper
+
+# rc = re.compile
+#State                 Pattern               new State         Action
+#Matrix = \
+#[ ["init",            "Groups",             "hostgroup_start" None]
+#, ["init",            None,                 "init"            None]
+#, ["hostgroup_start", rc ("=*"),            "hostgroup"       None]
+#, ["hostgroup"        rc ("([^:]*):$"),     "hostgroup_entry" None]
+#...
+#]
+
+class Parse_Error (StandardError) : pass
+
+class Debug (autosuper) :
+    def debug (self, level, * msg) :
+        if self.verbose >= level :
+            print >> sys.stderr, ' '.join (str (x) for x in msg)
+            sys.stderr.flush ()
+    # end def debug
+# end class Debug
+
+class Transition (Debug) :
+    """ Represents one line in a state-change diagram. If matched,
+        applies the defined action (if any) and returns new state.
+
+        A match can be either None (which matches everything), a string
+        (which matches if it is identical to the matched token) or a
+        regular expression.
+
+        Action methods get the matched line, and in case of a regex the
+        matched groups as parameter.
+    """
+    def __init__ (self, pattern, state, new_state, action, verbose = False) :
+        self.pattern   = pattern
+        self.state     = state
+        self.new_state = new_state
+        self.action    = action
+        self.verbose   = verbose
+    # end def __init__
+
+    def _set_state (self, match = None) :
+        new  = None
+        line = self.state.parser.line
+        if self.action :
+            new = self.action (match)
+        new = new or self.new_state
+        self.debug \
+            ( 1
+            , "state: %s new: %s match: %s" % (self.state.name, new.name, line)
+            )
+        return new
+    # end def _set_state
+
+    def match (self) :
+        line = self.state.parser.line
+        if self.pattern is None or line == self.pattern :
+            self.debug (2, "match:", self.pattern)
+            return self._set_state ()
+        if not isinstance (self.pattern, str) :
+            m = self.pattern.search (line)
+            if m :
+                return self._set_state (m)
+        self.debug (3, "No match:", line)
+        return None
+    # end def match
+
+# end class Transition
+
+class State (Debug) :
+    """ Represents a single state of the parser """
+
+    def __init__ (self, parser, name, verbose = False) :
+        self.name        = name
+        self.parser      = parser
+        self.transitions = []
+        self.verbose     = verbose
+    # end def __init__
+
+    def append (self, transition) :
+        self.transitions.append (transition)
+    # end def add_transition
+
+    def match (self) :
+        for t in self.transitions :
+            state = t.match ()
+            if state :
+                return state
+        else :
+            raise Parse_Error, "%s: %s" % (self.parser.lineno, self.parser.line)
+    # end def match
+
+# end class State
+
+class Parser (Debug) :
+    """ Simple state-machine parser.
+        To use, define a subclass with the necessary actions. An action
+        method gets the line matched and an optional match object.
+    """
+    def __init__ (self, matrix, verbose = False) :
+        self.verbose = verbose
+        self.state   = None
+        self.states  = {}
+        for line in matrix :
+            self.add_transition (* line)
+        self.stack   = []
+    # end def __init__
+
+    def add_transition (self, statename, pattern, newname, action) :
+        if statename not in self.states :
+            self.states [statename] = \
+                State (self, statename, verbose = self.verbose)
+        state = self.states [statename]
+        new   = None
+        if newname :
+            if newname not in self.states :
+                self.states [newname] = \
+                    State (self, newname, verbose = self.verbose)
+            new = self.states [newname]
+        if not self.state :
+            self.state = state
+        if action :
+            action = getattr (self, action)
+        t = Transition \
+            (pattern, state, new, action, verbose = self.verbose)
+        state.append (t)
+    # end def add_transition
+
+    def parse (self, file) :
+        for n, line in enumerate (file) :
+            self.line   = line.strip ()
+            self.lineno = n + 1
+            self.state  = self.state.match ()
+    # end def parse
+
+    def push (self, match = None) :
+        self.stack.append (self.state)
+    # end def push
+    
+    def pop (self, match = None) :
+        state = self.stack.pop ()
+        self.debug (1, "pop: %s" % state)
+        state = state.match ()
+        return state
+    # end def pop
+# end class Parser
+

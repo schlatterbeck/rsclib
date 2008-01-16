@@ -18,12 +18,14 @@ The library includes various utility modules used in other projects.
  - grepmime: search for pattern in email attachments (even if these are
    encoded)
  - HTML_Parse for opening and parsing URLs
+ - IP4_Address: IP v4 Addresses with subnet masking
  - Math implements Euclids algorithm for greatest common divisor and as
    a by-product the least common multiple
  - PDF_Parse for opening and parsing PDFs, needs pdftotext installed
  - PM_Value: Possibly missing value, encapsulate a number which may be
    missing and associated arithmetics.
  - Rational: Implementation of Rational numbers
+ - stateparser: Simple state-machine parser class
  - Tex_CSV_Writer: Write CVS files in a syntax that can be parsed by
    TeX. Implements same interface as the csv module. Only implements
    writing.
@@ -40,7 +42,21 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
-Version 0.7: Initial freshmeat announcement
+Version 0.8: Not announced on freshmeat
+
+Added more documentation.
+State-machine parser stateparser implemented. Rational number arithmetic
+package added.
+
+ - stateparser implemented
+ - usage-example of IP4_Address prints debian /etc/network/interfaces
+   entry.
+ - Math added (Euclids algorithm, gcd, lcm)
+ - Rational number arithmetics
+ - cookie processing for HTML_Parse
+ - basic HTML auth for HTML_Parse
+
+Version 0.7: Not announced on freshmeat
 
 Small Python library with various things such as Configuration file
 parsing (in Python syntax), HTML and PDF parsing.

@@ -158,7 +158,11 @@ class Parser (Debug) :
         for n, line in enumerate (file) :
             self.line   = line.rstrip ()
             self.lineno = n + 1
-            self.state  = self.state.match ()
+            try :
+                self.state  = self.state.match ()
+            except StandardError, cause :
+                print >> sys.stderr, "Exception in line %s:" % self.lineno
+                raise
     # end def parse
 
     def push (self, state, new_state = None, match = None) :

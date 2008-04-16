@@ -46,6 +46,19 @@ def set_useragent (ua) :
 translation = ''.join (chr (x) for x in range (256))
 
 class Page_Tree (autosuper) :
+    """ Parse given URL into an Elementtree (using ElementTidy).
+
+        - site is the first part of an uri, e.g. http://example.com.
+        - url  is the rest of the uri.
+        - data is sent as a post request.
+        - post is a dictionary converted to data suitable as a post
+             request, if data is specified, post is ignored.
+        - if username and password are specified we use simplte http auth
+        - cookies is a cookiejar object
+
+        The parse method can be overridden to compute something from
+        the elementtree in self.tree.
+    """
     html_charset = 'latin1'
     delay   = 1
     retries = 10
@@ -62,6 +75,7 @@ class Page_Tree (autosuper) :
         , post         = None
         , username     = None
         , password     = None
+        , cookies      = None
         , ** kw
         ) :
         if site :
@@ -79,8 +93,11 @@ class Page_Tree (autosuper) :
         if self.delay >= 1 :
             sleep (self.delay)
             set_useragent ('rsclib/HTML_Parse %s' % VERSION)
-        cj = cookielib.LWPCookieJar ()
-        op = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+        if not cookies :
+            self.cookies = cookielib.LWPCookieJar ()
+        else :
+            self.cookies = cookies
+        op = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookies))
         if username and password :
             password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm ()
             password_mgr.add_password (None, self.site, username, password)
@@ -100,7 +117,6 @@ class Page_Tree (autosuper) :
         builder      = TidyHTMLTreeBuilder (encoding = self.html_charset)
         builder.feed (text)
         self.tree    = ElementTree (builder.close ())
-        self.cookies = cj
         self.parse ()
     # end def __init__
 

@@ -43,6 +43,9 @@ def set_useragent (ua) :
     Page_Tree.headers ['User-Agent'] = ua
 # end def set_useragent
 
+class Retry            (ValueError)   : pass
+class Retries_Exceeded (RuntimeError) : pass
+
 translation = ''.join (chr (x) for x in range (256))
 
 class Page_Tree (autosuper) :
@@ -110,14 +113,21 @@ class Page_Tree (autosuper) :
         while not f and self.retry < self.retries :
             try :
                 f = op.open (rq) # urlopen
-                break
             except AttributeError :
                 self.retry += 1
-        text         = f.read ().translate (translation, '\0\015')
-        builder      = TidyHTMLTreeBuilder (encoding = self.html_charset)
-        builder.feed (text)
-        self.tree    = ElementTree (builder.close ())
-        self.parse ()
+                continue
+            text      = f.read ().translate (translation, '\0\015')
+            builder   = TidyHTMLTreeBuilder (encoding = self.html_charset)
+            builder.feed (text)
+            self.tree = ElementTree (builder.close ())
+            try :
+                self.parse ()
+            except Retry :
+                f = None
+                self.retry += 1
+                continue
+        if self.retry >= self.retries :
+            raise Retries_Exceeded, self.retries
     # end def __init__
 
     def as_string (self, n = None, indent = 0, with_text = False) :
@@ -175,7 +185,13 @@ class Page_Tree (autosuper) :
 
     def parse (self) :
         """ If you want to do more here, this should be overridden in a
-            derived class
+            derived class.
+
+            You may raise a Retry Exception in which case the page will
+            be re-fetched. This comes in handy when pages have an access
+            limit and this is detected by the parser. Note that you
+            *should* pause for some time *before* raising Retry in that
+            case.
         """
         pass
     # end def parse

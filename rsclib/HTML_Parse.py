@@ -113,7 +113,7 @@ class Page_Tree (autosuper) :
         while not f and self.retry < self.retries :
             try :
                 f = op.open (rq) # urlopen
-            except AttributeError :
+            except (AttributeError, urllib2.URLError) :
                 self.retry += 1
                 continue
             text      = f.read ().translate (translation, '\0\015')

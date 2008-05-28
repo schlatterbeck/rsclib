@@ -29,6 +29,10 @@ README.html: README default.css
 default.css: ../../content/html/stylesheets/default.css
 	cp ../../content/html/stylesheets/default.css .
 
+upload_homepage: all
+	scp README.html $(USERNAME)@$(HOSTNAME):$(PROJECTDIR)/index.html
+	scp default.css $(USERNAME)@$(HOSTNAME):$(PROJECTDIR)
+
 clean:
 	rm -f MANIFEST rsclib/Version.py notes changes default.css README.html
 	rm -rf dist build

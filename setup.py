@@ -24,8 +24,16 @@
 from rsclib.Version import VERSION
 from distutils.core import setup, Extension
 
-license     = 'GNU Library or Lesser General Public License (LGPL)'
 description = []
+f = open ('README')
+logo_stripped = False
+for line in f :
+    if not logo_stripped and line.strip () :
+        continue
+    logo_stripped = True
+    description.append (line)
+
+license     = 'GNU Library or Lesser General Public License (LGPL)'
 
 setup \
     ( name             = "rsclib"

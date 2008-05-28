@@ -48,13 +48,15 @@ Added more documentation.
 State-machine parser stateparser implemented. Rational number arithmetic
 package added.
 
- - stateparser implemented
+ - stateparser implemented (simple state-machine line-oriented
+   configurable parser)
  - usage-example of IP4_Address prints debian /etc/network/interfaces
    entry.
  - Math added (Euclids algorithm, gcd, lcm)
  - Rational number arithmetics
  - cookie processing for HTML_Parse
  - basic HTML auth for HTML_Parse
+ - HTML_Parse: move to urllib2
 
 Version 0.7: Not announced on freshmeat
 

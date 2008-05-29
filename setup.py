@@ -21,7 +21,10 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-from rsclib.Version import VERSION
+try :
+    from rsclib.Version import VERSION
+except :
+    VERSION = None
 from distutils.core import setup, Extension
 
 description = []

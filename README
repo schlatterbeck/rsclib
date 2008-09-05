@@ -42,6 +42,12 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.9: Not announced on freshmeat
+
+Add binom to the Math package.
+
+ - binom (n, m) computes the binomial coefficient of n, m.
+
 Version 0.8: Not announced on freshmeat
 
 Added more documentation.

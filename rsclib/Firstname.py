@@ -24,8 +24,15 @@
 import os
 import pickle
 from   rsclib.HTML_Parse import tag, Page_Tree
+from   rsclib.autosuper  import autosuper
 
-class Firstname (Page_Tree) :
+class _Nonzero (autosuper) :
+    def __nonzero__ (self) :
+        return bool (self.nmatches)
+    # end def __nonzero__
+# end class _Nonzero
+
+class Firstname (_Nonzero, Page_Tree) :
     site  = 'http://www.vorname.com'
     url   = 'index.php?keyword=%(name)s&cms=suche'
     delay = 0
@@ -82,10 +89,6 @@ class Firstname (Page_Tree) :
         self.cache [self.name] = self.nmatches
     # end def parse
 
-    def __nonzero__ (self) :
-        return bool (self.nmatches)
-    # end def __nonzero__
-
     @classmethod
     def make_cache_persistent (cls) :
         f = open (cls.cachename, 'wb')
@@ -94,6 +97,17 @@ class Firstname (Page_Tree) :
     # end def make_cache_persistent
 
 # end class Firstname
+
+class Combined_Firstname (_Nonzero) :
+    def __init__ (self, name) :
+        self.name = name
+        names     = name.split ('-')
+        fn        = {}
+        for n in names :
+            fn [n] = Firstname (n)
+        self.nmatches = max (f.nmatches for f in fn.itervalues ())
+    # end def __init__
+# end class Combined_Firstname
 
 if __name__ == "__main__" :
     import sys
@@ -104,7 +118,7 @@ if __name__ == "__main__" :
     except (OSError) :
         pass
     for name in sys.argv [1:] :
-        v = Firstname (name)
+        v = Combined_Firstname (name)
         if v :
             print "%s: %s" % (name, v.nmatches)
     Firstname.make_cache_persistent ()

@@ -38,10 +38,14 @@ class Firstname (Page_Tree) :
         cache = {}
         pass
 
+    hardcoded = dict.fromkeys (('Gertraude', 'Gabor'))
+
     def __init__ (self, name) :
         self.name    = name
         self.uniname = name.decode (self.html_charset)
-        if name in self.cache :
+        if name in self.hardcoded :
+            self.nmatches = 1
+        elif name in self.cache :
             self.nmatches = self.cache [name]
         else :
             self.__super.__init__ (url = self.url % locals ())

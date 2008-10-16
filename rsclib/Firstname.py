@@ -93,12 +93,11 @@ class Firstname (Page_Tree) :
 
 if __name__ == "__main__" :
     import sys
-    # unset environment and use file in /tmp
+    Firstname.cachename = '/tmp/Firstname_TEST'
+    Firstname.cache     = {}
     try :
-        del os.environ ['HOME']
-        print Firstname.cachename
         os.unlink (Firstname.cachename)
-    except (IOError, KeyError, OSError) :
+    except (OSError) :
         pass
     for name in sys.argv [1:] :
         v = Firstname (name)

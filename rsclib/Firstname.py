@@ -39,7 +39,8 @@ class Firstname (Page_Tree) :
         pass
 
     def __init__ (self, name) :
-        self.name = name
+        self.name    = name
+        self.uniname = name.decode (self.html_charset)
         if name in self.cache :
             self.nmatches = self.cache [name]
         else :
@@ -70,7 +71,7 @@ class Firstname (Page_Tree) :
             count = 0
             for a in tbl.findall (".//%s" % tag ("a")) :
                 if  (   a.get ("class") == "tabellist"
-                    and a.text.strip () == self.name
+                    and a.text.strip () == self.uniname
                     ) :
                     count += 1
             self.nmatches = count
@@ -95,8 +96,9 @@ if __name__ == "__main__" :
     # unset environment and use file in /tmp
     try :
         del os.environ ['HOME']
+        print Firstname.cachename
         os.unlink (Firstname.cachename)
-    except (IOError, KeyError) :
+    except (IOError, KeyError, OSError) :
         pass
     for name in sys.argv [1:] :
         v = Firstname (name)

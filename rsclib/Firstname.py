@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Copyright (C) 2008 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
@@ -18,19 +19,31 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 #
-# Vorname
+# Firstname
 
-from csv               import DictWriter
-from rsclib.HTML_Parse import tag, Page_Tree
+import os
+import pickle
+from   rsclib.HTML_Parse import tag, Page_Tree
 
-class Vorname (Page_Tree) :
+class Firstname (Page_Tree) :
     site  = 'http://www.vorname.com'
     url   = 'index.php?keyword=%(name)s&cms=suche'
     delay = 0
 
+    cachename = os.path.join (os.environ.get ('HOME', '/tmp'), '.fn_cache')
+
+    try :
+        cache = pickle.load (open (cachename, 'rb'))
+    except (IOError, EOFError) :
+        cache = {}
+        pass
+
     def __init__ (self, name) :
         self.name = name
-        self.__super.__init__ (url = self.url % locals ())
+        if name in self.cache :
+            self.nmatches = self.cache [name]
+        else :
+            self.__super.__init__ (url = self.url % locals ())
     # end def __init__
 
     def parse (self) :
@@ -61,14 +74,32 @@ class Vorname (Page_Tree) :
                     ) :
                     count += 1
             self.nmatches = count
+        self.cache [self.name] = self.nmatches
     # end def parse
 
-# end class Vorname
+    def __nonzero__ (self) :
+        return bool (self.nmatches)
+    # end def __nonzero__
+
+    @classmethod
+    def make_cache_persistent (cls) :
+        f = open (cls.cachename, 'wb')
+        pickle.dump (cls.cache, f)
+        f.close ()
+    # end def make_cache_persistent
+
+# end class Firstname
 
 if __name__ == "__main__" :
     import sys
-    n = "Maximilian"
-    if len (sys.argv) > 1 :
-        n = sys.argv [1]
-    v = Vorname (n)
-    print v.nmatches
+    # unset environment and use file in /tmp
+    try :
+        del os.environ ['HOME']
+        os.unlink (Firstname.cachename)
+    except (IOError, KeyError) :
+        pass
+    for name in sys.argv [1:] :
+        v = Firstname (name)
+        if v :
+            print "%s: %s" % (name, v.nmatches)
+    Firstname.make_cache_persistent ()

@@ -95,7 +95,6 @@ class Firstname (_Nonzero, Page_Tree) :
         pickle.dump (cls.cache, f)
         f.close ()
     # end def make_cache_persistent
-
 # end class Firstname
 
 class Combined_Firstname (_Nonzero) :
@@ -107,6 +106,11 @@ class Combined_Firstname (_Nonzero) :
             fn [n] = Firstname (n)
         self.nmatches = max (f.nmatches for f in fn.itervalues ())
     # end def __init__
+
+    @staticmethod
+    def make_cache_persistent () :
+        Firstname.make_cache_persistent ()
+    # end def make_cache_persistent
 # end class Combined_Firstname
 
 if __name__ == "__main__" :

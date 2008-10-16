@@ -15,6 +15,8 @@ The library includes various utility modules used in other projects.
    e.g., self.__super.method for calling method in the parent.
  - Config_File for python-syntax configuration files used in several of
    my projects.
+ - Firstname: given a string-candidate of a first name, check with
+   popular web-site if it is really considered a first name. 
  - grepmime: search for pattern in email attachments (even if these are
    encoded)
  - HTML_Parse for opening and parsing URLs
@@ -44,9 +46,11 @@ Changes
 
 Version 0.9: Not announced on freshmeat
 
-Add binom to the Math package.
+Add binom to the Math package. Add Firstname.
 
  - binom (n, m) computes the binomial coefficient of n, m.
+ - Firstname: check if candidate is a first name candidate according to
+   popular web site.
 
 Version 0.8: Not announced on freshmeat
 

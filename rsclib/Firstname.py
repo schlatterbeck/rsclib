@@ -47,7 +47,9 @@ class Firstname (_Nonzero, Page_Tree) :
 
     hardcoded = dict.fromkeys (('Gertraude', 'Gabor'))
 
-    def __init__ (self, name) :
+    def __init__ (self, name, strip_punctiation = True) :
+        if strip_punctiation :
+            name = name.strip ('.,; \t\r\n')
         self.name    = name
         self.uniname = name.decode (self.html_charset)
         if name in self.hardcoded :
@@ -98,12 +100,12 @@ class Firstname (_Nonzero, Page_Tree) :
 # end class Firstname
 
 class Combined_Firstname (_Nonzero) :
-    def __init__ (self, name) :
+    def __init__ (self, name, strip_punctiation = True) :
         self.name = name
         names     = name.split ('-')
         fn        = {}
         for n in names :
-            fn [n] = Firstname (n)
+            fn [n] = Firstname (n, strip_punctiation = strip_punctiation)
         self.nmatches = min (f.nmatches for f in fn.itervalues ())
     # end def __init__
 

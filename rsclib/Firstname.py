@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2008 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
@@ -45,17 +46,25 @@ class Firstname (_Nonzero, Page_Tree) :
         cache = {}
         pass
 
-    hardcoded = dict.fromkeys (('Gertraude', 'Gabor'))
+    hardcoded = \
+        { 'Gertraude' : (False, True)
+        , 'Gabor'     : (True,  False)
+        #                male   female
+        }
 
     def __init__ (self, name, strip_punctiation = True) :
         if strip_punctiation :
             name = name.strip ('.,; \t\r\n')
-        self.name    = name
-        self.uniname = name.decode (self.html_charset)
+        self.name      = name
+        self.is_male   = False
+        self.is_female = False
+        self.uniname   = name.decode (self.html_charset)
+        self.nmatches  = 0
         if name in self.hardcoded :
             self.nmatches = 1
+            self.is_male, self.is_female = self.hardcoded [name]
         elif name in self.cache :
-            self.nmatches = self.cache [name]
+            self.nmatches, self.is_male, self.is_female = self.cache [name]
         else :
             self.__super.__init__ (url = self.url % locals ())
     # end def __init__
@@ -82,11 +91,16 @@ class Firstname (_Nonzero, Page_Tree) :
         if self.nmatches :
             tbl = self.content.find (".//%s" % tag ("table"))
             count = 0
-            for a in tbl.findall (".//%s" % tag ("a")) :
-                if  (   a.get ("class") == "tabellist"
-                    and a.text.strip () == self.uniname
-                    ) :
-                    count += 1
+            for tr in tbl :
+                for a in tr.findall (".//%s" % tag ("a")) :
+                    if  (   a.get ("class") == "tabellist"
+                        and a.text.strip () == self.uniname
+                        ) :
+                        count += 1
+                        sex = self.get_text (tr [1]).strip ()
+                        print "sex:", sex
+                        if sex == 'männlich' : self.is_male   = True
+                        if sex == 'weiblich' : self.is_female = True
             self.nmatches = count
         self.cache [self.name] = self.nmatches
     # end def parse
@@ -107,6 +121,8 @@ class Combined_Firstname (_Nonzero) :
         for n in names :
             fn [n] = Firstname (n, strip_punctiation = strip_punctiation)
         self.nmatches = min (f.nmatches for f in fn.itervalues ())
+        self.is_male   = bool (min (f.is_male   for f in fn.itervalues ()))
+        self.is_female = bool (min (f.is_female for f in fn.itervalues ()))
     # end def __init__
 
     @staticmethod
@@ -126,5 +142,6 @@ if __name__ == "__main__" :
     for name in sys.argv [1:] :
         v = Combined_Firstname (name)
         if v :
-            print "%s: %s" % (name, v.nmatches)
+            print "%s: %s male: %s female: %s" \
+                % (name, v.nmatches, v.is_male, v.is_female)
     Firstname.make_cache_persistent ()

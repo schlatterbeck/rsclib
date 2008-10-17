@@ -104,7 +104,7 @@ class Combined_Firstname (_Nonzero) :
         fn        = {}
         for n in names :
             fn [n] = Firstname (n)
-        self.nmatches = max (f.nmatches for f in fn.itervalues ())
+        self.nmatches = min (f.nmatches for f in fn.itervalues ())
     # end def __init__
 
     @staticmethod

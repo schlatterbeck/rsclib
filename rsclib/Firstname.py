@@ -98,11 +98,14 @@ class Firstname (_Nonzero, Page_Tree) :
                         ) :
                         count += 1
                         sex = self.get_text (tr [1]).strip ()
-                        print "sex:", sex
-                        if sex == 'männlich' : self.is_male   = True
-                        if sex == 'weiblich' : self.is_female = True
+                        m, w = \
+                            (x.decode ('latin1')
+                             for x in ('männlich', 'weiblich')
+                            )
+                        if sex == m : self.is_male   = True
+                        if sex == w : self.is_female = True
             self.nmatches = count
-        self.cache [self.name] = self.nmatches
+        self.cache [self.name] = (self.nmatches, self.is_male, self.is_female)
     # end def parse
 
     @classmethod

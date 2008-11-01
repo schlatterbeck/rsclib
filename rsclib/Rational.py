@@ -74,6 +74,8 @@ class Rational (autosuper) :
         True
         >>> bool (R (0, 2))
         False
+        >>> ((3+R(3,11))+(-(2+R(1,2))))/(-(3+R(1,11)))
+        -1/4
     """
     def __init__ (self, p, q = 1) :
         if isinstance (p, Rational) :
@@ -117,6 +119,9 @@ class Rational (autosuper) :
             other = self.__class__ (other)
         p = self.p * other.q
         q = self.q * other.p
+        if q < 0 :
+            p = -p
+            q = -q
         return self.__class__ (p, q)
     # end def __div__
 

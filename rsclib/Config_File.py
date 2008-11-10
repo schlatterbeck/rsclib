@@ -20,8 +20,9 @@
 # ****************************************************************************
 
 import sys
+from rsclib.autosuper import autosuper
 
-class Config_File :
+class Config_File (autosuper) :
     """
         Configuration information
         We accept a directory for reading configs from, a configuration

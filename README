@@ -51,7 +51,8 @@ Add binom to the Math package, add Firstname, Bug-Fix Release Rational
  - binom (n, m) computes the binomial coefficient of n, m.
  - Firstname: check if candidate is a first name candidate according to
    popular web site.
- - Rational: On division we could get a negative denominator
+ - Rational: On division we could get a negative denominator -- fixed
+ - make Config_File a descendent of autosuper
 
 Version 0.8: Not announced on freshmeat
 

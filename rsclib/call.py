@@ -20,6 +20,7 @@
 # ****************************************************************************
 
 import asterisk.manager
+from time               import sleep
 from rsclib.Config_File import Config_File
 
 class Config (Config_File) :
@@ -34,29 +35,29 @@ class Config (Config_File) :
 # end class Config
 
 class Call (object) :
-    def __init__ (self, call_manager, number) :
+    def __init__ (self, call_manager, id) :
         self.manager = call_manager
-        self.number  = number
+        self.id      = id
         self.result  = None
     # end def __init__
-
-    def call (self) :
-        pass
-    # end def call
-
 # end class Call
 
 class Call_Manager (object) :
     def __init__ (self) :
         self.config  = cfg = Config ()
         self.manager = mgr = asterisk.manager.Manager ()
+        self.calls   = {}
         mgr.connect (cfg.ASTERISK_HOST)
         mgr.login   (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
         mgr.register_event ('*', self.handler)
     # end def __init__
 
     def handler (self, event, manager) :
-        print "Received event: %s %s" % (event.name, event)
+        print "Received event: %s" % event.name
+        for k in event.__dict__.iterkeys () :
+            print "%s:" % k,
+            if k != 'message' :
+                print getattr (event, k)
     # end def handler
 
     def close (self) :
@@ -74,11 +75,27 @@ class Call_Manager (object) :
             return result
         raise AttributeError, name
     # end def __getattr__
+
+    def originate (self, *args, **kw) :
+        result = self.manager.originate (*args, **kw)
+        id = result.headers ['Uniqueid']
+        self.calls [id] = Call (self, id)
+        print "Originate:", result.__dict__
+        return result
+    # end def originate
 # end class Call_Manager
 
 if __name__ == "__main__" :
     cm = Call_Manager ()
     response = cm.status ()
     print response
-    cm.message_loop ()
+    #MaxRetries: 0
+    #RetryTime: 60
+    #WaitTime: 30
+    vars = \
+        { 'TUNE'     : 'Wohnung'
+        , 'WAITTIME' : '1'
+        }
+    result = cm.originate ('Local/*16@intern', '1', 'ansage', 1, variables=vars)
+    sleep (60)
     cm.close ()

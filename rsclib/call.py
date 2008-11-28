@@ -23,7 +23,7 @@ import asterisk.manager
 from rsclib.Config_File import Config_File
 
 class Config (Config_File) :
-    def __init__ (self, config = 'alarmsender', path = '/etc/alarmsender') :
+    def __init__ (self, config = 'autocaller', path = '/etc/autocaller') :
         self.__super.__init__ \
             ( path, config
             , ASTERISK_HOST         = 'localhost'
@@ -52,8 +52,33 @@ class Call_Manager (object) :
         self.manager = mgr = asterisk.manager.Manager ()
         mgr.connect (cfg.ASTERISK_HOST)
         mgr.login   (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
+        mgr.register_event ('*', self.handler)
     # end def __init__
+
+    def handler (self, event, manager) :
+        print "Received event: %s %s" % (event.name, event)
+    # end def handler
+
+    def close (self) :
+        if self.manager :
+            self.manager.close  ()
+            self.manager = None
+    # end def close
+
+    __del__ = close
+
+    def __getattr__ (self, name) :
+        if self.manager and not name.startswith ('__') :
+            result = getattr (self.manager, name)
+            setattr (self, name, result)
+            return result
+        raise AttributeError, name
+    # end def __getattr__
 # end class Call_Manager
 
 if __name__ == "__main__" :
     cm = Call_Manager ()
+    response = cm.status ()
+    print response
+    cm.message_loop ()
+    cm.close ()

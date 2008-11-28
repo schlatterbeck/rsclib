@@ -23,6 +23,13 @@ import asterisk.manager
 from time               import sleep
 from rsclib.Config_File import Config_File
 
+def call_id (uniqid) :
+    """ Strip the last component off a Uniqueid, this apparently
+        identifies all the call legs belonging to an asterisk call.
+    """
+    return '.'.join (uniqid.split ('.') [:-1])
+# end def call_id
+
 class Config (Config_File) :
     def __init__ (self, config = 'autocaller', path = '/etc/autocaller') :
         self.__super.__init__ \
@@ -35,11 +42,15 @@ class Config (Config_File) :
 # end class Config
 
 class Call (object) :
-    def __init__ (self, call_manager, id) :
+    def __init__ (self, call_manager, uid) :
         self.manager = call_manager
-        self.id      = id
-        self.result  = None
+        self.uid     = uid
+        self.events  = []
     # end def __init__
+
+    def append (self, event) :
+        self.events.append (event)
+    # end def append
 # end class Call
 
 class Call_Manager (object) :
@@ -53,11 +64,11 @@ class Call_Manager (object) :
     # end def __init__
 
     def handler (self, event, manager) :
-        print "Received event: %s" % event.name
-        for k in event.__dict__.iterkeys () :
-            print "%s:" % k,
-            if k != 'message' :
-                print getattr (event, k)
+        if 'Uniqueid' in event.headers :
+            uid = call_id (event.headers ['Uniqueid'])
+            if uid in self.calls :
+                self.calls [uid].append (event)
+        # print "Received event: %s" % event.name
     # end def handler
 
     def close (self) :
@@ -78,8 +89,8 @@ class Call_Manager (object) :
 
     def originate (self, *args, **kw) :
         result = self.manager.originate (*args, **kw)
-        id = result.headers ['Uniqueid']
-        self.calls [id] = Call (self, id)
+        uid = call_id (result.headers ['Uniqueid'])
+        self.calls [uid] = Call (self, uid)
         print "Originate:", result.__dict__
         return result
     # end def originate
@@ -97,5 +108,11 @@ if __name__ == "__main__" :
         , 'WAITTIME' : '1'
         }
     result = cm.originate ('Local/*16@intern', '1', 'ansage', 1, variables=vars)
-    sleep (60)
+    sleep (20)
+    for k, v in cm.calls.iteritems () :
+        print "Call: %s" % k
+        for event in v.events :
+            print "  Event: %s" % event.name
+            for ek, ev in event.headers.iteritems () :
+                print "    %s: %s" % (ek, ev)
     cm.close ()

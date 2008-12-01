@@ -43,9 +43,9 @@ class Config (Config_File) :
 # end class Config
 
 class Call (object) :
-    def __init__ (self, call_manager, uid) :
+    def __init__ (self, call_manager, callid) :
         self.manager = call_manager
-        self.uid     = uid
+        self.callid  = callid
         self.events  = []
         self.uids    = {}
     # end def __init__
@@ -88,15 +88,16 @@ class Call_Manager (object) :
             except Empty :
                 return
             if 'Uniqueid' in event.headers :
-                uid = call_id (event.headers ['Uniqueid'])
-                if uid in self.open_calls :
-                    call = self.open_calls [uid]
+                uniqueid = event.headers ['Uniqueid']
+                callid   = call_id (uniqueid)
+                if callid in self.open_calls :
+                    call = self.open_calls [callid]
                     call.append (event)
                     if not call :
-                        self.closed_calls [uid] = call
-                        del self.open_calls [uid]
-                else :
-                    print "oops:", uid
+                        self.closed_calls [callid] = call
+                        del self.open_calls [callid]
+                elif uniqueid != '<null>' :
+                    print "oops:", callid, event.headers
             # print "Received event: %s" % event.name
     # end def queue_handler
 
@@ -118,17 +119,15 @@ class Call_Manager (object) :
 
     def originate (self, *args, **kw) :
         result = self.manager.originate (*args, **kw)
-        uid    = call_id (result.headers ['Uniqueid'])
-        self.open_calls [uid] = Call (self, uid)
         print "Originate:", result.__dict__
+        callid = call_id (result.headers ['Uniqueid'])
+        self.open_calls [callid] = Call (self, callid)
         return result
     # end def originate
 # end class Call_Manager
 
 if __name__ == "__main__" :
     cm = Call_Manager ()
-    response = cm.status ()
-    print response
     #MaxRetries: 0
     #RetryTime: 60
     #WaitTime: 30
@@ -136,7 +135,14 @@ if __name__ == "__main__" :
         { 'TUNE'     : 'Wohnung'
         , 'WAITTIME' : '1'
         }
-    result = cm.originate ('Local/*16@intern', '1', 'ansage', 1, variables=vars)
+    result = cm.originate \
+        ( channel   = 'Local/*16@intern'
+        , exten     = '1'
+        , context   = 'ansage'
+        , priority  = 1
+        , async     = True
+        , variables = vars
+        )
     cm.queue_handler (10)
     for k, v in cm.closed_calls.iteritems () :
         print "Call: %s" % k

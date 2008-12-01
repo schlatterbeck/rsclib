@@ -40,24 +40,37 @@ class Config (Config_File) :
             , ASTERISK_MGR_PASSWORD = 'secret'
             , CALL_DELAY            = '1'
             , SOUND                 = 'abandon-all-hope'
+            , CALLER_ID             = '16'
             )
     # end def __init__
 # end class Config
 
 class Call (object) :
     def __init__ (self, call_manager, callid) :
-        self.manager = call_manager
-        self.callid  = callid
-        self.events  = []
-        self.uids    = {}
+        self.manager    = call_manager
+        self.callid     = callid
+        self.events     = []
+        self.uids       = {}
+        self.causecode  = 0
+        self.causetext  = ''
+        self.dialstatus = ''
     # end def __init__
 
     def append (self, event) :
         id = event.headers ['Uniqueid']
         if event.name == 'Hangup' :
             del self.uids [id]
+            if not self.causecode :
+                self.causecode = int (event.headers ['Cause'])
+                self.causetext = event.headers ['Cause-txt']
         else :
             self.uids [id] = True
+            # Convention: Allow to retrieve dialstatus
+            if event.name == 'Newexten' :
+                app  = event.headers ['Application']
+                data = event.headers ['AppData']
+                if app == 'NoOp' and data.startswith ('Dialstatus:') :
+                    self.dialstatus = data.split (':') [1].strip ()
         self.events.append (event)
     # end def append
 
@@ -136,16 +149,17 @@ if __name__ == "__main__" :
         , 'CALL_DELAY' : cm.cfg.CALL_DELAY
         }
     result = cm.originate \
-        ( channel   = 'Local/*16@intern'
+        ( channel   = 'Local/022432646516@dialout'
         , exten     = '1'
         , context   = 'ansage'
         , priority  = 1
+        , caller_id = cm.cfg.CALLER_ID
         , async     = True
         , variables = vars
         )
     cm.queue_handler (10)
     for k, v in cm.closed_calls.iteritems () :
-        print "Call: %s" % k
+        print "Call: %s: %s (%s)" % (k, v.causetext, v.dialstatus)
         for event in v.events :
             print "  Event: %s" % event.name
             for ek, ev in event.headers.iteritems () :

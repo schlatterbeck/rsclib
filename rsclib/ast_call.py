@@ -41,6 +41,11 @@ class Config (Config_File) :
             , CALL_DELAY            = '1'
             , SOUND                 = 'abandon-all-hope'
             , CALLER_ID             = '16'
+            , CALL_EXTENSION        = '1'
+            , CALL_CONTEXT          = 'ansage'
+            , CALL_PRIORITY         = '1'
+            , CHANNEL_TYPE          = 'Local'
+            , CHANNEL_SUFFIX        = '@dialout'
             )
     # end def __init__
 # end class Config
@@ -80,12 +85,28 @@ class Call (object) :
 # end class Call
 
 class Call_Manager (object) :
+    """ Simple call manager for asterisk.
+        By default it's suggested you use something like the following
+        in the dialplan::
+         
+         [ansage]
+         exten => 1,1,Noop(ansage)
+         exten => 1,n,Wait(${CALL_DELAY})
+         exten => 1,n,GotoIf($["${SOUND}" = ""]?goodbye)
+         exten => 1,n,Playback(${SOUND})
+         exten => 1,n(goodbye),Hangup()
+
+        and you're dialling out using a dialout context in your local
+        dialplan.
+    """
+
     def __init__ (self) :
-        self.cfg          = cfg = Config ()
-        self.manager      = mgr = asterisk.manager.Manager ()
-        self.open_calls   = {}
-        self.closed_calls = {}
-        self.queue        = Queue ()
+        self.cfg            = cfg = Config ()
+        self.manager        = mgr = asterisk.manager.Manager ()
+        self.open_calls     = {}
+        self.closed_calls   = {}
+        self.queue          = Queue ()
+        self.call_by_number = {}
         mgr.connect (cfg.ASTERISK_HOST)
         mgr.login   (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
         mgr.register_event ('*', self.handler)
@@ -138,26 +159,37 @@ class Call_Manager (object) :
         print "Originate:", result.__dict__
         callid = call_id (result.headers ['Uniqueid'])
         self.open_calls [callid] = Call (self, callid)
-        return result
+        return callid
     # end def originate
+
+    def call (self, number, timeout = None) :
+        """ Originate a call using parameters from configuration.
+        """
+        vars = \
+            { 'SOUND'      : self.cfg.SOUND
+            , 'CALL_DELAY' : self.cfg.CALL_DELAY
+            }
+        channel = \
+            '%s/%s%s' % (self.cfg.CHANNEL_TYPE, number, self.cfg.CHANNEL_SUFFIX)
+        callid  = self.originate \
+            ( channel   = channel
+            , exten     = self.cfg.CALL_EXTENSION
+            , context   = self.cfg.CALL_CONTEXT
+            , priority  = self.cfg.CALL_PRIORITY
+            , caller_id = self.cfg.CALLER_ID
+            , async     = True
+            , variables = vars
+            )
+        self.call_by_number [callid] = number
+        self.queue_handler (timeout)
+    # end def call
 # end class Call_Manager
 
 if __name__ == "__main__" :
+    import sys
+    number = sys.argv [1]
     cm = Call_Manager ()
-    vars = \
-        { 'SOUND'      : cm.cfg.SOUND
-        , 'CALL_DELAY' : cm.cfg.CALL_DELAY
-        }
-    result = cm.originate \
-        ( channel   = 'Local/022432646516@dialout'
-        , exten     = '1'
-        , context   = 'ansage'
-        , priority  = 1
-        , caller_id = cm.cfg.CALLER_ID
-        , async     = True
-        , variables = vars
-        )
-    cm.queue_handler (10)
+    cm.call (number)
     for k, v in cm.closed_calls.iteritems () :
         print "Call: %s: %s (%s)" % (k, v.causetext, v.dialstatus)
         for event in v.events :

@@ -31,6 +31,9 @@ The library includes various utility modules used in other projects.
  - Tex_CSV_Writer: Write CVS files in a syntax that can be parsed by
    TeX. Implements same interface as the csv module. Only implements
    writing.
+ - ast_call: A simple call manager using asterisk: This can be used to
+   originate a call and log all event associated to that call. So you
+   can find out the status of the call and optionally the dialstatus.
 
 Resources
 ---------
@@ -43,6 +46,12 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.10: 
+
+add ast_call for asterisk auto-dialling
+
+ - add ast_call.py
 
 Version 0.9: Not announced on freshmeat
 

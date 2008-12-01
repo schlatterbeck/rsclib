@@ -20,6 +20,7 @@
 # ****************************************************************************
 
 import asterisk.manager
+from Queue              import Queue, Empty
 from time               import sleep
 from rsclib.Config_File import Config_File
 
@@ -46,18 +47,30 @@ class Call (object) :
         self.manager = call_manager
         self.uid     = uid
         self.events  = []
+        self.uids    = {}
     # end def __init__
 
     def append (self, event) :
+        id = event.headers ['Uniqueid']
+        if event.name == 'Hangup' :
+            del self.uids [id]
+        else :
+            self.uids [id] = True
         self.events.append (event)
     # end def append
+
+    def __nonzero__ (self) :
+        return bool (self.uids)
+    # end def __nonzero__
 # end class Call
 
 class Call_Manager (object) :
     def __init__ (self) :
-        self.config  = cfg = Config ()
-        self.manager = mgr = asterisk.manager.Manager ()
-        self.calls   = {}
+        self.config       = cfg = Config ()
+        self.manager      = mgr = asterisk.manager.Manager ()
+        self.open_calls   = {}
+        self.closed_calls = {}
+        self.queue        = Queue ()
         mgr.connect (cfg.ASTERISK_HOST)
         mgr.login   (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
         mgr.register_event ('*', self.handler)
@@ -65,11 +78,27 @@ class Call_Manager (object) :
 
     def handler (self, event, manager) :
         if 'Uniqueid' in event.headers :
-            uid = call_id (event.headers ['Uniqueid'])
-            if uid in self.calls :
-                self.calls [uid].append (event)
-        # print "Received event: %s" % event.name
+            self.queue.put (event)
     # end def handler
+
+    def queue_handler (self, timeout = None) :
+        while self.open_calls :
+            try :
+                event = self.queue.get (timeout = timeout)
+            except Empty :
+                return
+            if 'Uniqueid' in event.headers :
+                uid = call_id (event.headers ['Uniqueid'])
+                if uid in self.open_calls :
+                    call = self.open_calls [uid]
+                    call.append (event)
+                    if not call :
+                        self.closed_calls [uid] = call
+                        del self.open_calls [uid]
+                else :
+                    print "oops:", uid
+            # print "Received event: %s" % event.name
+    # end def queue_handler
 
     def close (self) :
         if self.manager :
@@ -89,8 +118,8 @@ class Call_Manager (object) :
 
     def originate (self, *args, **kw) :
         result = self.manager.originate (*args, **kw)
-        uid = call_id (result.headers ['Uniqueid'])
-        self.calls [uid] = Call (self, uid)
+        uid    = call_id (result.headers ['Uniqueid'])
+        self.open_calls [uid] = Call (self, uid)
         print "Originate:", result.__dict__
         return result
     # end def originate
@@ -108,8 +137,8 @@ if __name__ == "__main__" :
         , 'WAITTIME' : '1'
         }
     result = cm.originate ('Local/*16@intern', '1', 'ansage', 1, variables=vars)
-    sleep (20)
-    for k, v in cm.calls.iteritems () :
+    cm.queue_handler (10)
+    for k, v in cm.closed_calls.iteritems () :
         print "Call: %s" % k
         for event in v.events :
             print "  Event: %s" % event.name

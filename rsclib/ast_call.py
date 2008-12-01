@@ -156,7 +156,7 @@ class Call_Manager (object) :
 
     def originate (self, *args, **kw) :
         result = self.manager.originate (*args, **kw)
-        print "Originate:", result.__dict__
+        #print "Originate:", result.__dict__
         callid = call_id (result.headers ['Uniqueid'])
         self.open_calls [callid] = Call (self, callid)
         return callid
@@ -182,6 +182,7 @@ class Call_Manager (object) :
             )
         self.call_by_number [callid] = number
         self.queue_handler (timeout)
+        return self.closed_calls [callid]
     # end def call
 # end class Call_Manager
 

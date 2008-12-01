@@ -38,6 +38,8 @@ class Config (Config_File) :
             , ASTERISK_HOST         = 'localhost'
             , ASTERISK_MGR_ACCOUNT  = 'user'
             , ASTERISK_MGR_PASSWORD = 'secret'
+            , CALL_DELAY            = '1'
+            , SOUND                 = 'abandon-all-hope'
             )
     # end def __init__
 # end class Config
@@ -66,7 +68,7 @@ class Call (object) :
 
 class Call_Manager (object) :
     def __init__ (self) :
-        self.config       = cfg = Config ()
+        self.cfg          = cfg = Config ()
         self.manager      = mgr = asterisk.manager.Manager ()
         self.open_calls   = {}
         self.closed_calls = {}
@@ -97,7 +99,8 @@ class Call_Manager (object) :
                         self.closed_calls [callid] = call
                         del self.open_calls [callid]
                 elif uniqueid != '<null>' :
-                    print "oops:", callid, event.headers
+                    pass
+                    #print "oops:", callid, event.headers
             # print "Received event: %s" % event.name
     # end def queue_handler
 
@@ -128,12 +131,9 @@ class Call_Manager (object) :
 
 if __name__ == "__main__" :
     cm = Call_Manager ()
-    #MaxRetries: 0
-    #RetryTime: 60
-    #WaitTime: 30
     vars = \
-        { 'TUNE'     : 'Wohnung'
-        , 'WAITTIME' : '1'
+        { 'SOUND'      : cm.cfg.SOUND
+        , 'CALL_DELAY' : cm.cfg.CALL_DELAY
         }
     result = cm.originate \
         ( channel   = 'Local/*16@intern'

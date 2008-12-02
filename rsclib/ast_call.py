@@ -162,21 +162,34 @@ class Call_Manager (object) :
         return callid
     # end def originate
 
-    def call (self, number, timeout = None) :
+    def call \
+        ( self
+        , number
+        , timeout        = None
+        , call_delay     = None
+        , sound          = None
+        , channel_type   = None
+        , channel_suffix = None
+        , call_extension = None
+        , call_context   = None
+        , call_priority  = None
+        , caller_id      = None
+        ) :
         """ Originate a call using parameters from configuration.
+            Parameter override is possible via call parameters.
         """
         vars = \
-            { 'SOUND'      : self.cfg.SOUND
-            , 'CALL_DELAY' : self.cfg.CALL_DELAY
+            { 'SOUND'      : sound      or self.cfg.SOUND
+            , 'CALL_DELAY' : call_delay or self.cfg.CALL_DELAY
             }
-        channel = \
-            '%s/%s%s' % (self.cfg.CHANNEL_TYPE, number, self.cfg.CHANNEL_SUFFIX)
+        type    = channel_type   or self.cfg.CHANNEL_TYPE
+        suffix  = channel_suffix or self.cfg.CHANNEL_SUFFIX
         callid  = self.originate \
-            ( channel   = channel
-            , exten     = self.cfg.CALL_EXTENSION
-            , context   = self.cfg.CALL_CONTEXT
-            , priority  = self.cfg.CALL_PRIORITY
-            , caller_id = self.cfg.CALLER_ID
+            ( channel   = '%s/%s%s' % (type, number, suffix)
+            , exten     = call_extension or self.cfg.CALL_EXTENSION
+            , context   = call_context   or self.cfg.CALL_CONTEXT
+            , priority  = call_priority  or self.cfg.CALL_PRIORITY
+            , caller_id = caller_id      or self.cfg.CALLER_ID
             , async     = True
             , variables = vars
             )

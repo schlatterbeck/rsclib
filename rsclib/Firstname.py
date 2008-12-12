@@ -53,6 +53,7 @@ class Firstname (_Nonzero, Page_Tree) :
         , 'Ingulf'     : (True,  False)
         , 'Irmentraut' : (False, True)
         , 'Karlos'     : (True,  False)
+        , 'Karlotte'   : (False, True)
         , 'Krystyna'   : (False, True)
         , 'Rudolfine'  : (False, True)
         #                 male   female

@@ -63,6 +63,8 @@ class Firstname (_Nonzero, Page_Tree) :
         if name in self.hardcoded :
             self.nmatches = 1
             self.is_male, self.is_female = self.hardcoded [name]
+        elif len (name) < 2 :
+            pass
         elif name in self.cache :
             self.nmatches, self.is_male, self.is_female = self.cache [name]
         else :

@@ -52,6 +52,7 @@ Version 0.10:
 add ast_call for asterisk auto-dialling
 
  - add ast_call.py
+ - Firstname: don't look up names with len < 2
 
 Version 0.9: Not announced on freshmeat
 

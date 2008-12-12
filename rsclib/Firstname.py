@@ -50,6 +50,7 @@ class Firstname (_Nonzero, Page_Tree) :
         { 'Gabor'     : (True,  False)
         , 'Gertraude' : (False, True)
         , 'Gliceria'  : (False, True)
+        , 'Karlos'    : (True,  False)
         #                male   female
         }
 

@@ -47,7 +47,8 @@ class Firstname (_Nonzero, Page_Tree) :
         pass
 
     hardcoded = \
-        { 'Gabor'      : (True,  False)
+        { 'Eleonore'   : (False, True)
+        , 'Gabor'      : (True,  False)
         , 'Gertraude'  : (False, True)
         , 'Gliceria'   : (False, True)
         , 'Ingulf'     : (True,  False)

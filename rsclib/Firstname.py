@@ -126,7 +126,7 @@ class Combined_Firstname (_Nonzero) :
         fn        = {}
         for n in names :
             fn [n] = Firstname (n, strip_punctiation = strip_punctiation)
-        self.nmatches = min (f.nmatches for f in fn.itervalues ())
+        self.nmatches  = min  (f.nmatches for f in fn.itervalues ())
         self.is_male   = bool (min (f.is_male   for f in fn.itervalues ()))
         self.is_female = bool (min (f.is_female for f in fn.itervalues ()))
     # end def __init__

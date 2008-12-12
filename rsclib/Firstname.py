@@ -57,6 +57,7 @@ class Firstname (_Nonzero, Page_Tree) :
         , 'Karlotte'   : (False, True)
         , 'Krystyna'   : (False, True)
         , 'Rudolfine'  : (False, True)
+        , 'Suse'       : (False, True)
         #                 male   female
         }
 

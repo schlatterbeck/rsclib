@@ -47,19 +47,20 @@ class Firstname (_Nonzero, Page_Tree) :
         pass
 
     hardcoded = \
-        { 'Eleonore'   : (False, True)
-        , 'Gabor'      : (True,  False)
-        , 'Gertraude'  : (False, True)
-        , 'Gliceria'   : (False, True)
-        , 'Hanns'      : (True,  False)
-        , 'Ingulf'     : (True,  False)
-        , 'Irmentraut' : (False, True)
-        , 'Karlos'     : (True,  False)
-        , 'Karlotte'   : (False, True)
-        , 'Krystyna'   : (False, True)
-        , 'Rudolfine'  : (False, True)
-        , 'Suse'       : (False, True)
-        #                 male   female
+        { 'Eleonore'    : (False, True)
+        , 'Gabor'       : (True,  False)
+        , 'Gertraude'   : (False, True)
+        , 'Gliceria'    : (False, True)
+        , 'Hanns'       : (True,  False)
+        , 'Heinzwerner' : (True,  False)
+        , 'Ingulf'      : (True,  False)
+        , 'Irmentraut'  : (False, True)
+        , 'Karlos'      : (True,  False)
+        , 'Karlotte'    : (False, True)
+        , 'Krystyna'    : (False, True)
+        , 'Rudolfine'   : (False, True)
+        , 'Suse'        : (False, True)
+        #                  male   female
         }
 
     def __init__ (self, name, strip_punctiation = True) :

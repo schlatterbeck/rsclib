@@ -51,6 +51,7 @@ class Firstname (_Nonzero, Page_Tree) :
         , 'Gabor'      : (True,  False)
         , 'Gertraude'  : (False, True)
         , 'Gliceria'   : (False, True)
+        , 'Hanns'      : (True,  False)
         , 'Ingulf'     : (True,  False)
         , 'Irmentraut' : (False, True)
         , 'Karlos'     : (True,  False)

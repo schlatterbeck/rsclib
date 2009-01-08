@@ -28,6 +28,7 @@ from xml.etree.ElementTree import fromstring
 from cStringIO             import StringIO
 from rsclib.iter_recipes   import grouper
 from _TFL                  import TFL, Numeric_Interval, Interval_Set
+from OpenSSL               import crypto
 
 class Signature_Error   (ValueError)          : pass
 class Signature_Unknown (NotImplementedError) : pass
@@ -42,6 +43,8 @@ class PDF_Signature :
         signed range doesn't include the whole document) or multiple
         signatures on a document.
         For now we also do not support revocation-list checking.
+        Oh, and we only support a single certificate, although PDF
+        supports to give a whole cert chain (in a PDF array)
     """
     supported = \
         { 'Filter'    : { '/Adobe.PPKLite'      : 1 }
@@ -55,7 +58,7 @@ class PDF_Signature :
         self.reader   = PdfFileReader (f)
         self.catalog  = c = self.reader.trailer ['/Root']
         try :
-            sig       = c ['/AcroForm']['/Fields'][0].getObject()['/V']
+            self.sig  = sig = c ['/AcroForm']['/Fields'][0].getObject()['/V']
         except KeyError :
             raise Signature_Error, "PDF File doesn't seem to have a signature"
         if '/ByteRange' not in sig :
@@ -63,16 +66,14 @@ class PDF_Signature :
         for k, v in self.supported.iteritems () :
             if '/%s' % k not in sig :
                 raise Signature_Unknown, "Signature doesn't define %s" % k
-            type = sig ['/%s' % k]
-            if type not in v :
-                raise Signature_Unknown, "Unknown %s: %s" % (k, type)
+            stype = sig ['/%s' % k]
+            if stype not in v :
+                raise Signature_Unknown, "Unknown %s: %s" % (k, stype)
         IS = TFL.Interval_Set
         NI = TFL.Numeric_Interval
         iv = IS (NI (0, len (self.contents) - 1))
         for start, length in grouper (2, sig ['/ByteRange']) :
             iv = iv.difference (IS (NI (start, start + length - 1)))
-            print start, length
-            print iv
         l = len (iv.intervals)
         if l != 1 :
             raise Signature_Error, "Number of non-signed Intervals %s != 1" % l
@@ -83,6 +84,31 @@ class PDF_Signature :
         sig_contents = sig_contents [1:-1].decode ('hex')
         if sig ['/Contents'] != sig_contents :
             raise Signature_Error, "Invalid byte-range for signature"
+        cert = sig ['/Cert']
+        # Seems the Cert is DER encoded. Beware of a just-reported bug
+        # in pyPdf!
+        # openssl asn1parse -inform DER -in z
+        # print der.decode (cert)
+        self.cert = crypto.load_certificate (crypto.FILETYPE_ASN1, cert)
+        print self.cert.get_issuer ()
+        print self.cert.get_pubkey ()
+        print dir (self.cert.get_pubkey ())
+        print self.cert.get_pubkey ().bits ()
+        print self.cert.has_expired ()
+        print der.decode (sig_contents)
+        print
+        x = crypto.load_pkcs12 (sig_contents)
+        x = crypto.load_pkcs7_data (crypto.FILETYPE_ASN1, sig_contents)
+        x = crypto.load_certificate_request (crypto.FILETYPE_ASN1, sig_contents)
+        x = crypto.load_certificate (crypto.FILETYPE_ASN1, sig_contents)
+
+        # these should never be called directly:
+        #r = crypto.X509Req ()
+        #r.set_pubkey (self.cert.get_pubkey ())
+        #spk = crypto.NetscapeSPKI ()
+        #spk.set_pubkey (self.cert.get_pubkey ())
+        #spk.verify (self.cert.get_pubkey ())
+        #print ber.decode (sig_contents) # works too (der is a subset of ber)
     # end def __init__
 # end class PDF_Signature
 

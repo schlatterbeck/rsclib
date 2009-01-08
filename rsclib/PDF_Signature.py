@@ -25,21 +25,64 @@ from pyPdf                 import PdfFileReader
 from pyasn1.codec.der      import decoder as der
 from pyasn1.codec.ber      import decoder as ber
 from xml.etree.ElementTree import fromstring
+from cStringIO             import StringIO
+from rsclib.iter_recipes   import grouper
+from _TFL                  import TFL, Numeric_Interval, Interval_Set
+
+class Signature_Error   (ValueError)          : pass
+class Signature_Unknown (NotImplementedError) : pass
 
 class PDF_Signature :
     """
         Get signature from a PDF file
         This uses the standard Acrobat-defined way as defined in the pdf
         spec. For now we only support /Filter Adobe.PkLite and
-        /SubFilter adbe.x509.rsa_sha1
+        /SubFilter adbe.x509.rsa_sha1.
+        We also don't support partially signed documents (where the
+        signed range doesn't include the whole document) or multiple
+        signatures on a document.
+        For now we also do not support revocation-list checking.
     """
+    supported = \
+        { 'Filter'    : { '/Adobe.PPKLite'      : 1 }
+        , 'SubFilter' : { '/adbe.x509.rsa_sha1' : 1 }
+        }
     def __init__ (self, pdf_file) :
         if not hasattr (pdf_file, "read") :
-            pdf_file = open (pdf_file, "rb")
-        self.reader  = PdfFileReader (pdf_file)
-        self.catalog = c = self.reader.trailer ['/Root']
-        print "Catalog:", c
-        print c ['/AcroForm']['/Fields'][0].getObject()['/V']
+            pdf_file  = open (pdf_file, "rb")
+        self.contents = pdf_file.read ()
+        f             = StringIO (self.contents)
+        self.reader   = PdfFileReader (f)
+        self.catalog  = c = self.reader.trailer ['/Root']
+        try :
+            sig       = c ['/AcroForm']['/Fields'][0].getObject()['/V']
+        except KeyError :
+            raise Signature_Error, "PDF File doesn't seem to have a signature"
+        if '/ByteRange' not in sig :
+            raise Signature_Unknown, "Not a byte range signature"
+        for k, v in self.supported.iteritems () :
+            if '/%s' % k not in sig :
+                raise Signature_Unknown, "Signature doesn't define %s" % k
+            type = sig ['/%s' % k]
+            if type not in v :
+                raise Signature_Unknown, "Unknown %s: %s" % (k, type)
+        IS = TFL.Interval_Set
+        NI = TFL.Numeric_Interval
+        iv = IS (NI (0, len (self.contents) - 1))
+        for start, length in grouper (2, sig ['/ByteRange']) :
+            iv = iv.difference (IS (NI (start, start + length - 1)))
+            print start, length
+            print iv
+        l = len (iv.intervals)
+        if l != 1 :
+            raise Signature_Error, "Number of non-signed Intervals %s != 1" % l
+        iv = iv.intervals [0]
+        sig_contents = self.contents [iv.lower : iv.upper].strip ()
+        assert (sig_contents  [0] == '<')
+        assert (sig_contents [-1] == '>')
+        sig_contents = sig_contents [1:-1].decode ('hex')
+        if sig ['/Contents'] != sig_contents :
+            raise Signature_Error, "Invalid byte-range for signature"
     # end def __init__
 # end class PDF_Signature
 

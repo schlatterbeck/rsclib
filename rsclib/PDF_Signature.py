@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2005-07 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2008-09 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -19,6 +19,8 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+import os
+import sha
 from base64                import b64decode
 from itertools             import islice
 from pyPdf                 import PdfFileReader
@@ -28,7 +30,7 @@ from xml.etree.ElementTree import fromstring
 from cStringIO             import StringIO
 from rsclib.iter_recipes   import grouper
 from _TFL                  import TFL, Numeric_Interval, Interval_Set
-from OpenSSL               import crypto
+from M2Crypto              import RSA, X509, m2
 
 class Signature_Error   (ValueError)          : pass
 class Signature_Unknown (NotImplementedError) : pass
@@ -45,20 +47,36 @@ class PDF_Signature :
         For now we also do not support revocation-list checking.
         Oh, and we only support a single certificate, although PDF
         supports to give a whole cert chain (in a PDF array)
+        We *do* check the purpose of the certificate and try to chain
+        up to a trusted cert for which you can specify the location.
+
+        We expect the trusted certificate file to be in PEM format and
+        have the name (or symlink) of its hash computed with
+        openssl x509 -noout -in cert.pem -hash
+        and a trailing .<number>, a good intro is in
+        http://www.madboa.com/geek/openssl/#verify-new
+        Openssl comes with a program to create these symlinks called
+        c_rehash.
+
+        To convert from pcs7 format (extension is sometimes .p7b) use
+        the pkcs7 subcommand from openssl, e.g.,
+        openssl pkcs7 -in x.p7b -inform DER -print_certs
     """
     supported = \
         { 'Filter'    : { '/Adobe.PPKLite'      : 1 }
         , 'SubFilter' : { '/adbe.x509.rsa_sha1' : 1 }
         }
-    def __init__ (self, pdf_file) :
+    def __init__ (self, pdf_file, cert_location = '/etc/ssl/certs') :
+        self.cert_location = cert_location
+        self._status       = []
         if not hasattr (pdf_file, "read") :
-            pdf_file  = open (pdf_file, "rb")
-        self.contents = pdf_file.read ()
-        f             = StringIO (self.contents)
-        self.reader   = PdfFileReader (f)
-        self.catalog  = c = self.reader.trailer ['/Root']
+            pdf_file       = open (pdf_file, "rb")
+        self.contents      = pdf_file.read ()
+        f                  = StringIO (self.contents)
+        self.reader        = PdfFileReader (f)
+        self.catalog       = c = self.reader.trailer ['/Root']
         try :
-            self.sig  = sig = c ['/AcroForm']['/Fields'][0].getObject()['/V']
+            sig = c ['/AcroForm']['/Fields'][0].getObject()['/V']
         except KeyError :
             raise Signature_Error, "PDF File doesn't seem to have a signature"
         if '/ByteRange' not in sig :
@@ -69,11 +87,14 @@ class PDF_Signature :
             stype = sig ['/%s' % k]
             if stype not in v :
                 raise Signature_Unknown, "Unknown %s: %s" % (k, stype)
-        IS = TFL.Interval_Set
-        NI = TFL.Numeric_Interval
-        iv = IS (NI (0, len (self.contents) - 1))
+        IS   = TFL.Interval_Set
+        NI   = TFL.Numeric_Interval
+        iv   = IS (NI (0, len (self.contents) - 1))
+        hash = sha.new ()
         for start, length in grouper (2, sig ['/ByteRange']) :
             iv = iv.difference (IS (NI (start, start + length - 1)))
+            hash.update (self.contents [start : start + length])
+        self.digest = hash.digest ()
         l = len (iv.intervals)
         if l != 1 :
             raise Signature_Error, "Number of non-signed Intervals %s != 1" % l
@@ -82,38 +103,70 @@ class PDF_Signature :
         assert (sig_contents  [0] == '<')
         assert (sig_contents [-1] == '>')
         sig_contents = sig_contents [1:-1].decode ('hex')
-        if sig ['/Contents'] != sig_contents :
+        self.sig     = sig ['/Contents']
+        if self.sig != sig_contents :
             raise Signature_Error, "Invalid byte-range for signature"
-        cert = sig ['/Cert']
+        self._status.append \
+            ("Byte range defined over whole document except signature, OK")
+        self.sig = str (der.decode (self.sig) [0])
+        #print ber.decode (self.sig) # works too (der is a subset of ber)
         # Seems the Cert is DER encoded. Beware of a just-reported bug
-        # in pyPdf!
+        # in pyPdf:
+        # http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=511252
+        # also present in 1.12 of upstream.
         # openssl asn1parse -inform DER -in z
-        # print der.decode (cert)
-        self.cert = crypto.load_certificate (crypto.FILETYPE_ASN1, cert)
-        print self.cert.get_issuer ()
-        print self.cert.get_pubkey ()
-        print dir (self.cert.get_pubkey ())
-        print self.cert.get_pubkey ().bits ()
-        print self.cert.has_expired ()
-        print der.decode (sig_contents)
-        print
-        x = crypto.load_pkcs12 (sig_contents)
-        x = crypto.load_pkcs7_data (crypto.FILETYPE_ASN1, sig_contents)
-        x = crypto.load_certificate_request (crypto.FILETYPE_ASN1, sig_contents)
-        x = crypto.load_certificate (crypto.FILETYPE_ASN1, sig_contents)
+        self.cert   = X509.load_cert_der_string (sig ['/Cert'])
+        for purpose in m2.X509_PURPOSE_SMIME_SIGN, m2.X509_PURPOSE_ANY :
+            if self.cert.check_purpose (purpose, 0) :
+                self._status.append ("Signature purpose verified")
+                break
+        else :
+            raise Signature_Error, "Signature purpose not verified"
+        self.pubkey = self.cert.get_pubkey ().get_rsa ()
+        print self.cert.get_subject ().as_der () == self.cert.get_issuer ().as_der ()
+        issuer = self.find_cert (self.cert.get_issuer ())
+        # FIXME: check certificate chain
+        # FIXME: check CRL
 
-        # these should never be called directly:
-        #r = crypto.X509Req ()
-        #r.set_pubkey (self.cert.get_pubkey ())
-        #spk = crypto.NetscapeSPKI ()
-        #spk.set_pubkey (self.cert.get_pubkey ())
-        #spk.verify (self.cert.get_pubkey ())
-        #print ber.decode (sig_contents) # works too (der is a subset of ber)
+        # expect also an M2Crypto.RSA.RSAError here and re-raise:
+        try :
+            if not self.pubkey.verify (self.digest, self.sig) :
+                raise Signature_Error, "Signature not verified"
+        except RSA.RSAError, cause :
+            raise Signature_Error, cause
+        self._status.append \
+            ("Good Signature from %s" % self.cert.get_subject ())
     # end def __init__
+
+    @property
+    def status (self) :
+        return '\n'.join (self._status)
+    # end def status
+
+    def find_cert (self, name) :
+        """ Find certificate by name in specified cert_location,
+            raise Signature_Error if not found
+        """
+        hash = "%08x" % name.as_hash ()
+        path = os.path.join (self.cert_location, hash)
+        for ext in xrange (10) :
+            try :
+                print "%s.%s" % (path, ext)
+                issuer = X509.load_cert ("%s.%s" % (path, ext))
+                print issuer.get_subject ().as_der () == issuer.get_issuer ().as_der ()
+                break
+            except IOError:
+                pass
+        else :
+            raise Signature_Error, "Issuer Certificate not found"
+    # end def find_cert
 # end class PDF_Signature
 
 class PDF_Trodat_Signature :
     """
+        XYZMO Seal formerly known as Trodat.
+        Not fully implemented, the format is undocumented and XYZMO
+        didn't send me instruction on how to verify this yet.
         Get the signature from a PDF file
         Interesting components:
         - TSTInfo_Xml: An XML snippet inside the Seal XML containing a
@@ -184,4 +237,8 @@ class PDF_Trodat_Signature :
 if __name__ == "__main__" :
     #sig = PDF_Trodat_Signature \
     #    ("/home/ralf/200809171_HN_online_Schlatterbeck.pdf")
-    sig = PDF_Signature ("/home/ralf/451719664-00.pdf")
+    sig = PDF_Signature \
+        ( "/home/ralf/451719664-00.pdf"
+        , "/home/ralf/checkout/own/projects/rsclib/rsclib/certs"
+        )
+    print sig.status

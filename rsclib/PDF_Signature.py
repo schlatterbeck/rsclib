@@ -21,7 +21,7 @@
 
 import os
 import sha
-from base64                import b64decode
+from base64                import b64decode, encodestring
 from itertools             import islice
 from pyPdf                 import PdfFileReader
 from pyasn1.codec.der      import decoder as der
@@ -30,7 +30,7 @@ from xml.etree.ElementTree import fromstring
 from cStringIO             import StringIO
 from rsclib.iter_recipes   import grouper
 from _TFL                  import TFL, Numeric_Interval, Interval_Set
-from M2Crypto              import RSA, X509, m2
+from M2Crypto              import RSA, X509, m2, m2urllib2, BIO, Err
 
 class Signature_Error   (ValueError)          : pass
 class Signature_Unknown (NotImplementedError) : pass
@@ -128,7 +128,7 @@ class PDF_Signature :
         self.pubkey = self.cert.get_pubkey ().get_rsa ()
         self.verify_chain (self.cert)
 
-        # FIXME: Check validity
+        # FIXME: Check validity -- use which date?
         # FIXME: check CRL
 
         # expect also an M2Crypto.RSA.RSAError here and re-raise:
@@ -164,9 +164,11 @@ class PDF_Signature :
     # end def find_cert
 
     def verify_chain (self, cert) :
-        """ verify certificates with issuer, loop until we found a
-            self-signed cert
+        """ verify certificates with issuer, loop until we find a
+            self-signed cert. From this extract crl url and try to do a
+            CRL verify, too.
         """
+        origcert = cert
         while True :
             subject     = cert.get_subject ()
             issuer      = cert.get_issuer  ()
@@ -182,9 +184,39 @@ class PDF_Signature :
                 % (subject.as_text (), issuer.as_text ())
                 )
             if subject.as_der () == issuer.as_der () :
-                return True
+                break
             cert = issuer_cert
+        # FIXME: How to verify the signature on the CRL?
+        # FIXME: How to use the CRL??
+        self.get_crl (issuer_cert)
     # end def verify_chain
+
+    def get_crl (self, cert) :
+        """ Get a Key revocation list from a cert """
+        points = cert.get_ext ("crlDistributionPoints").get_value ()
+        for url in points.split (',') :
+            if not url.startswith ('URI:') :
+                continue
+            url = url [4:]
+            # This should be wrapped in a try/except but I've had no
+            # example yet where this fails. Then we should iterate over
+            # all the URIs and select the one that opens.
+            fh = m2urllib2.build_opener ().open (url)
+        # Grmpf: M2Crypto doesn't wrap a method to create crl from DER
+        # Grrmpf: And we need low-level methods, higher-level can only
+        #         read from a file...
+        # Grrrmpf: Hmm and how to use the CRL, then?
+        crl_pem = encodestring (fh.read ())
+        fh.close ()
+        crl_pem = \
+            '-----BEGIN X509 CRL-----\n%s-----END X509 CRL-----\n' % crl_pem
+        bio = BIO.MemoryBuffer (crl_pem)
+        cptr = m2.x509_crl_read_pem (bio.bio_ptr ())
+        if cptr is None :
+            raise Err.get_error ()
+        crl = X509.CRL (cptr, 1)
+        return crl
+    # end def get_crl
 
 # end class PDF_Signature
 

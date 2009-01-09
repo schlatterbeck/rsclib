@@ -61,6 +61,9 @@ class PDF_Signature :
         To convert from pcs7 format (extension is sometimes .p7b) use
         the pkcs7 subcommand from openssl, e.g.,
         openssl pkcs7 -in x.p7b -inform DER -print_certs
+
+        FIXME: SSL-specific stuff (certificate chain verification etc.)
+        should probably be moved to its own module.
     """
     supported = \
         { 'Filter'    : { '/Adobe.PPKLite'      : 1 }
@@ -123,9 +126,8 @@ class PDF_Signature :
         else :
             raise Signature_Error, "Signature purpose not verified"
         self.pubkey = self.cert.get_pubkey ().get_rsa ()
-        print self.cert.get_subject ().as_der () == self.cert.get_issuer ().as_der ()
-        issuer = self.find_cert (self.cert.get_issuer ())
-        # FIXME: check certificate chain
+        self.verify_chain (self.cert)
+
         # FIXME: check CRL
 
         # expect also an M2Crypto.RSA.RSAError here and re-raise:
@@ -151,15 +153,38 @@ class PDF_Signature :
         path = os.path.join (self.cert_location, hash)
         for ext in xrange (10) :
             try :
-                print "%s.%s" % (path, ext)
-                issuer = X509.load_cert ("%s.%s" % (path, ext))
-                print issuer.get_subject ().as_der () == issuer.get_issuer ().as_der ()
-                break
+                cert = X509.load_cert ("%s.%s" % (path, ext))
+                if cert.get_subject ().as_der () == name.as_der () :
+                    return cert
             except IOError:
                 pass
         else :
             raise Signature_Error, "Issuer Certificate not found"
     # end def find_cert
+
+    def verify_chain (self, cert) :
+        """ verify certificates with issuer, loop until we found a
+            self-signed cert
+        """
+        while True :
+            subject     = cert.get_subject ()
+            issuer      = cert.get_issuer  ()
+            issuer_cert = self.find_cert (issuer)
+            pubkey      = issuer_cert.get_pubkey ()
+            if not cert.verify (pubkey) :
+                raise Signature_Error, \
+                    ( "Certificate-Chain verify of %s with %s failed"
+                    % (subject.as_text (), issuer.as_text ())
+                    )
+            self._status.append \
+                ( "Certificate-Chain verify OK: %s with %s"
+                % (subject.as_text (), issuer.as_text ())
+                )
+            if subject.as_der () != issuer.as_der () :
+                return True
+            cert = issuer_cert
+    # end def verify_chain
+
 # end class PDF_Signature
 
 class PDF_Trodat_Signature :

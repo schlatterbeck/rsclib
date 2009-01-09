@@ -206,7 +206,10 @@ class PDF_Signature :
         # Grrmpf: And we need low-level methods, higher-level can only
         #         read from a file...
         # Grrrmpf: Hmm and how to use the CRL, then?
-        crl_pem = encodestring (fh.read ())
+        crl_der = fh.read ()
+        asn1 = der.decode (crl_der)
+        print asn1 [0][0]
+        crl_pem = encodestring (crl_der)
         fh.close ()
         crl_pem = \
             '-----BEGIN X509 CRL-----\n%s-----END X509 CRL-----\n' % crl_pem

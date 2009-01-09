@@ -128,6 +128,7 @@ class PDF_Signature :
         self.pubkey = self.cert.get_pubkey ().get_rsa ()
         self.verify_chain (self.cert)
 
+        # FIXME: Check validity
         # FIXME: check CRL
 
         # expect also an M2Crypto.RSA.RSAError here and re-raise:
@@ -180,7 +181,7 @@ class PDF_Signature :
                 ( "Certificate-Chain verify OK: %s with %s"
                 % (subject.as_text (), issuer.as_text ())
                 )
-            if subject.as_der () != issuer.as_der () :
+            if subject.as_der () == issuer.as_der () :
                 return True
             cert = issuer_cert
     # end def verify_chain

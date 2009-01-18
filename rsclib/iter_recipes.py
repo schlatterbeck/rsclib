@@ -22,7 +22,7 @@
 # Some recipes for iterating, some from
 # http://docs.python.org/library/itertools.html
 
-from itertools import izip
+from itertools import izip, tee
 
 def grouper (n, iterable) :
     """
@@ -31,3 +31,48 @@ def grouper (n, iterable) :
     """
     args = [iter (iterable)] * n
     return izip (*args)
+# end def grouper
+
+def pairwise (iterable) :
+    """
+        >>> list (pairwise (["s0", "s1", "s2", "s3"]))
+        [('s0', 's1'), ('s1', 's2'), ('s2', 's3')]
+    """
+    a, b = tee (iterable)
+    for elem in b :
+        break
+    return izip (a, b)
+# end def pairwise
+
+def ranges (iterable, key = None) :
+    """ Convert adjacent items in iterable to a list of ranges.
+        The key, if present, will convert the items to numbers where adjacent items differ
+        by on (e.g. for internet addresses).
+        >>> tuple (ranges ((1,2,3,4,5,9,10,11,21)))
+        ((1, 5), (9, 11), (21, 21))
+        >>> tuple (ranges ((1,2,3,4,5,9,10,11,21,22)))
+        ((1, 5), (9, 11), (21, 22))
+        >>> tuple (ranges ((1,2,4,5,9,10,11,21,22)))
+        ((1, 2), (4, 5), (9, 11), (21, 22))
+    """
+    if not key :
+        key = lambda x : x
+    first = None
+    for x1, x2 in pairwise (iterable) :
+        last = x2
+        if key (x1) + 1 == key (x2) :
+            if not first :
+                first = x1
+            continue
+        if first :
+            yield (first, x1)
+            first = None
+        else :
+            yield (x1, x1)
+    if last :
+        if first :
+            yield (first, last)
+            first = None
+        else :
+            yield (last, last)
+# end def ranges

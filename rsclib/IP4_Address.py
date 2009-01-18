@@ -144,6 +144,8 @@ class IP4_Address :
     def net (self) :
         return self.__class__ (self.ip & self.bitmask)
     # end def net
+    
+    network = net
 
     def overlaps (self, other) :
         return \
@@ -156,6 +158,8 @@ class IP4_Address :
         return self.__class__ (0xFFFFFFFF & self.bitmask)
     # end def subnet_mask
 
+    netmask = subnet_mask
+
     __contains__ = contains
 
     def __eq__ (self, other) :
@@ -165,6 +169,10 @@ class IP4_Address :
     def __ne__ (self, other) :
         return not self == other
     # end def __ne__
+
+    def __cmp__ (self, other) :
+        return cmp (self.ip, other.ip) and cmp (self.mask, other.mask)
+    # end def __cmp__
 
     def __repr__ (self) :
         ip = self.ip

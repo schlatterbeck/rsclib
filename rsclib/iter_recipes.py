@@ -55,11 +55,18 @@ def ranges (iterable, key = None, condition = None) :
         ((1, 5), (9, 11), (21, 22))
         >>> tuple (ranges ((1,2,4,5,9,10,11,21,22)))
         ((1, 2), (4, 5), (9, 11), (21, 22))
+        >>> tuple (ranges ((1,)))
+        ((1, 1),)
     """
     if not key :
         key = lambda x : x
     first = last = None
-    for x1, x2 in pairwise (iterable) :
+    i1, i2 = tee (iterable)
+    try :
+        last = i1.next ()
+    except StopIteration :
+        pass
+    for x1, x2 in pairwise (i2) :
         last = x2
         if key (x1) + 1 == key (x2) and (not condition or condition (x1, x2)) :
             if not first :

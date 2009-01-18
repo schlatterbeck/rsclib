@@ -44,10 +44,11 @@ def pairwise (iterable) :
     return izip (a, b)
 # end def pairwise
 
-def ranges (iterable, key = None) :
+def ranges (iterable, key = None, condition = None) :
     """ Convert adjacent items in iterable to a list of ranges.
         The key, if present, will convert the items to numbers where adjacent items differ
-        by on (e.g. for internet addresses).
+        by on (e.g. for internet addresses). The optional condition tests each pair, only
+        if the condition evaluates to True is the pair considered ajacent.
         >>> tuple (ranges ((1,2,3,4,5,9,10,11,21)))
         ((1, 5), (9, 11), (21, 21))
         >>> tuple (ranges ((1,2,3,4,5,9,10,11,21,22)))
@@ -60,7 +61,7 @@ def ranges (iterable, key = None) :
     first = last = None
     for x1, x2 in pairwise (iterable) :
         last = x2
-        if key (x1) + 1 == key (x2) :
+        if key (x1) + 1 == key (x2) and (not condition or condition (x1, x2)) :
             if not first :
                 first = x1
             continue

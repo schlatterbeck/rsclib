@@ -57,7 +57,7 @@ def ranges (iterable, key = None) :
     """
     if not key :
         key = lambda x : x
-    first = None
+    first = last = None
     for x1, x2 in pairwise (iterable) :
         last = x2
         if key (x1) + 1 == key (x2) :

@@ -129,6 +129,8 @@ class IP4_Address :
         True
         >>> f == IP4_Address ('10.100.0.0', 16)
         True
+        >>> list (sorted ((a, b, c, d, e, f, g)))
+        [10.100.0.0, 10.100.0.0/16, 10.100.0.0/16, 10.100.0.0/16, 10.100.10.0, 10.100.10.0/24, 10.100.10.2]
     """
 
     def __init__ (self, address, mask = 32L) :
@@ -182,7 +184,7 @@ class IP4_Address :
     # end def __ne__
 
     def __cmp__ (self, other) :
-        return cmp (self.ip, other.ip) and cmp (self.mask, other.mask)
+        return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
     # end def __cmp__
 
     def __repr__ (self) :

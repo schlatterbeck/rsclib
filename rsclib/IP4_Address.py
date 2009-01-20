@@ -35,10 +35,19 @@ class IP4_Address :
         '10.100.10.0/24'
         >>> b.subnet_mask ()
         255.255.255.0
+        >>> b.netmask ()
+        255.255.255.0
         >>> b.broadcast_address ()
+        10.100.10.255
+        >>> b.broadcast ()
         10.100.10.255
         >>> b
         10.100.10.0/24
+        >>> b = IP4_Address ('10.100.10.5/24')
+        >>> b.ip
+        174328320L
+        >>> str (b)
+        '10.100.10.0/24'
         >>> b in b
         True
         >>> c = IP4_Address ('10.100.10.5', 16)

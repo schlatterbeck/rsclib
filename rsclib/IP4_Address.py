@@ -137,6 +137,8 @@ class IP4_Address :
         return self.__class__ (self.ip | mask)
     # end def broadcast_address
 
+    broadcast = broadcast_address
+
     def contains (self, other) :
         return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
     # end def contains

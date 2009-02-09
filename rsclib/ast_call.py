@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2008 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2008-9 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -202,11 +202,10 @@ class Call_Manager (object) :
         #print "Originate:", result.__dict__
         actionid = result.headers ['ActionID']
         uniqueid = result.headers.get ('Uniqueid')
-        #uniqueid = None
         call = Call (self, actionid, uniqueid)
         self.open_calls [actionid] = call
         if match_channel :
-            self.open_by_chan [args ['channel']] = call
+            self.open_by_chan [kw ['channel']] = call
         return actionid
     # end def originate
 
@@ -216,7 +215,7 @@ class Call_Manager (object) :
                 event = self.queue.get (timeout = timeout)
             except Empty :
                 return
-            print "Received event: %s" % event.name, event.headers
+            #print "Received event: %s" % event.name, event.headers
             assert ('Uniqueid' in event.headers)
             uniqueid = event.headers ['Uniqueid']
             # ignore bogus uniqueid in asterisk 1.4
@@ -265,7 +264,7 @@ class Call_Manager (object) :
         """ Try handling the event. Returns True on success False
             otherwise.
         """
-        print "Handling event: %s" % event.name, event.headers
+        #print "Handling event: %s" % event.name, event.headers
         uniqueid = event.headers ['Uniqueid']
         callid   = call_id (uniqueid)
         if callid in self.open_by_id :

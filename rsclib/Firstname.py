@@ -47,19 +47,31 @@ class Firstname (_Nonzero, Page_Tree) :
         pass
 
     hardcoded = \
-        { 'Eleonore'    : (False, True)
+        { 'Dorett'      : (False, True)
+        , 'Doritt'      : (False, True)
+        , 'Dorrit'      : (False, True)
+        , 'Eleonore'    : (False, True)
         , 'Gabor'       : (True,  False)
         , 'Gertraude'   : (False, True)
         , 'Gliceria'    : (False, True)
         , 'Hanns'       : (True,  False)
         , 'Heinzwerner' : (True,  False)
+        , 'Henryk'      : (True,  False)
+        , 'Hildgard'    : (False, True)
         , 'Ingulf'      : (True,  False)
         , 'Irmentraut'  : (False, True)
         , 'Karlos'      : (True,  False)
         , 'Karlotte'    : (False, True)
         , 'Krystyna'    : (False, True)
+        , 'Libuse'      : (False, True)
+        , 'Margerita'   : (False, True)
         , 'Rudolfine'   : (False, True)
+        , 'Siegrid'     : (False, True)
+        , 'Silvie'      : (False, True)
         , 'Suse'        : (False, True)
+        , 'Traude'      : (False, True)
+        , 'Trude'       : (False, True)
+        , 'Waltraude'   : (False, True)
         #                  male   female
         }
 

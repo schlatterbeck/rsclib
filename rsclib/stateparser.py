@@ -127,10 +127,11 @@ class Parser (Debug) :
         To use, define a subclass with the necessary actions. An action
         method gets the line matched and an optional match object.
     """
-    def __init__ (self, matrix, verbose = False) :
+    def __init__ (self, matrix = None, verbose = False) :
         self.verbose = verbose
         self.state   = None
         self.states  = {}
+        matrix = matrix or self.matrix
         for line in matrix :
             self.add_transition (* line)
         self.stack   = []

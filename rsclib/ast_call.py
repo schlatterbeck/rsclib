@@ -69,6 +69,7 @@ class Call (object) :
         self.uids       = {}
         self.causecode  = 0
         self.causetext  = ''
+        self.causeno    = None
         self.dialstatus = ''
         if uniqueid is not None :
             self._set_id (uniqueid)
@@ -79,9 +80,11 @@ class Call (object) :
         id = event.headers ['Uniqueid']
         if event.name == 'Hangup' :
             del self.uids [id]
-            if not self.causecode :
+            causeno  = int (id.rsplit ('.', 1) [1])
+            if not self.causecode or causeno < self.causeno :
                 self.causecode = int (event.headers ['Cause'])
                 self.causetext = event.headers ['Cause-txt']
+                self.causeno   = causeno
         else :
             self.uids [id] = True
             # Convention: Allow to retrieve dialstatus

@@ -30,8 +30,13 @@ def call_id (uniqid) :
         But sometimes we get ids like asterisk-18477-1236970792
         while the allocated channel sometimes has asterisk-1236970792
         so we strip out the middle part.
+        >>> call_id ('asterisk-18477-1236970792.47')
+        'asterisk-1236970792'
+        >>> call_id ('asterisk-1236970792.47')
+        'asterisk-1236970792'
     """
-    return '-'.join ('.'.join (uniqid.split ('.') [:-1]).split ('-')[0,-1])
+    l = '.'.join (uniqid.split ('.') [:-1]).split ('-')
+    return '-'.join ((l [0], l [-1]))
 # end def call_id
 
 class Config (Config_File) :

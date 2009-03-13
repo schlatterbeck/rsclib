@@ -27,8 +27,11 @@ from rsclib.Config_File import Config_File
 def call_id (uniqid) :
     """ Strip the last component off a Uniqueid, this apparently
         identifies all the call legs belonging to an asterisk call.
+        But sometimes we get ids like asterisk-18477-1236970792
+        while the allocated channel sometimes has asterisk-1236970792
+        so we strip out the middle part.
     """
-    return '.'.join (uniqid.split ('.') [:-1])
+    return '-'.join ('.'.join (uniqid.split ('.') [:-1]).split ('-')[0,-1])
 # end def call_id
 
 class Config (Config_File) :
@@ -182,7 +185,11 @@ class Call_Manager (object) :
             )
         self.call_by_number [callid] = number
         self.queue_handler (timeout)
-        return self.closed_calls [callid]
+        try :
+            return self.closed_calls [callid]
+        except KeyError :
+            pass
+        return None
     # end def call
 
     def close (self) :

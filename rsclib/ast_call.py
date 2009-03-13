@@ -122,8 +122,8 @@ class Call_Manager (object) :
         dialplan.
     """
 
-    def __init__ (self) :
-        self.cfg            = cfg = Config ()
+    def __init__ (self, config = 'autocaller', cfgpath = '/etc/autocaller') :
+        self.cfg            = cfg = Config (config = config, path = cfgpath)
         self.manager        = mgr = asterisk.manager.Manager ()
         self.open_calls     = {}
         self.open_by_id     = {}
@@ -164,8 +164,12 @@ class Call_Manager (object) :
             { 'SOUND'      : sound      or self.cfg.SOUND
             , 'CALL_DELAY' : call_delay or self.cfg.CALL_DELAY
             }
-        type    = channel_type   or self.cfg.CHANNEL_TYPE
-        suffix  = channel_suffix or self.cfg.CHANNEL_SUFFIX
+        type    = channel_type
+        if type is None :
+            type = self.cfg.CHANNEL_TYPE
+        suffix  = channel_suffix
+        if suffix is None :
+            suffix = self.cfg.CHANNEL_SUFFIX
         callid  = self.originate \
             ( self.cfg.MATCH_CHANNEL
             , channel   = '%s/%s%s' % (type, number, suffix)

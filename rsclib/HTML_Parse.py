@@ -23,7 +23,10 @@ import urllib2
 import cookielib
 from   time                            import sleep
 from   elementtidy.TidyHTMLTreeBuilder import TidyHTMLTreeBuilder
-from   elementtree.ElementTree         import ElementTree
+try :
+    from xml.etree.ElementTree import ElementTree
+except ImportError :
+    from elementtree.ElementTree import ElementTree
 from   rsclib.autosuper                import autosuper
 from   rsclib.Version                  import VERSION
 from   urllib                          import urlencode

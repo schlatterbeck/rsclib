@@ -11,7 +11,7 @@ PROJECT=rsclib
 PACKAGE=rsclib
 CHANGES=changes
 NOTES=notes
-HOSTNAME=shell.sourceforge.net
+HOSTNAME=web.sourceforge.net
 PROJECTDIR=/home/groups/r/rs/rsclib/htdocs
 
 all: $(VERSION)

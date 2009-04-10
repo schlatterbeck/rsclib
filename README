@@ -34,6 +34,16 @@ The library includes various utility modules used in other projects.
  - ast_call: A simple call manager using asterisk: This can be used to
    originate a call and log all event associated to that call. So you
    can find out the status of the call and optionally the dialstatus.
+ - bero: A configurator for the `bero*fos`_ failover switch. See my
+   `blogpost`_ why I wrote that (short summary: to work around bugs in
+   the firmware of the device which are not addressed by the
+   configurator code that comes with the device).
+ - PDF_Signature: experimental code for checking signatures on adobe PDF
+   documents
+ - iter_recipes: magic with iterators
+
+.. _`bero*fos`: https://shop.beronet.com/product_info.php/cPath/56/products_id/159
+.. _`blogpost`: http://blog.runtux.com/2009/04/09/81/
 
 Resources
 ---------
@@ -47,14 +57,21 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
-Version 0.10: 
+Version 0.10: Not announced on freshmeat
 
-add ast_call for asterisk auto-dialling, small fixes to IP4_Address
+add ast_call for asterisk auto-dialling, small fixes to IP4_Address, add
+bero*fos configurator, experimental code for checking PDF signature
 
  - add ast_call.py
  - Firstname: don't look up names with len < 2
  - IP4_Address: some aliases for common functions
  - IP4_Address: add __cmp__
+ - bero.py: bero*fos configurator
+ - HTML_Parse updated for python 2.5
+ - stateparser update: use self.matrix by default
+ - PDF_Signature: experimental code for checking signatures on adobe PDF
+   documents
+ - iter_recipes: some magic with iterators
 
 Version 0.9: Not announced on freshmeat
 

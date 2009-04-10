@@ -19,6 +19,8 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from urllib2 import urlopen
+
 bnfos_confmap = \
     [ ( "sz"     , 'b', 1, "sz=%s"    , "szenario(0)")
     , ( "mode"   , 'b', 4, "mode=%s"  , "mode(0)")
@@ -89,32 +91,144 @@ bnfos_commands = \
 class Bnfos_Command (object) :
     by_lowlevel_command  = {}
     by_highlevel_command = {}
+    by_cmd               = {}
+    dirty_dict           = {}
+    site = 'http://%(host)s:%(port)s/'
+    host = None
+    port = 80
 
     def __init__ (self, key, type, cmd, param, macro) :
-        self.key   = key
-        self.type  = type
-        self.cmd   = cmd
-        self.param = param
-        self.macro = macro
-        self.value = None
+        self.key    = key
+        self.type   = type
+        self.cmd    = cmd
+        self.param  = param
+        self.macro  = macro
+        self._value = None
         self.by_lowlevel_command [(key, cmd)] = self
+        if cmd not in self.by_cmd :
+            self.by_cmd [cmd] = []
+        self.by_cmd [cmd].append (self)
     # end def __init__
+
+    @classmethod
+    def get_config (cls, host, port = 80) :
+        cls.host = host
+        cls.port = port
+        url = (cls.site + "config.txt") % locals ()
+        for n, line in enumerate (urlopen (url)) :
+            line = line.strip ()
+            if not line :
+                continue
+            if not line [0].isdigit () :
+                assert (n == 0)
+                continue
+            k, v = line.split ('=')
+            cmd, key = k.split ('_')
+            cmd = int (cmd)
+            c = cls.by_lowlevel_command [(key, cmd)]
+            if not c.dirty :
+                c._value = v
+    # end def get_config
 
     @classmethod
     def set_command (cls, key, cmd, command, helptext) :
         self = cls.by_lowlevel_command [(key, cmd)]
         self.command  = command
         self.helptext = helptext
+        if self.macro is None :
+            self.helptext = ' '.join ((helptext, '[only set]'))
+        if self.param is None :
+            self.helptext = ' '.join ((helptext, '[only get]'))
         cls.by_highlevel_command [command] = self
     # end def set_command
 
     @classmethod
-    def get_config (cls, host, port = 80) :
-        pass
-    # end def get_config
+    def update_config (cls) :
+        site = cls.site % cls.__dict__
+        cmds = {}
+        for key, cmd in cls.dirty_dict :
+            cmds [cmd] = True
+        url = []
+        for cmd in cmds :
+            url.append ('cmd=%(cmd)s' % locals ())
+            for c in cls.by_cmd [cmd] :
+                url.append (c.param % c.value)
+        url = '?'.join ((site, '&'.join (url)))
+        urlopen (url).read ()
+        cls.dirty = {}
+    # end def set_config
+
+    @classmethod
+    def usage (cls) :
+        u = []
+        l = 0
+        for k, c in cls.by_highlevel_command.iteritems () :
+            param = "<%(key)s>" % c.__dict__
+            if c.type == 'b' :
+                param = '{0|1}'
+            if c.type == 'p' :
+                param = '{1..%d}' % (2**16 - 1)
+            u.append (("%(k)s=%(param)s" % locals (), c.helptext))
+            l = max (len (u [-1][0]), l)
+        usage = '\n'.join ("%%%ds %%s" % l % (c, h) for c, h in sorted (u))
+        return usage
+    # end def usage
+
+    def getval (self) :
+        return self._value
+    # end def get
+
+    def setval (self, value) :
+        self._value = value
+        self.dirty_dict [self.key, self.cmd] = True
+    # end def set
+
+    def is_dirty (self) :
+        return (self.key, self.cmd) in self.dirty_dict
+    # end def is_dirty
+
+    dirty = property (is_dirty)
+    value = property (getval, setval)
+
 # end class Bnfos_Command
 
 for b in bnfos_confmap :
     Bnfos_Command (*b)
 for c in bnfos_commands :
     Bnfos_Command.set_command (*c)
+
+if __name__ == '__main__' :
+    from   optparse import OptionParser
+    call = 'usage: %prog [options] [parameter]* [parameter=value]*'
+    parser = OptionParser (usage = '\n'.join ((call, Bnfos_Command.usage ())))
+    parser.add_option \
+        ( "-H", "--host"
+        , dest    = "host"
+        , help    = "bero*fos host, default=%default"
+        , default = "fos"
+        )
+    parser.add_option \
+        ( "-p", "--port"
+        , dest    = "port"
+        , help    = "port number of bero*fos http server, default=%default"
+        , type    = "int"
+        , default = 80
+        )
+    (opts, args) = parser.parse_args ()
+    if not len (args) :
+        parser.error ("At least one parameter is needed")
+    Bnfos_Command.get_config (host = opts.host, port = opts.port)
+    for a in args :
+        try :
+            command, value = a.split ("=", 1)
+        except ValueError :
+            command = a
+            value   = None
+        if command not in Bnfos_Command.by_highlevel_command :
+            parser.error ("not a valid parameter: %s" % command)
+        if value is not None :
+            Bnfos_Command.by_highlevel_command [command].value = value
+        else :
+            c = Bnfos_Command.by_highlevel_command [command]
+            print "=".join ((c.command, c.value))
+    Bnfos_Command.update_config ()

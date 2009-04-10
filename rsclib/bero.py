@@ -229,7 +229,7 @@ for b in bnfos_confmap :
 for c in bnfos_commands :
     Bnfos_Command.set_command (*c)
 
-if __name__ == '__main__' :
+def main () :
     from   optparse import OptionParser
     call = 'usage: %prog [options] [parameter]* [parameter=value]*'
     parser = OptionParser (usage = '\n'.join ((call, Bnfos_Command.usage ())))
@@ -268,3 +268,7 @@ if __name__ == '__main__' :
             if c.macro is not None :
                 print "=".join ((c.command, str (c.value)))
     Bnfos_Command.update_config ()
+# end def main
+
+if __name__ == '__main__' :
+    main ()

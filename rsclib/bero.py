@@ -158,7 +158,7 @@ class Bnfos_Command (object) :
                     url.append (c.param % c.value)
         url = '?'.join ((site, '&'.join (url)))
         urlopen (url).read ()
-        print url
+        #print url # resulting url for debugging
         cls.dirty_dict = {}
     # end def update_config
 

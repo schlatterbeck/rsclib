@@ -105,7 +105,7 @@ class Bnfos_Command (object) :
         self.macro  = macro
         self._value = None
         self.get    = getattr (self, 'get_%s' % type)
-        self.set    = getattr (self, 'set_%s' % type)
+        self.set    = self.get
         self.by_lowlevel_command [(key, cmd)] = self
         if cmd not in self.by_cmd :
             self.by_cmd [cmd] = []
@@ -154,7 +154,7 @@ class Bnfos_Command (object) :
         for cmd in cmds :
             url.append ('cmd=%(cmd)s' % locals ())
             for c in cls.by_cmd [cmd] :
-                if c.param :
+                if c.param and (c.macro or c.dirty) :
                     url.append (c.param % c.value)
         url = '?'.join ((site, '&'.join (url)))
         urlopen (url).read ()
@@ -179,16 +179,10 @@ class Bnfos_Command (object) :
     # end def usage
 
     def get_b (self, val) :
-        if val == "checked" or val == "1" :
+        if val == "checked" or val == "1" or val == 1 :
             return 1
         return 0
     # end def check_b
-
-    def set_b (self, val) :
-        if val == '1' :
-            return "checked"
-        return ""
-    # end def set_b
 
     def get_a (self, val) :
         a     = val.split ('.')
@@ -204,19 +198,11 @@ class Bnfos_Command (object) :
             raise ValueError, "Invalid Address: %s" % val
         return val
     # end def check_a
-    set_a = get_a
 
     def get_s (self, val) :
         return str (val)
     # end def get_s
-    get_h = get_p = get_0 = get_s
-    # FIXME: further checking
-    set_s = set_h = set_p = get_s
-    get_n = set_d = set_n = get_d = get_s
-
-    def set_0 (self, val) :
-        return None
-    # end def set_0
+    get_h = get_p = get_0 = get_n = get_d = get_s
 
     def getval (self) :
         return self.get (self._value)

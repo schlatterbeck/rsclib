@@ -104,6 +104,8 @@ class Bnfos_Command (object) :
         self.param  = param
         self.macro  = macro
         self._value = None
+        self.get    = getattr (self, 'get_%s' % type)
+        self.set    = getattr (self, 'set_%s' % type)
         self.by_lowlevel_command [(key, cmd)] = self
         if cmd not in self.by_cmd :
             self.by_cmd [cmd] = []
@@ -144,19 +146,21 @@ class Bnfos_Command (object) :
 
     @classmethod
     def update_config (cls) :
+        if not cls.dirty_dict :
+            return
         site = cls.site % cls.__dict__
-        cmds = {}
-        for key, cmd in cls.dirty_dict :
-            cmds [cmd] = True
         url = []
+        cmds = sorted (cmd for key, cmd in cls.dirty_dict)
         for cmd in cmds :
             url.append ('cmd=%(cmd)s' % locals ())
             for c in cls.by_cmd [cmd] :
-                url.append (c.param % c.value)
+                if c.param :
+                    url.append (c.param % c.value)
         url = '?'.join ((site, '&'.join (url)))
         urlopen (url).read ()
-        cls.dirty = {}
-    # end def set_config
+        print url
+        cls.dirty_dict = {}
+    # end def update_config
 
     @classmethod
     def usage (cls) :
@@ -174,14 +178,56 @@ class Bnfos_Command (object) :
         return usage
     # end def usage
 
+    def get_b (self, val) :
+        if val == "checked" or val == "1" :
+            return 1
+        return 0
+    # end def check_b
+
+    def set_b (self, val) :
+        if val == '1' :
+            return "checked"
+        return ""
+    # end def set_b
+
+    def get_a (self, val) :
+        a     = val.split ('.')
+        valid = True
+        for i in a :
+            try :
+                i = int (i)
+                if i < 0 or i > 255 :
+                    valid = False
+            except ValueError :
+                valid = False
+        if len (a) != 4 or not valid :
+            raise ValueError, "Invalid Address: %s" % val
+        return val
+    # end def check_a
+    set_a = get_a
+
+    def get_s (self, val) :
+        return str (val)
+    # end def get_s
+    get_h = get_p = get_0 = get_s
+    # FIXME: further checking
+    set_s = set_h = set_p = get_s
+    get_n = set_d = set_n = get_d = get_s
+
+    def set_0 (self, val) :
+        return None
+    # end def set_0
+
     def getval (self) :
-        return self._value
-    # end def get
+        return self.get (self._value)
+    # end def getval
 
     def setval (self, value) :
-        self._value = value
-        self.dirty_dict [self.key, self.cmd] = True
-    # end def set
+        v = self.set (value)
+        if v is not None :
+            self._value = v
+            self.dirty_dict [self.key, self.cmd] = True
+    # end def setval
 
     def is_dirty (self) :
         return (self.key, self.cmd) in self.dirty_dict
@@ -227,8 +273,12 @@ if __name__ == '__main__' :
         if command not in Bnfos_Command.by_highlevel_command :
             parser.error ("not a valid parameter: %s" % command)
         if value is not None :
-            Bnfos_Command.by_highlevel_command [command].value = value
+            try :
+                Bnfos_Command.by_highlevel_command [command].value = value
+            except ValueError, cause :
+                parser.error (cause)
         else :
             c = Bnfos_Command.by_highlevel_command [command]
-            print "=".join ((c.command, c.value))
+            if c.macro is not None :
+                print "=".join ((c.command, str (c.value)))
     Bnfos_Command.update_config ()

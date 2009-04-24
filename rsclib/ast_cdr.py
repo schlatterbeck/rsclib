@@ -34,12 +34,15 @@ class CDR_Parser (autosuper) :
         ...         '"ANSWERED","DOCUMENTATION","asterisk-1240499812.774",'
         ...         '"102441/54"'
         ...        )
-        >>> line = line + '\\n'
+        >>> line = line + '\\n' + line + '\\n'
         >>> p = CDR_Parser (StringIO (line))
         >>> for cdr in p.iter () :
         ...     print cdr.amaflags, cdr.disposition, cdr ['channel'], cdr.dst
         ...     print cdr.uniqueid, cdr.userfield
         ...     print "TEST"
+        DOCUMENTATION ANSWERED lcr/439 11
+        asterisk-1240499812.774 102441/54
+        TEST
         DOCUMENTATION ANSWERED lcr/439 11
         asterisk-1240499812.774 102441/54
         TEST

@@ -57,6 +57,13 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.11: Not announced on freshmeat
+
+Add a parser for CDR records in asterisk. We currently use text-files
+only, this might be later extended for database use.
+
+ - add ast_cdr.py
+
 Version 0.10: Not announced on freshmeat
 
 add ast_call for asterisk auto-dialling, small fixes to IP4_Address, add

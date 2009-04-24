@@ -8,7 +8,6 @@ from   rsclib.autosuper import autosuper
 class CDR (autosuper) :
     def __init__ (self, dictionary) :
         self.dict = dictionary
-        self.dict ['uniqueid'] = self.dict ['uniqueid'].rstrip ()
     # end def __init__
 
     def __getattr__ (self, name) :
@@ -35,10 +34,15 @@ class CDR_Parser (autosuper) :
         ...         '"ANSWERED","DOCUMENTATION","asterisk-1240499812.774",'
         ...         '"102441/54"'
         ...        )
+        >>> line = line + '\\n'
         >>> p = CDR_Parser (StringIO (line))
         >>> for cdr in p.iter () :
         ...     print cdr.amaflags, cdr.disposition, cdr ['channel'], cdr.dst
+        ...     print cdr.uniqueid, cdr.userfield
+        ...     print "TEST"
         DOCUMENTATION ANSWERED lcr/439 11
+        asterisk-1240499812.774 102441/54
+        TEST
     """
     fields = \
         ( ('accountcode', "What account number to use")
@@ -61,8 +65,8 @@ class CDR_Parser (autosuper) :
                           "ANSWERED, NO ANSWER, BUSY, FAILED")
         , ('amaflags'   , "DOCUMENTATION, BILLING, IGNORE etc, "
                           "specified on a per channel ")
-        , ('userfield'  , "A user-defined field, maximum 255 characters")
         , ('uniqueid'   , "Unique Channel Identifier")
+        , ('userfield'  , "A user-defined field, maximum 255 characters")
         )
     
     def __init__ (self, * files) :

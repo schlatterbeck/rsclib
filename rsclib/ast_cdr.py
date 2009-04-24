@@ -77,10 +77,10 @@ class CDR_Parser (autosuper) :
                 if f.endswith ('.gz') :
                     fd = gzopen (f, 'r')
                 else :
-                    fd = open (fn, 'r')
+                    fd = open   (f, 'r')
             reader = csv.DictReader \
                 ( fd
-                , fieldnames = [f [0] for f in self.fields]
+                , fieldnames = [fld [0] for fld in self.fields]
                 , dialect    = 'excel'
                 , delimiter  = ','
                 )

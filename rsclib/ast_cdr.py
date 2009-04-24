@@ -8,6 +8,7 @@ from   rsclib.autosuper import autosuper
 class CDR (autosuper) :
     def __init__ (self, dictionary) :
         self.dict = dictionary
+        self.dict ['uniqueid'] = self.dict ['uniqueid'].rstrip ()
     # end def __init__
 
     def __getattr__ (self, name) :

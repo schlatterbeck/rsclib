@@ -25,6 +25,7 @@ class CDR (autosuper) :
     def __repr__ (self) :
         return repr (self.dict)
     # end def __repr__
+    __str__ = __repr__
 # end class CDR
 
 class CDR_Parser (autosuper) :

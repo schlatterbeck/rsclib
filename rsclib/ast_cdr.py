@@ -21,6 +21,10 @@ class CDR (autosuper) :
     def __getitem__ (self, name) :
         return self.dict [name]
     # end def __getitem__
+
+    def __repr__ (self) :
+        return repr (self.dict)
+    # end def __repr__
 # end class CDR
 
 class CDR_Parser (autosuper) :

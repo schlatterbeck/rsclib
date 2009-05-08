@@ -93,6 +93,9 @@ class Call (object) :
         assert (self.uniqueid)
         self.event = event
         self.id    = event.headers ['Uniqueid']
+        # ignore calls in progress with lower seqno
+        if self.seqno < self.min_seqno :
+            return
         if event.name != 'Hangup' :
             self.uids [self.id] = True
         handler = getattr (self, 'handle_%s' % event.name, None)
@@ -161,6 +164,8 @@ class Call (object) :
     # end def handle_Newstate
 
     def handle_OriginateResponse (self) :
+        if self.actionid != self.event.headers ['ActionID'] :
+            return
         if self.seqno_seen :
             if self.seqno == self.seqno_seen :
                 self.sure = True
@@ -178,10 +183,12 @@ class Call (object) :
     # end def seqno
 
     def _set_id (self, uniqueid) :
-        self.uniqueid = uniqueid
+        self.uniqueid = self.id = uniqueid
         callid = call_id (self.uniqueid)
         if self.callid :
             assert (callid == self.callid)
+        if self.min_seqno is None :
+            self.min_seqno = self.seqno
         self.callid = callid
         self.manager.register (self)
     # end def _set_id

@@ -97,7 +97,7 @@ class Call (object) :
             self.uids [self.id] = True
         handler = getattr (self, 'handle_%s' % event.name, None)
         if handler :
-            handler (self)
+            handler ()
         self.events.append (event)
     # end def append
 

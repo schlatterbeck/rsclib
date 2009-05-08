@@ -74,6 +74,7 @@ class Call (object) :
         self.caller_id        = caller_id
         self.context          = context
         self.callid           = None
+        self.min_seqno        = None
         self.events           = []
         self.uids             = {}
         self.state_by_chan    = {}

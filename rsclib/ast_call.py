@@ -60,41 +60,122 @@ class Config (Config_File) :
 # end class Config
 
 class Call (object) :
-    def __init__ (self, call_manager, actionid, uniqueid = None) :
-        self.manager    = call_manager
-        self.actionid   = actionid
-        self.uniqueid   = None
-        self.callid     = None
-        self.events     = []
-        self.uids       = {}
-        self.causecode  = 0
-        self.causetext  = ''
-        self.causeno    = None
-        self.dialstatus = ''
+    def __init__ \
+        ( self
+        , call_manager
+        , actionid
+        , uniqueid  = None
+        , caller_id = None
+        , context   = None
+        ) :
+        self.manager          = call_manager
+        self.actionid         = actionid
+        self.uniqueid         = None
+        self.caller_id        = caller_id
+        self.context          = context
+        self.callid           = None
+        self.events           = []
+        self.uids             = {}
+        self.state_by_chan    = {}
+        self.context_by_chan  = {}
+        self.callerid_by_chan = {}
+        self.causecode        = 0
+        self.causetext        = ''
+        self.seqno_seen       = None
+        # If we're sure about our whole uniqueid (OriginateResponse seen)
+        self.sure             = False
+        self.dialstatus       = ''
         if uniqueid is not None :
             self._set_id (uniqueid)
     # end def __init__
 
     def append (self, event) :
         assert (self.uniqueid)
-        id = event.headers ['Uniqueid']
-        if event.name == 'Hangup' :
-            del self.uids [id]
-            causeno  = int (id.rsplit ('.', 1) [1])
-            if not self.causecode or causeno < self.causeno :
-                self.causecode = int (event.headers ['Cause'])
-                self.causetext = event.headers ['Cause-txt']
-                self.causeno   = causeno
-        else :
-            self.uids [id] = True
-            # Convention: Allow to retrieve dialstatus
-            if event.name == 'Newexten' :
-                app  = event.headers ['Application']
-                data = event.headers ['AppData']
-                if app == 'NoOp' and data.startswith ('Dialstatus:') :
-                    self.dialstatus = data.split (':') [1].strip ()
+        self.event = event
+        self.id    = event.headers ['Uniqueid']
+        if event.name != 'Hangup' :
+            self.uids [self.id] = True
+        handler = getattr (self, 'handle_%s' % event.name, None)
+        if handler :
+            handler (self)
         self.events.append (event)
     # end def append
+
+    def handle_context (self) :
+        chan = self.event.headers ['Channel']
+        if chan not in self.context_by_chan :
+            self.context_by_chan [chan] = {}
+        self.context_by_chan [chan][self.event.headers ['Context']] = True
+    # end def handle_context
+
+    def handle_Hangup (self) :
+        del self.uids [self.id]
+        chan  = self.event.headers ['Channel']
+        # ignore name-clash with incoming call:
+        if chan in self.state_by_chan and 'Ring' in self.state_by_chan [chan] :
+            return
+        # ignore channel without our caller-id
+        if  (  self.caller_id
+            and (  chan not in self.callerid_by_chan
+                or self.caller_id not in self.callerid_by_chan [chan]
+                )
+            ) :
+            return
+        # ignore channel with context but without our context
+        if  (   self.context
+            and chan in self.context_by_chan
+            and self.context not in self.context_by_chan [chan]
+            ) :
+            return
+        # when we know our unique id (and the seqno is the last part of
+        # it) we don't accept hangup cause for other seqno:
+        if self.sure and self.seqno != self.seqno_seen :
+            return
+        if not self.causecode or self.seqno <= self.seqno_seen :
+            self.causecode  = int (self.event.headers ['Cause'])
+            self.causetext  = self.event.headers ['Cause-txt']
+            self.seqno_seen = self.seqno
+    # end def handle_Hangup
+
+    def handle_Newcallerid (self) :
+        chan = self.event.headers ['Channel']
+        if chan not in self.callerid_by_chan :
+            self.callerid_by_chan [chan] = {}
+        self.callerid_by_chan [chan][self.event.headers ['CallerID']] = True
+    # end def handle_Newcallerid
+
+    def handle_Newexten (self) :
+        # Convention: Allow to retrieve dialstatus
+        app  = self.event.headers ['Application']
+        data = self.event.headers ['AppData']
+        if app == 'NoOp' and data.startswith ('Dialstatus:') :
+            self.dialstatus = data.split (':') [1].strip ()
+        self.handle_context ()
+    # end def handle_Newexten
+
+    def handle_Newstate (self) :
+        chan = self.event.headers ['Channel']
+        if chan not in self.state_by_chan :
+            self.state_by_chan [chan] = {}
+        self.state_by_chan [chan][self.event.headers ['State']] = True
+    # end def handle_Newstate
+
+    def handle_OriginateResponse (self) :
+        if self.seqno_seen :
+            if self.seqno == self.seqno_seen :
+                self.sure = True
+            else :
+                self.sure = None
+        else :
+            self.seqno_seen = self.seqno
+            self.sure       = True
+        self.handle_context ()
+    # end def handle_OriginateResponse
+
+    @property
+    def seqno (self) :
+        return int (self.id.rsplit ('.', 1) [1])
+    # end def seqno
 
     def _set_id (self, uniqueid) :
         self.uniqueid = uniqueid
@@ -136,10 +217,10 @@ class Call_Manager (object) :
     def __init__ (self, config = 'autocaller', cfgpath = '/etc/autocaller') :
         self.cfg            = cfg = Config (config = config, path = cfgpath)
         self.manager        = mgr = asterisk.manager.Manager ()
-        self.open_calls     = {}
-        self.open_by_id     = {}
-        self.open_by_chan   = {}
-        self.closed_calls   = {}
+        self.open_calls     = {} # by actionid
+        self.open_by_id     = {} # by callid (part of uniqueid)
+        self.open_by_chan   = {} # by channel
+        self.closed_calls   = {} # by callid
         self.queue          = Queue ()
         self.call_by_number = {}
         self.unhandled      = []
@@ -221,7 +302,13 @@ class Call_Manager (object) :
         #print "Originate:", result.__dict__
         actionid = result.headers ['ActionID']
         uniqueid = result.headers.get ('Uniqueid')
-        call = Call (self, actionid, uniqueid)
+        call = Call \
+            ( self
+            , actionid
+            , uniqueid
+            , caller_id = kw.get ('caller_id')
+            , context   = kw.get ('context')
+            )
         self.open_calls [actionid] = call
         if match_channel :
             self.open_by_chan [kw ['channel']] = call

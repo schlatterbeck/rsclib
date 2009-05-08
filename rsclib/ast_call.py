@@ -119,10 +119,9 @@ class Call (object) :
         if chan in self.state_by_chan and 'Ring' in self.state_by_chan [chan] :
             return
         # ignore channel without our caller-id
-        if  (  self.caller_id
-            and (  chan not in self.callerid_by_chan
-                or self.caller_id not in self.callerid_by_chan [chan]
-                )
+        if  (   self.caller_id
+            and chan in self.callerid_by_chan
+            and self.caller_id not in self.callerid_by_chan [chan]
             ) :
             return
         # ignore channel with context but without our context
@@ -142,10 +141,13 @@ class Call (object) :
     # end def handle_Hangup
 
     def handle_Newcallerid (self) :
+        callerid = self.event.headers ['CallerID']
+        if callerid == '<Unknown>' :
+            return
         chan = self.event.headers ['Channel']
         if chan not in self.callerid_by_chan :
             self.callerid_by_chan [chan] = {}
-        self.callerid_by_chan [chan][self.event.headers ['CallerID']] = True
+        self.callerid_by_chan [chan][callerid] = True
     # end def handle_Newcallerid
 
     def handle_Newexten (self) :

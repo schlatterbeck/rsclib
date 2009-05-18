@@ -96,6 +96,7 @@ class Call (object) :
         self.id    = event.headers ['Uniqueid']
         # ignore calls in progress with lower seqno
         if self.seqno < self.min_seqno :
+            self.events.append (event)
             return
         if event.name != 'Hangup' :
             self.uids [self.id] = True
@@ -230,7 +231,7 @@ class Call_Manager (object) :
         self.open_calls     = {} # by actionid
         self.open_by_id     = {} # by callid (part of uniqueid)
         self.open_by_chan   = {} # by channel
-        self.closed_calls   = {} # by callid
+        self.closed_calls   = {} # by actionid
         self.queue          = Queue ()
         self.call_by_number = {}
         self.unhandled      = []
@@ -272,7 +273,7 @@ class Call_Manager (object) :
         suffix  = channel_suffix
         if suffix is None :
             suffix = self.cfg.CHANNEL_SUFFIX
-        callid  = self.originate \
+        actionid  = self.originate \
             ( self.cfg.MATCH_CHANNEL
             , channel   = '%s/%s%s' % (type, number, suffix)
             , exten     = call_extension or self.cfg.CALL_EXTENSION
@@ -282,10 +283,10 @@ class Call_Manager (object) :
             , async     = True
             , variables = vars
             )
-        self.call_by_number [callid] = number
+        self.call_by_number [actionid] = number
         self.queue_handler (timeout)
         try :
-            return self.closed_calls [callid]
+            return self.closed_calls [actionid]
         except KeyError :
             pass
         return None

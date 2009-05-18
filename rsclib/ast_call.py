@@ -77,6 +77,7 @@ class Call (object) :
         self.min_seqno        = None
         self.events           = []
         self.uids             = {}
+        self.uids_seen        = False
         self.state_by_chan    = {}
         self.context_by_chan  = {}
         self.callerid_by_chan = {}
@@ -94,16 +95,15 @@ class Call (object) :
         assert (self.uniqueid)
         self.event = event
         self.id    = event.headers ['Uniqueid']
+        self.events.append (event)
         # ignore calls in progress with lower seqno
         if self.seqno < self.min_seqno :
-            self.events.append (event)
             return
-        if event.name != 'Hangup' :
-            self.uids [self.id] = True
+        self.uids [self.id] = True
+        self.uids_seen      = True
         handler = getattr (self, 'handle_%s' % event.name, None)
         if handler :
             handler ()
-        self.events.append (event)
     # end def append
 
     def handle_context (self) :
@@ -205,7 +205,7 @@ class Call (object) :
     # end def set_id
 
     def __nonzero__ (self) :
-        return bool (not self.uniqueid or self.uids)
+        return bool (not self.uids_seen or self.uids)
     # end def __nonzero__
 # end class Call
 

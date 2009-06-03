@@ -60,6 +60,38 @@ class Config (Config_File) :
 # end class Config
 
 class Call (object) :
+    """
+    >>> class Manager :
+    ...     def register (*args, **kw) :
+    ...         print "register"
+    >>>
+    >>> class Event :
+    ...     def __init__ (self, d) :
+    ...         self.name = d ['Event']
+    ...         self.headers = d
+    >>>
+    >>> m = Manager()
+    >>> c = Call (m, '4711', 'asterisk-2633-1243166465.17142')
+    register
+    >>> e = Event ({'Uniqueid': 'asterisk-1243166465.17141'
+    ...           , 'Privilege': 'call,all'
+    ...           , 'Event': 'Newchannel'
+    ...           , 'Channel': 'lcr/12284'})
+    >>> c.append (e)
+    >>> bool (c)
+    True
+    >>> c = Call (m, '4712', 'asterisk-2633-1243303265.18231')
+    register
+    >>> e = Event ({'AppData': '', 'Extension': 'h'
+    ...           , 'Uniqueid': 'asterisk-1243303265.18230', 'Priority': '5'
+    ...           , 'Application': 'NoOp', 'Context': 'attendo'
+    ...           , 'Privilege': 'call,all', 'Event': 'Newexten'
+    ...           , 'Channel': 'lcr/13071'})
+    >>> c.append (e)
+    >>> bool (c)
+    True
+    """
+
     def __init__ \
         ( self
         , call_manager

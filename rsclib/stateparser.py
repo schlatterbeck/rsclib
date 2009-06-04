@@ -55,15 +55,16 @@ class Transition (Debug) :
         Action methods get the matched line, and in case of a regex the
         matched groups as parameter.
     """
-    def __init__ (self, pattern, state, new_state, action, verbose = False) :
+    def __init__ (self, pattern, state, new_state, action, **kw) :
         self.pattern   = pattern
         self.state     = state
         self.new_state = new_state
-        self.verbose   = verbose
+        self.verbose   = kw.get ('verbose')
         self.act_name  = action
         if action :
             action = getattr (self.state.parser, action)
         self.action    = action
+        self.__super.__init__ (**kw)
     # end def __init__
 
     def _transition (self, match = None) :
@@ -100,11 +101,12 @@ class Transition (Debug) :
 class State (Debug) :
     """ Represents a single state of the parser """
 
-    def __init__ (self, parser, name, verbose = False) :
+    def __init__ (self, parser, name, **kw) :
         self.name        = name
         self.parser      = parser
         self.transitions = []
-        self.verbose     = verbose
+        self.verbose     = kw.get ('verbose')
+        self.__super.__init__ (**kw)
     # end def __init__
 
     def append (self, transition) :
@@ -127,11 +129,12 @@ class Parser (Debug) :
         To use, define a subclass with the necessary actions. An action
         method gets the line matched and an optional match object.
     """
-    def __init__ (self, matrix = None, verbose = False) :
-        self.verbose = verbose
+    def __init__ (self, matrix = None, **kw) :
+        self.verbose = kw.get ('verbose')
         self.state   = None
         self.states  = {}
         matrix = matrix or self.matrix
+        self.__super.__init__ (**kw)
         for line in matrix :
             self.add_transition (* line)
         self.stack   = []

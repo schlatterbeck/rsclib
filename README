@@ -66,6 +66,7 @@ identify events of other calls as belonging to our initiated call).
 
  - add ast_cdr.py
  - fix ast_call.py
+ - fix up-chaining in stateparser.py
 
 Version 0.10: Not announced on freshmeat
 

@@ -182,7 +182,7 @@ class Bnfos_Command (object) :
         if val == "checked" or val == "1" or val == 1 :
             return 1
         return 0
-    # end def check_b
+    # end def get_b
 
     def get_a (self, val) :
         a     = val.split ('.')
@@ -197,7 +197,7 @@ class Bnfos_Command (object) :
         if len (a) != 4 or not valid :
             raise ValueError, "Invalid Address: %s" % val
         return val
-    # end def check_a
+    # end def get_a
 
     def get_s (self, val) :
         return str (val)

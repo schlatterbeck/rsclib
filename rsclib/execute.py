@@ -98,7 +98,7 @@ class Exec (Log) :
             for e in stderr.rstrip ().split ('\n') :
                 self.error (e)
             if not ignore_err :
-                raise Exec_Error, msg
+                raise Exec_Error, (msg, p.returncode)
         return stdout.rstrip ().split ('\n')
     # end def exec_pipe
 # end class Exec

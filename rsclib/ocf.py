@@ -233,8 +233,25 @@ class LSB_Resource (Resource) :
 
 # end class LSB_Resource
 
+config  = 'alarmconfig'
+cfgpath = '/etc/alarmconfig'
+
+class Config (Config_File) :
+    def __init__ (self, config = config, path = cfgpath) :
+        self.__super.__init__ \
+            ( path, config
+            , HEARTBEAT_SWITCH = {}
+            )
+    # end def __init__
+# end class Config
+
+default_config = Config ()
+
 class Bero_Resource (Resource) :
     """ Script for modeling a resource that switches a Bero*fos switch.
+        This service makes sure that the Bero*fos switch is in the
+        correct state (the lines are switched so that we can see them)
+
         We get the service name and get the configuration from the
         HEARTBEAT_SWITCH configuration option from the given config.
         HEARTBEAT_SWITCH is structured as follows:
@@ -260,7 +277,7 @@ class Bero_Resource (Resource) :
             )
         ]
 
-    def __init__ (self, config, **kw) :
+    def __init__ (self, config = default_config, **kw) :
         self.__super.__init__ (**kw)
         self.cfg = config
     # end def __init__
@@ -291,7 +308,7 @@ class Bero_Resource (Resource) :
         retval = self.__super.parse_params ()
         if retval :
             return retval
-        hb = self.config.get ('HEARTBEAT_SWITCH')
+        hb = self.cfg.get ('HEARTBEAT_SWITCH')
         if not hb or self.service not in hb :
             self.log.error ("Heartbeat not configured")
             return self.OCF_ERR_CONFIGURED

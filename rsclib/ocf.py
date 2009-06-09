@@ -110,7 +110,7 @@ class Resource (Exec) :
         arg = args [0]
         if arg != 'meta-data' and r :
             raise Parameter_Error, r
-        if arg == 'validate_all' :
+        if arg == 'validate-all' :
             self.log.debug ("successful validate_all")
             return self.OCF_SUCCESS
         method = getattr (self, "handle_%s" % arg.replace ('-', '_'), None)
@@ -155,11 +155,6 @@ class Resource (Exec) :
         self.ocf_vars = {}
         for v in self.ocf_variables :
             self.ocf_vars [v] = os.environ.get (v)
-        if  (  self.OCF_RA_VERSION_MAJOR != '1'
-            or self.OCF_RA_VERSION_MINOR != '0'
-            ) :
-            self.log.error ("Invalid Version: %s.%s" % (self.OCF_RA_VERSION_MAJOR, self.OCF_RA_VERSION_MINOR))
-            return self.OCF_ERR_ARGS
         self.log.debug ("args parsed ok")
         return self.OCF_SUCCESS
     # end def parse_params

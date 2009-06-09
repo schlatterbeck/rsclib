@@ -314,7 +314,7 @@ class Bero_Resource (Resource) :
             self.log.error ("Heartbeat not configured")
             return self.OCF_ERR_CONFIGURED
         hb = hb [self.service]
-        self.host   = self.exec_pipe ('/bin/hostname', '-s')
+        self.host   = self.exec_pipe (('/bin/hostname', '-s'))
         self.bero   = hb [0]
         self.switch = hb [1].get (self.host)
         if self.switch is None :

@@ -63,13 +63,13 @@ Add a parser for CDR records in asterisk. We currently use text-files
 only, this might be later extended for database use. Some fixes for
 ast_call, make call-handling more robust (some race conditions would
 identify events of other calls as belonging to our initiated call).
-Add an exec module for executing commands and handling IO, this also has
-a Lock and a Log mixin.
+Add an execute module for executing commands and handling IO, this also
+has a Lock and a Log mixin.
 
  - add ast_cdr.py
  - fix ast_call.py
  - fix up-chaining in stateparser.py
- - add exec.py
+ - add execute.py
 
 Version 0.10: Not announced on freshmeat
 

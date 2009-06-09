@@ -116,7 +116,7 @@ class Resource (Exec) :
         method = getattr (self, "handle_%s" % arg.replace ('-', '_'), None)
         if not method :
             self.log.error ("Invalid argument: %s" % arg)
-            return self.OCF_ERR_ARGS
+            return self.OCF_ERR_UNIMPLEMENTED
         return method ()
     # end def handle
 
@@ -140,6 +140,11 @@ class Resource (Exec) :
         raise NotImplementedError
     # end def handle_monitor
 
+    def handle_notify (self) :
+        self.log.info (self.ocf_vars)
+        return self.OCF_SUCCESS
+    # end def handle_notify
+
     handle_status       = handle_monitor
     handle_start        = handle_monitor
     handle_stop         = handle_monitor
@@ -160,9 +165,7 @@ class Resource (Exec) :
     # end def parse_params
 
     def __getattr__ (self, name) :
-        """ Return value from the parsed environment
-            If the environment has not yet been read, read it first
-        """
+        """ Return value from the parsed environment """
         for d in self.value, self.ocf_vars :
             try :
                 return d [name]
@@ -194,7 +197,7 @@ class LSB_Resource (Resource) :
     def _handle (self, cmd, error_return = None) :
         error_return = error_return or self.OCF_ERR_GENERIC
         try :
-            print self.exec_pipe (self.command, cmd)
+            print '\n'.join (self.exec_pipe ((self.command, cmd)))
         except Exec_Error, status :
             self.log.error ("subcommand returned: %s" % status)
             return error_return

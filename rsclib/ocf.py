@@ -2,10 +2,11 @@
 
 import os
 import sys
-from   rsclib.autosuper import autosuper
-from   rsclib.execute   import Exec, Exec_Error
-from   rsclib.Version   import VERSION
-from   rsclib.bero      import Bnfos_Command
+from   rsclib.autosuper   import autosuper
+from   rsclib.execute     import Exec, Exec_Error
+from   rsclib.Version     import VERSION
+from   rsclib.bero        import Bnfos_Command
+from   rsclib.Config_File import Config_File
 
 class Parameter_Error (ValueError) : pass
 

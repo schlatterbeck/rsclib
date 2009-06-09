@@ -2,6 +2,7 @@
 
 import os
 import sys
+from   time               import sleep
 from   rsclib.autosuper   import autosuper
 from   rsclib.execute     import Exec, Exec_Error
 from   rsclib.Version     import VERSION
@@ -161,7 +162,6 @@ class Resource (Exec) :
         self.ocf_vars = {}
         for v in self.ocf_variables :
             self.ocf_vars [v] = os.environ.get (v)
-        self.log.debug ("args parsed ok")
         return self.OCF_SUCCESS
     # end def parse_params
 
@@ -285,7 +285,7 @@ class Bero_Resource (Resource) :
 
     def handle_monitor (self) :
         Bnfos_Command.get_config (host = self.bero, port = 80)
-        if Bnfos_Command.by_highlevel_command ['mode'] == self.switch :
+        if Bnfos_Command.by_highlevel_command ['mode'].value == self.switch :
             return self.OCF_SUCCESS
         return self.OCF_NOT_RUNNING
     # end def handle_monitor
@@ -295,6 +295,7 @@ class Bero_Resource (Resource) :
         Bnfos_Command.get_config (host = self.bero, port = 80)
         Bnfos_Command.by_highlevel_command ['mode'].value = self.switch
         Bnfos_Command.update_config ()
+        sleep (2)
         return self.OCF_SUCCESS
     # end def handle_start
 
@@ -302,6 +303,7 @@ class Bero_Resource (Resource) :
         Bnfos_Command.get_config (host = self.bero, port = 80)
         Bnfos_Command.by_highlevel_command ['mode'].value = not self.switch
         Bnfos_Command.update_config ()
+        sleep (2)
         return self.OCF_SUCCESS
     # end def handle_start
 
@@ -314,7 +316,7 @@ class Bero_Resource (Resource) :
             self.log.error ("Heartbeat not configured")
             return self.OCF_ERR_CONFIGURED
         hb = hb [self.service]
-        self.host   = self.exec_pipe (('/bin/hostname', '-s'))
+        self.host   = self.exec_pipe (('/bin/hostname', '-s')) [0]
         self.bero   = hb [0]
         self.switch = hb [1].get (self.host)
         if self.switch is None :

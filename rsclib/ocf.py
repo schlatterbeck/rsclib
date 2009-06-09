@@ -105,14 +105,17 @@ class Resource (Exec) :
         r = self.parse_params ()
         self.args = args
         if len (args) != 1 :
+            self.log.error ("Invalid number of arguments: %s" % len (args))
             return self.OCF_ERR_ARGS
         arg = args [0]
         if arg != 'meta-data' and r :
             raise Parameter_Error, r
         if arg == 'validate_all' :
+            self.log.debug ("successful validate_all")
             return self.OCF_SUCCESS
         method = getattr (self, "handle_%s" % arg.replace ('-', '_'), None)
         if not method :
+            self.log.error ("Invalid argument: %s" % arg)
             return self.OCF_ERR_ARGS
         return method ()
     # end def handle
@@ -129,6 +132,7 @@ class Resource (Exec) :
         parameter_description = '\n'.join (p.as_xml () for p in self.parameters)
         name                  = self.__class__.__name__.lower ()
         print self.xml_template % locals ()
+        self.log.debug ("successful meta-data")
         return self.OCF_SUCCESS
     # end def handle_meta_data
 
@@ -146,6 +150,7 @@ class Resource (Exec) :
             try :
                 self.value [p.name] = os.environ ["OCF_RESKEY_%s" % p.name]
             except KeyError :
+                self.log.error ("Missing argument: %s" % p.name)
                 return self.OCF_ERR_ARGS
         self.ocf_vars = {}
         for v in self.ocf_variables :
@@ -153,7 +158,9 @@ class Resource (Exec) :
         if  (  self.OCF_RA_VERSION_MAJOR != '1'
             or self.OCF_RA_VERSION_MINOR != '0'
             ) :
+            self.log.error ("Invalid Version: %s.%s" % (self.OCF_RA_VERSION_MAJOR, self.OCF_RA_VERSION_MINOR))
             return self.OCF_ERR_ARGS
+        self.log.debug ("args parsed ok")
         return self.OCF_SUCCESS
     # end def parse_params
 
@@ -194,6 +201,7 @@ class LSB_Resource (Resource) :
         try :
             print self.exec_pipe (self.command, cmd)
         except Exec_Error, status :
+            self.log.error ("subcommand returned: %s" % status)
             return error_return
     # end def _handle
 
@@ -220,6 +228,7 @@ class LSB_Resource (Resource) :
         else :
             self.command = os.path.join ('/etc/init.d', self.service)
         if not os.access (self.command, os.X_OK) :
+            self.log.error ("Service %s not installed" % self.service)
             return self.OCF_ERR_INSTALLED
         return self.OCF_SUCCESS
     # end def parse_params

@@ -67,7 +67,7 @@ class Config_File (autosuper) :
         return self.dict.has_key (key)
     # end def has_key
 
-    def get (self, key, val) :
+    def get (self, key, val = None) :
         return self.dict.get (key, val)
     # end def get
 

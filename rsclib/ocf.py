@@ -4,8 +4,8 @@ import os
 import sys
 from   rsclib.autosuper import autosuper
 from   rsclib.execute   import Exec, Exec_Error
-#from   config           import Config
 from   rsclib.Version   import VERSION
+from   rsclib.bero      import Bnfos_Command
 
 class Parameter_Error (ValueError) : pass
 
@@ -233,8 +233,82 @@ class LSB_Resource (Resource) :
 
 # end class LSB_Resource
 
-def main (args, cls = LSB_Resource) :
-    rsrc = cls ()
+class Bero_Resource (Resource) :
+    """ Script for modeling a resource that switches a Bero*fos switch.
+        We get the service name and get the configuration from the
+        HEARTBEAT_SWITCH configuration option from the given config.
+        HEARTBEAT_SWITCH is structured as follows:
+        {'service': (bero-adr, {host1:switch-state, host2:switch-state})
+        , ...
+        }
+        service: Our Service name (parameter)
+        bero-adr: Address of Bero*fos switch (IP or name)
+        host1: First  asterisk host, name from 'hostname -s' command
+        host2: Second asterisk host, name from 'hostname -s' command
+        We find out via the hostname -s command if we're the first or
+        the second host.
+        switch-state: state of berofos switch for this host
+        It's possible to define several services with different
+        bero*fos switches, of course the service config must match the
+        heartbeat config.
+    """
+
+    parameters = \
+        [ Parameter
+            ( "service"
+            , "Service-name in HEARTBEAT_SWITCH config item"
+            )
+        ]
+
+    def __init__ (self, config, **kw) :
+        self.__super.__init__ (**kw)
+        self.cfg = config
+    # end def __init__
+
+    def handle_monitor (self) :
+        Bnfos_Command.get_config (host = self.bero, port = 80)
+        if Bnfos_Command.by_highlevel_command ['mode'] == self.switch :
+            return self.OCF_SUCCESS
+        return self.OCF_NOT_RUNNING
+    # end def handle_monitor
+    handle_status = handle_monitor
+
+    def handle_start (self) :
+        Bnfos_Command.get_config (host = self.bero, port = 80)
+        Bnfos_Command.by_highlevel_command ['mode'].value = self.switch
+        Bnfos_Command.update_config ()
+        return self.OCF_SUCCESS
+    # end def handle_start
+
+    def handle_stop (self) :
+        Bnfos_Command.get_config (host = self.bero, port = 80)
+        Bnfos_Command.by_highlevel_command ['mode'].value = not self.switch
+        Bnfos_Command.update_config ()
+        return self.OCF_SUCCESS
+    # end def handle_start
+
+    def parse_params (self) :
+        retval = self.__super.parse_params ()
+        if retval :
+            return retval
+        hb = self.config.get ('HEARTBEAT_SWITCH')
+        if not hb or self.service not in hb :
+            self.log.error ("Heartbeat not configured")
+            return self.OCF_ERR_CONFIGURED
+        hb = hb [self.service]
+        self.host   = self.exec_pipe ('/bin/hostname', '-s')
+        self.bero   = hb [0]
+        self.switch = hb [1].get (self.host)
+        if self.switch is None :
+            self.log.error ("Own Hostname not found")
+            return self.OCF_ERR_CONFIGURED
+        return self.OCF_SUCCESS
+    # end def parse_params
+
+# end class Bero_Resource
+
+def main (args, cls = LSB_Resource, **kw) :
+    rsrc = cls (**kw)
     try :
         ret = rsrc.handle (args)
         sys.exit (ret)

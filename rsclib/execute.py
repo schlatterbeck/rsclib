@@ -46,7 +46,8 @@ class Log (_Named) :
     """
     def __init__ (self, log_level = None, log_prefix = None, *args, **kw) :
         log_prefix = log_prefix or 'ast-%s' % self.clsname
-        self.log   = logging.getLogger (log_prefix)
+        self.log_prefix = log_prefix
+        self.log        = logging.getLogger (log_prefix)
         if not len (self.log.handlers) :
             log_level  = log_level or logging.DEBUG
             formatter  = logging.Formatter \

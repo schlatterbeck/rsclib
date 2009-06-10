@@ -45,10 +45,10 @@ class Log (_Named) :
         Use as self.log.debug (msg), self.log.info (msg) etc.
     """
     def __init__ (self, log_level = None, log_prefix = None, *args, **kw) :
+        log_prefix = log_prefix or 'ast-%s' % self.clsname
         self.log   = logging.getLogger (log_prefix)
         if not len (self.log.handlers) :
             log_level  = log_level or logging.DEBUG
-            log_prefix = log_prefix or 'ast-%s' % self.clsname
             formatter  = logging.Formatter \
                 ('%s[%%(process)d]: %%(message)s' % log_prefix)
             handler    = SysLogHandler ('/dev/log', 'daemon')

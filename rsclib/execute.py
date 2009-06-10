@@ -45,16 +45,17 @@ class Log (_Named) :
         Use as self.log.debug (msg), self.log.info (msg) etc.
     """
     def __init__ (self, log_level = None, log_prefix = None, *args, **kw) :
-        log_level  = log_level or logging.DEBUG
-        log_prefix = log_prefix or 'ast-%s' % self.clsname
-        formatter  = logging.Formatter \
-            ('%s[%%(process)d]: %%(message)s' % log_prefix)
-        handler    = SysLogHandler ('/dev/log', 'daemon')
-        handler.setLevel     (log_level)
-        handler.setFormatter (formatter)
         self.log   = logging.getLogger (log_prefix)
-        self.log.addHandler (handler)
-        self.log.setLevel (log_level)
+        if not len (self.log.handlers) :
+            log_level  = log_level or logging.DEBUG
+            log_prefix = log_prefix or 'ast-%s' % self.clsname
+            formatter  = logging.Formatter \
+                ('%s[%%(process)d]: %%(message)s' % log_prefix)
+            handler    = SysLogHandler ('/dev/log', 'daemon')
+            handler.setLevel     (log_level)
+            handler.setFormatter (formatter)
+            self.log.addHandler  (handler)
+            self.log.setLevel    (log_level)
         self.__super.__init__ (*args, **kw)
     # end def __init__
 
@@ -73,6 +74,9 @@ class Log (_Named) :
 
 class Exec (Log) :
     def error (self, msg) :
+        """ Just print error here, a derived class may want to do
+            cleanup actions.
+        """
         self.log.error (msg)
     # end def error
 

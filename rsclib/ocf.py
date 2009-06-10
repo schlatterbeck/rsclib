@@ -305,11 +305,11 @@ class Bero_Resource (Resource) :
             LCR_Ports ()
         except Exec_Error, status :
             self.log.error (status)
-            return OCF_ERR_GENERIC
+            return self.OCF_ERR_GENERIC
         for p in LCR_Port.by_portnumber.itervalues () :
             if p.interface in self.interfaces :
                 if p.l1 != 'up' or p.l2 != 'up' :
-                    return OCF_ERR_GENERIC
+                    return self.OCF_ERR_GENERIC
         return self.OCF_SUCCESS
     # end def handle_monitor
     handle_status = handle_monitor

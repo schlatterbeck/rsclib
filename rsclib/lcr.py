@@ -119,11 +119,13 @@ class LCR_Ports (Parser, Exec) :
     # end def port_set
 # end class LCR_Ports
 
-# Parse once
-try :
-    LCR_Ports ()
-except Exec_Error :
-    pass
+def init (**kw) :
+    """ Parse once """
+    try :
+        LCR_Ports (**kw)
+    except Exec_Error :
+        pass
+# end def init
 
 if __name__ == '__main__' :
     print LCR_Port.by_portnumber

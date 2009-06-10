@@ -66,13 +66,15 @@ identify events of other calls as belonging to our initiated call).
 Add an execute module for executing commands and handling IO, this also
 has a Lock and a Log mixin. Add ocf.py, a small framework for writing
 OCF scripts for the heartbeat cluster resource manager (probably also
-usable for the newer version called pacemaker)
+usable for the newer version called pacemaker). Add lcr.py to model the
+status of Linux Call Router ISDN lines.
 
  - add ast_cdr.py
  - fix ast_call.py
  - fix up-chaining in stateparser.py
  - add execute.py
  - add ocf.py
+ - add lcr.py
 
 Version 0.10: Not announced on freshmeat
 

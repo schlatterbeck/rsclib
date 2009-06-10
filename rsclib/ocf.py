@@ -332,10 +332,10 @@ class Bero_Resource (Resource) :
                     return self.OCF_ERR_GENERIC
                 else :
                     self.interfaces [p.interface] = True
-            for k, v in self.interfaces.iteritems () :
-                if not v :
-                    self.log.error ("Interface %s not configured" % k)
-                    return self.OCF_ERR_GENERIC
+        for k, v in self.interfaces.iteritems () :
+            if not v :
+                self.log.error ("Interface %s not found" % k)
+                return self.OCF_ERR_GENERIC
         return self.OCF_SUCCESS
     # end def handle_monitor
     handle_status = handle_monitor

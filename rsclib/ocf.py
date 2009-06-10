@@ -27,7 +27,7 @@ from   rsclib.execute     import Exec, Exec_Error
 from   rsclib.Version     import VERSION
 from   rsclib.bero        import Bnfos_Command
 from   rsclib.Config_File import Config_File
-from   rsclib.lcr         import LCR_Port, LCR_Ports
+from   rsclib.lcr         import LCR_Port, lcr_init
 
 class Parameter_Error (ValueError) : pass
 
@@ -322,7 +322,7 @@ class Bero_Resource (Resource) :
             return self.OCF_NOT_RUNNING
         self.log.debug ("Here I am")
         try :
-            LCR_Ports ()
+            lcr_init (log_prefix = self.log_prefix)
         except Exec_Error, status :
             self.log.error (status)
             return self.OCF_ERR_GENERIC

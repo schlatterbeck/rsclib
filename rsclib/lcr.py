@@ -128,4 +128,5 @@ def init (**kw) :
 # end def init
 
 if __name__ == '__main__' :
+    init ()
     print LCR_Port.by_portnumber

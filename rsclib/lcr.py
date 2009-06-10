@@ -23,7 +23,7 @@
 import re
 from rsclib.autosuper   import autosuper
 from rsclib.stateparser import Parser
-from comm               import Exec
+from rsclib.execute     import Exec
 
 class LCR_Port (autosuper) :
     """ Represent an ISDN Port of Linux Call Router

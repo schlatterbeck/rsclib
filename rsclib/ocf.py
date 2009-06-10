@@ -222,6 +222,8 @@ class LSB_Resource (Resource) :
         except Exec_Error, status :
             self.log.error ("subcommand returned: %s" % status)
             return error_return
+        self.log.info ("successful %s" % cmd)
+        return self.OCF_SUCCESS
     # end def _handle
 
     def handle_monitor (self) :
@@ -336,6 +338,7 @@ class Bero_Resource (Resource) :
             if not v :
                 self.log.error ("Interface %s not found" % k)
                 return self.OCF_ERR_GENERIC
+        self.log.info ("successful monitor")
         return self.OCF_SUCCESS
     # end def handle_monitor
     handle_status = handle_monitor
@@ -345,6 +348,7 @@ class Bero_Resource (Resource) :
         Bnfos_Command.by_highlevel_command ['mode'].value = self.switch
         Bnfos_Command.update_config ()
         sleep (2)
+        self.log.info ("successful start")
         return self.OCF_SUCCESS
     # end def handle_start
 
@@ -353,6 +357,7 @@ class Bero_Resource (Resource) :
         Bnfos_Command.by_highlevel_command ['mode'].value = not self.switch
         Bnfos_Command.update_config ()
         sleep (2)
+        self.log.info ("successful stop")
         return self.OCF_SUCCESS
     # end def handle_start
 

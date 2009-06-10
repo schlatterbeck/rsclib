@@ -23,7 +23,7 @@
 import re
 from rsclib.autosuper   import autosuper
 from rsclib.stateparser import Parser
-from rsclib.execute     import Exec
+from rsclib.execute     import Exec, Exec_Error
 
 class LCR_Port (autosuper) :
     """ Represent an ISDN Port of Linux Call Router
@@ -120,7 +120,10 @@ class LCR_Ports (Parser, Exec) :
 # end class LCR_Ports
 
 # Parse once
-LCR_Ports ()
+try :
+    LCR_Ports ()
+except Exec_Error :
+    pass
 
 if __name__ == '__main__' :
     print LCR_Port.by_portnumber

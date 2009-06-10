@@ -222,7 +222,7 @@ class LSB_Resource (Resource) :
         except Exec_Error, status :
             self.log.error ("subcommand returned: %s" % status)
             return error_return
-        self.log.info ("successful %s" % cmd)
+        self.log.info ("successful %s for %s" % (cmd, self.service))
         return self.OCF_SUCCESS
     # end def _handle
 
@@ -321,6 +321,7 @@ class Bero_Resource (Resource) :
     def handle_monitor (self) :
         Bnfos_Command.get_config (host = self.bero, port = 80)
         if Bnfos_Command.by_highlevel_command ['mode'].value != self.switch :
+            self.log.info ("not running")
             return self.OCF_NOT_RUNNING
         try :
             LCR_Ports (log_prefix = self.log_prefix)

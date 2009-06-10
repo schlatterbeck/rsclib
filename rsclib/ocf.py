@@ -320,6 +320,7 @@ class Bero_Resource (Resource) :
         Bnfos_Command.get_config (host = self.bero, port = 80)
         if Bnfos_Command.by_highlevel_command ['mode'].value != self.switch :
             return self.OCF_NOT_RUNNING
+        self.log.debug ("Here I am")
         try :
             LCR_Ports ()
         except Exec_Error, status :
@@ -328,6 +329,13 @@ class Bero_Resource (Resource) :
         for p in LCR_Port.by_portnumber.itervalues () :
             if p.interface in self.interfaces :
                 if p.l1 != 'up' or p.l2 != 'up' :
+                    self.log.error ("Interface %s not up" % p.interface)
+                    return self.OCF_ERR_GENERIC
+                else :
+                    self.interfaces [p.interface] = True
+            for k, v in self.interfaces.iteritems () :
+                if not v :
+                    self.log.error ("Interface %s not configured" % k)
                     return self.OCF_ERR_GENERIC
         return self.OCF_SUCCESS
     # end def handle_monitor

@@ -93,7 +93,7 @@ class Exec (Log) :
             arg = args [0]
             if shell :
                 arg = args
-            msg = "Nonzero exitcode from %s" % arg
+            msg = "Nonzero exitcode %s from %s" % (p.returncode, arg)
             self.error (msg)
             for e in stderr.rstrip ().split ('\n') :
                 self.error (e)

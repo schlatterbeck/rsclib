@@ -8,6 +8,7 @@ from   rsclib.execute     import Exec, Exec_Error
 from   rsclib.Version     import VERSION
 from   rsclib.bero        import Bnfos_Command
 from   rsclib.Config_File import Config_File
+from   rsclib.lcr         import LCR_Port, LCR_Ports
 
 class Parameter_Error (ValueError) : pass
 
@@ -256,19 +257,32 @@ class Bero_Resource (Resource) :
         We get the service name and get the configuration from the
         HEARTBEAT_SWITCH configuration option from the given config.
         HEARTBEAT_SWITCH is structured as follows:
-        {'service': (bero-adr, {host1:switch-state, host2:switch-state})
+        {'service': ( bero-adr
+                    , { host1: (switch-state, interface_list)
+                      , host2: (switch-state, interface_list)
+                      }
+                    )
         , ...
         }
-        service: Our Service name (parameter)
+        service: Our Service name (parameter) -- used as key into config
         bero-adr: Address of Bero*fos switch (IP or name)
         host1: First  asterisk host, name from 'hostname -s' command
         host2: Second asterisk host, name from 'hostname -s' command
         We find out via the hostname -s command if we're the first or
         the second host.
-        switch-state: state of berofos switch for this host
+        switch-state: state of berofos switch for this host (either 1 or
+        0 depending on the status of the berofos switch in which this
+        host is connected)
+        interface_list: List of Linux Call Router (LCR) interfaces
+        switched by the berofos
+
         It's possible to define several services with different
         bero*fos switches, of course the service config must match the
         heartbeat config.
+
+        Example:
+        HEARTBEAT_SWITCH = \
+            {'fos': ('fos', {'fox': (0, ['Ext1']), 'dab': (1, ['Ext1'])}) }
     """
 
     parameters = \
@@ -285,9 +299,14 @@ class Bero_Resource (Resource) :
 
     def handle_monitor (self) :
         Bnfos_Command.get_config (host = self.bero, port = 80)
-        if Bnfos_Command.by_highlevel_command ['mode'].value == self.switch :
-            return self.OCF_SUCCESS
-        return self.OCF_NOT_RUNNING
+        if Bnfos_Command.by_highlevel_command ['mode'].value != self.switch :
+            return self.OCF_NOT_RUNNING
+        LCR_Ports ()
+        for p in LCR_Port.by_portnumber :
+            if p.interface in self.interfaces :
+                if p.l1 != 'up' or p.l2 != 'up' :
+                    return OCF_ERR_GENERIC
+        return self.OCF_SUCCESS
     # end def handle_monitor
     handle_status = handle_monitor
 
@@ -319,9 +338,11 @@ class Bero_Resource (Resource) :
         self.host   = self.exec_pipe (('/bin/hostname', '-s')) [0]
         self.bero   = hb [0]
         self.switch = hb [1].get (self.host)
-        if self.switch is None :
+        if self.switch is None or len (self.switch) != 2 :
             self.log.error ("Own Hostname not found")
             return self.OCF_ERR_CONFIGURED
+        self.switch, self.interfaces = self.switch
+        self.interfaces = dict.fromkeys (self.interfaces)
         return self.OCF_SUCCESS
     # end def parse_params
 

@@ -301,7 +301,11 @@ class Bero_Resource (Resource) :
         Bnfos_Command.get_config (host = self.bero, port = 80)
         if Bnfos_Command.by_highlevel_command ['mode'].value != self.switch :
             return self.OCF_NOT_RUNNING
-        LCR_Ports ()
+        try :
+            LCR_Ports ()
+        except Exec_Error, status :
+            self.log.error (status)
+            return OCF_ERR_GENERIC
         for p in LCR_Port.by_portnumber.itervalues () :
             if p.interface in self.interfaces :
                 if p.l1 != 'up' or p.l2 != 'up' :

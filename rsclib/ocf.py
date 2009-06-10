@@ -302,7 +302,7 @@ class Bero_Resource (Resource) :
         if Bnfos_Command.by_highlevel_command ['mode'].value != self.switch :
             return self.OCF_NOT_RUNNING
         LCR_Ports ()
-        for p in LCR_Port.by_portnumber :
+        for p in LCR_Port.by_portnumber.itervalues () :
             if p.interface in self.interfaces :
                 if p.l1 != 'up' or p.l2 != 'up' :
                     return OCF_ERR_GENERIC

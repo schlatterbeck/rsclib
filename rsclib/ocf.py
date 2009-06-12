@@ -365,14 +365,6 @@ class Bero_Resource (Resource) :
     # end def handle_start
 
     def handle_stop (self) :
-        try :
-            Bnfos_Command.get_config (host = self.bero, port = 80)
-            Bnfos_Command.by_highlevel_command ['mode'].value = not self.switch
-            Bnfos_Command.update_config ()
-        except URLError, msg :
-            self.log.error ("URLError: %s" % msg)
-        sleep (2)
-        self.log.info ("successful stop")
         return self.OCF_SUCCESS
     # end def handle_start
 

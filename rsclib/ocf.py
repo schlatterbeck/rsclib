@@ -322,10 +322,14 @@ class Bero_Resource (Resource) :
     # end def __init__
 
     def handle_monitor (self) :
-        Bnfos_Command.get_config (host = self.bero, port = 80)
-        if Bnfos_Command.by_highlevel_command ['mode'].value != self.switch :
-            self.log.info ("not running")
-            return self.OCF_NOT_RUNNING
+        try :
+            Bnfos_Command.get_config (host = self.bero, port = 80)
+            val = Bnfos_Command.by_highlevel_command ['mode'].value
+            if val != self.switch :
+                self.log.info ("not running")
+                return self.OCF_NOT_RUNNING
+        except URLError, msg :
+            self.log.error ("URLError: %s" % msg)
         try :
             LCR_Ports (log_prefix = self.log_prefix)
         except Exec_Error, status :
@@ -348,18 +352,24 @@ class Bero_Resource (Resource) :
     handle_status = handle_monitor
 
     def handle_start (self) :
-        Bnfos_Command.get_config (host = self.bero, port = 80)
-        Bnfos_Command.by_highlevel_command ['mode'].value = self.switch
-        Bnfos_Command.update_config ()
+        try :
+            Bnfos_Command.get_config (host = self.bero, port = 80)
+            Bnfos_Command.by_highlevel_command ['mode'].value = self.switch
+            Bnfos_Command.update_config ()
+        except URLError, msg :
+            self.log.error ("URLError: %s" % msg)
         sleep (2)
         self.log.info ("successful start")
         return self.handle_status ()
     # end def handle_start
 
     def handle_stop (self) :
-        Bnfos_Command.get_config (host = self.bero, port = 80)
-        Bnfos_Command.by_highlevel_command ['mode'].value = not self.switch
-        Bnfos_Command.update_config ()
+        try :
+            Bnfos_Command.get_config (host = self.bero, port = 80)
+            Bnfos_Command.by_highlevel_command ['mode'].value = not self.switch
+            Bnfos_Command.update_config ()
+        except URLError, msg :
+            self.log.error ("URLError: %s" % msg)
         sleep (2)
         self.log.info ("successful stop")
         return self.OCF_SUCCESS

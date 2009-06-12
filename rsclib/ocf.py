@@ -22,6 +22,7 @@
 import os
 import sys
 from   time               import sleep
+from   urllib2            import URLError
 from   rsclib.autosuper   import autosuper
 from   rsclib.execute     import Exec, Exec_Error
 from   rsclib.Version     import VERSION

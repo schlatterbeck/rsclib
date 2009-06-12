@@ -365,6 +365,7 @@ class Bero_Resource (Resource) :
     # end def handle_start
 
     def handle_stop (self) :
+        self.log.info ("successful stop")
         return self.OCF_SUCCESS
     # end def handle_start
 

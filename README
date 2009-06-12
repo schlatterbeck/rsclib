@@ -9,21 +9,41 @@ rsclib: Utility Routines
 
 The library includes various utility modules used in other projects.
 
+ - ast_call: A simple call manager using asterisk: This can be used to
+   originate a call and log all event associated to that call. So you
+   can find out the status of the call and optionally the dialstatus.
+ - ast_cdr: parser for CDR records in asterisk. We currently use
+   text-files only, this might be later extended for database use.
  - Autosuper magic (originally from Guido van Rossums announcement of
    Python 2.2): For refactoring it's a good idea that each class knows
-   its parents, achieved by adding a the __super attribute. Use as,
-   e.g., self.__super.method for calling method in the parent.
+   its parents (that the parent is not hardcoded in the upcall),
+   achieved by adding a the __super attribute. Use as, e.g.,
+   self.__super.method for calling method in the parent.
+ - bero: A configurator for the `bero*fos`_ failover switch. See my
+   `blogpost`_ why I wrote that (short summary: to work around bugs in
+   the firmware of the device which are not addressed by the
+   configurator code that comes with the device).
  - Config_File for python-syntax configuration files used in several of
    my projects.
+ - execute: module for executing commands and handling IO, this also
+   has a Lock and a Log mixin.
  - Firstname: given a string-candidate of a first name, check with
    popular web-site if it is really considered a first name. 
  - grepmime: search for pattern in email attachments (even if these are
    encoded)
  - HTML_Parse for opening and parsing URLs
  - IP4_Address: IP v4 Addresses with subnet masking
+ - iter_recipes: magic with iterators
+ - lcr: model the status of Linux Call Router ISDN lines.
  - Math implements Euclids algorithm for greatest common divisor and as
    a by-product the least common multiple
+ - ocf: small framework for writing OCF scripts for the heartbeat
+   cluster resource manager (probably also usable for the newer version
+   called pacemaker but for now only tested with the version in Debian
+   stable aka lenny).
  - PDF_Parse for opening and parsing PDFs, needs pdftotext installed
+ - PDF_Signature: experimental code for checking signatures on adobe PDF
+   documents
  - PM_Value: Possibly missing value, encapsulate a number which may be
    missing and associated arithmetics.
  - Rational: Implementation of Rational numbers
@@ -31,16 +51,6 @@ The library includes various utility modules used in other projects.
  - Tex_CSV_Writer: Write CVS files in a syntax that can be parsed by
    TeX. Implements same interface as the csv module. Only implements
    writing.
- - ast_call: A simple call manager using asterisk: This can be used to
-   originate a call and log all event associated to that call. So you
-   can find out the status of the call and optionally the dialstatus.
- - bero: A configurator for the `bero*fos`_ failover switch. See my
-   `blogpost`_ why I wrote that (short summary: to work around bugs in
-   the firmware of the device which are not addressed by the
-   configurator code that comes with the device).
- - PDF_Signature: experimental code for checking signatures on adobe PDF
-   documents
- - iter_recipes: magic with iterators
 
 .. _`bero*fos`: https://shop.beronet.com/product_info.php/cPath/56/products_id/159
 .. _`blogpost`: http://blog.runtux.com/2009/04/09/81/

@@ -68,6 +68,12 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.13: Not announced on freshmeat
+
+Bug-Fix Release: Fix signal handler in timeout.py
+
+ - fix signal handler timeout.py
+
 Version 0.12: Not announced on freshmeat
 
 Add a simple timeout mechanism using SIGALRM.

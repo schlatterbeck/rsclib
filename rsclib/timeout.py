@@ -43,7 +43,7 @@ class Timeout (autosuper) :
         signal.signal (signal.SIGALRM, self.osig)
     # end def disable_alarm
 
-    def sig_alarm (self) :
+    def sig_alarm (self, sig, frame) :
         if hasattr (self, 'log') :
             self.log.debug ("SIGALRM received")
         raise Timeout_Error, "SIGALRM"

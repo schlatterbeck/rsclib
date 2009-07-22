@@ -25,6 +25,6 @@ clean:
 	rm -f MANIFEST rsclib/Version.py notes changes default.css \
 	      README.html README.aux README.dvi README.log README.out \
 	      README.tex
-	rm -rf dist build
+	rm -rf dist build upload upload_homepage
 
 include ../make/Makefile-sf

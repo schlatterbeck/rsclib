@@ -175,23 +175,23 @@ class Process (_Named) :
         pid = os.fork ()
         if pid : # parent
             self.pid = pid
-            print "PID:", self.name, self.pid
+            #print "PID:", self.name, self.pid
             self.by_pid [pid] = self
             if self.stdout :
-                print "main closing:", self.stdout.fileno ()
+                #print "main closing:", self.stdout.fileno ()
                 self.stdout.close ()
             if self.stderr :
                 self.stderr.close ()
             if self.stdin :
-                print "main closing:", self.stdin.fileno ()
+                #print "main closing:", self.stdin.fileno ()
                 self.stdin.close ()
             if hasattr (self, 'stdouts') :
                 for f in self.stdouts.iterkeys () :
-                    print "main closing:", f.fileno ()
+                    #print "main closing:", f.fileno ()
                     f.close ()
         else : # child
             for f in self.toclose :
-                print self.name, "closing:", f.fileno ()
+                #print self.name, "closing:", f.fileno ()
                 f.close ()
             self.method ()
             sys.exit    (0)
@@ -209,7 +209,7 @@ class Process (_Named) :
     @classmethod
     def wait (cls) :
         while cls.by_pid :
-            print cls.by_pid.keys ()
+            #print cls.by_pid.keys ()
             pid, status = os.wait ()
             if pid > 0 :
                 cls.by_pid [pid].status = status
@@ -228,7 +228,7 @@ class Tee (Process) :
         self.children = children
         for c in self.children :
             pipe = os.pipe ()
-            print "tee pipe:", pipe
+            #print "tee pipe:", pipe
             self.stdouts [os.fdopen (pipe [1], 'w')] = c
             c.stdin = os.fdopen (pipe [0], 'r')
         self.toclose.append (stdout)
@@ -244,13 +244,13 @@ class Tee (Process) :
     # end def __init__
 
     def method (self) :
-        print self.name, "method"
+        #print self.name, "method"
         while 1 :
-            print self.name, "before read", self.stdin.fileno ()
+            #print self.name, "before read", self.stdin.fileno ()
             buf = self.stdin.read (self.bufsize)
-            print "read:", len (buf)
+            #print "read:", len (buf)
             if not buf :
-                print "Tee: empty read, terminating"
+                #print "Tee: empty read, terminating"
                 return
             # use items () here, we want to modify dict
             written = False
@@ -260,12 +260,12 @@ class Tee (Process) :
                 try :
                     stdout.write (buf)
                     written = True
-                    print "written:", child.name, len (buf)
+                    #print "written:", child.name, len (buf)
                 except IOError, cause :
                     # this client died, no longer try to send to it
                     if cause.errno != errno.EPIPE :
                         raise
-                    print "Dead:", child.name
+                    #print "Dead:", child.name
                     self.stdouts [stdout] = False
             # still clients existing?
             if not written :
@@ -312,7 +312,7 @@ class Method_Process (Process) :
     def run (self) :
         if self.children :
             pipe  = os.pipe ()
-            print "pipe:", pipe
+            #print "pipe:", pipe
             stdin = os.fdopen (pipe [0], 'r')
             self.stdout = os.fdopen (pipe [1], 'w')
             if len (self.children) > 1 :

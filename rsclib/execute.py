@@ -178,13 +178,20 @@ class Process (_Named) :
             self.pid = pid
             self.by_pid [pid] = self
             if self.stdout :
+                print "main closing:", self.stdout.fileno ()
                 self.stdout.close ()
             if self.stderr :
                 self.stderr.close ()
             if self.stdin :
+                print "main closing:", self.stdin.fileno ()
                 self.stdin.close ()
+            if hasattr (self, 'stdouts') :
+                for f in self.stdouts.iterkeys () :
+                    print "main closing:", f.fileno ()
+                    f.close ()
         else : # child
             for f in self.toclose :
+                print self.name, "closing:", f.fileno ()
                 f.close ()
             self.method ()
             sys.exit    (0)
@@ -214,16 +221,20 @@ class Tee (Process) :
     """ A tee in a pipe (like the unix command tee but copies to several
         sub-processes)
     """
-    def __init__ (self, children, bufsize = 4094, **kw) :
+    def __init__ (self, children, stdout = None, bufsize = 4094, **kw) :
         self.stdouts  = {}
         self.bufsize  = bufsize
+        self.__super.__init__ (**kw)
         self.children = children
         for c in self.children :
             pipe = os.pipe ()
             print "tee pipe:", pipe
             self.stdouts [os.fdopen (pipe [1], 'w')] = True
             c.stdin = os.fdopen (pipe [0], 'r')
-        self.__super.__init__ (**kw)
+        self.toclose.append (stdout)
+        for c in self.children :
+            c.toclose.extend (self.stdouts.keys ())
+            c.toclose.append (stdout)
     # end def __init__
 
     def method (self) :
@@ -231,7 +242,7 @@ class Tee (Process) :
         osig = signal.signal (signal.SIGPIPE, self.sig_pipe)
         print self.name, "after signal"
         while 1 :
-            print self.name, "before read", self.stdin
+            print self.name, "before read", self.stdin.fileno ()
             buf = self.stdin.read (self.bufsize)
             print "read:", len (buf)
             if not buf :
@@ -299,12 +310,12 @@ class Method_Process (Process) :
     def run (self) :
         if self.children :
             pipe  = os.pipe ()
+            print "pipe:", pipe
             stdin = os.fdopen (pipe [0], 'r')
             self.stdout = os.fdopen (pipe [1], 'w')
             if len (self.children) > 1 :
-                self.tee = Tee (self.children, stdin = stdin)
-                self.tee.toclose.append (self.stdout)
-                print "Tee stdin:", stdin.fileno ()
+                self.tee = Tee \
+                    (self.children, stdin = stdin, stdout = self.stdout)
             elif len (self.children) :
                 child = self.children [0]
                 child.stdin = stdin

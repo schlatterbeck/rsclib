@@ -31,7 +31,6 @@ from   subprocess       import Popen, PIPE
 from   rsclib.autosuper import autosuper
 
 class Exec_Error    (RuntimeError) : pass
-class Dead_Client   (RuntimeError) : pass
 
 class _Named (autosuper) :
     def _name (self) :
@@ -176,6 +175,7 @@ class Process (_Named) :
         pid = os.fork ()
         if pid : # parent
             self.pid = pid
+            print "PID:", self.name, self.pid
             self.by_pid [pid] = self
             if self.stdout :
                 print "main closing:", self.stdout.fileno ()
@@ -221,7 +221,7 @@ class Tee (Process) :
     """ A tee in a pipe (like the unix command tee but copies to several
         sub-processes)
     """
-    def __init__ (self, children, stdout = None, bufsize = 4094, **kw) :
+    def __init__ (self, children, stdout, bufsize = 4094, **kw) :
         self.stdouts  = {}
         self.bufsize  = bufsize
         self.__super.__init__ (**kw)
@@ -229,18 +229,22 @@ class Tee (Process) :
         for c in self.children :
             pipe = os.pipe ()
             print "tee pipe:", pipe
-            self.stdouts [os.fdopen (pipe [1], 'w')] = True
+            self.stdouts [os.fdopen (pipe [1], 'w')] = c
             c.stdin = os.fdopen (pipe [0], 'r')
         self.toclose.append (stdout)
         for c in self.children :
             c.toclose.extend (self.stdouts.keys ())
             c.toclose.append (stdout)
+            if self.stdin :
+                c.toclose.append (self.stdin)
+            for c2 in reversed (self.children) :
+                if c == c2 :
+                    break;
+                c.toclose.append (c2.stdin)
     # end def __init__
 
     def method (self) :
         print self.name, "method"
-        osig = signal.signal (signal.SIGPIPE, self.sig_pipe)
-        print self.name, "after signal"
         while 1 :
             print self.name, "before read", self.stdin.fileno ()
             buf = self.stdin.read (self.bufsize)
@@ -250,25 +254,23 @@ class Tee (Process) :
                 return
             # use items () here, we want to modify dict
             written = False
-            for stdout, state in self.stdouts.items () :
-                if not state :
+            for stdout, child in self.stdouts.items () :
+                if not child :
                     continue
                 try :
                     stdout.write (buf)
                     written = True
-                    print "written:", len (buf)
-                except Dead_Client :
+                    print "written:", child.name, len (buf)
+                except IOError, cause :
                     # this client died, no longer try to send to it
-                    print "Dead:", stdout
+                    if cause.errno != errno.EPIPE :
+                        raise
+                    print "Dead:", child.name
                     self.stdouts [stdout] = False
             # still clients existing?
             if not written :
                 return
     # end def method
-
-    def sig_pipe (self, sig, frame) :
-        raise Dead_Client, "received SIGPIPE"
-    # end def sig_pipe
 
 # end class Tee
 

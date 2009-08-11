@@ -50,6 +50,9 @@ class Retry            (ValueError)   : pass
 class Retries_Exceeded (RuntimeError) : pass
 
 translation = ''.join (chr (x) for x in range (256))
+def default_translate (x) :
+    return x.translate (translation, '\0\015')
+# end def default_translate
 
 class Page_Tree (autosuper) :
     """ Parse given URL into an Elementtree (using ElementTidy).
@@ -82,6 +85,7 @@ class Page_Tree (autosuper) :
         , username     = None
         , password     = None
         , cookies      = None
+        , translate    = None
         , ** kw
         ) :
         if site :
@@ -103,6 +107,8 @@ class Page_Tree (autosuper) :
             self.cookies = cookielib.LWPCookieJar ()
         else :
             self.cookies = cookies
+        if not translate :
+            translate = default_translate
         op = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookies))
         if username and password :
             password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm ()
@@ -119,7 +125,7 @@ class Page_Tree (autosuper) :
             except (AttributeError, urllib2.URLError) :
                 self.retry += 1
                 continue
-            text      = f.read ().translate (translation, '\0\015')
+            text      = translate (f.read ())
             builder   = TidyHTMLTreeBuilder (encoding = self.html_charset)
             builder.feed (text)
             self.tree = ElementTree (builder.close ())

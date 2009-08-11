@@ -26,7 +26,10 @@ The library includes various utility modules used in other projects.
  - Config_File for python-syntax configuration files used in several of
    my projects.
  - execute: module for executing commands and handling IO, this also
-   has a Lock and a Log mixin.
+   has a Lock and a Log mixin. Now there is also a framework for
+   executing processes in a pipeline, there can be fork-points in the
+   pipeline where the output of one process feeds several pipelines.
+   See test_exec.py and test2_exec.py.
  - Firstname: given a string-candidate of a first name, check with
    popular web-site if it is really considered a first name. 
  - grepmime: search for pattern in email attachments (even if these are
@@ -67,6 +70,18 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.14: Not announced on freshmeat
+
+Add a framework for process pipeline execution, processes can either be
+python methods or external programs (with parameter list).  They can be
+connected in a pipe and there may be T-points in the pipe, where the
+pipe forks into two or more pipelines fed by the output of one process.
+
+ - Add process pipeline framework
+ - HTML_Parse now has an explicit translate hook for preprocessing the
+   html page before parsing it. This defaults to the old behaviour of
+   filtering out common characters in broken HTML.
 
 Version 0.13: Not announced on freshmeat
 

@@ -19,8 +19,9 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from rsclib.autosuper import autosuper
 
-class IP4_Address :
+class IP4_Address (autosuper) :
     """
         IP version 4 Address with optional subnet mask.
         >>> a = IP4_Address ('10.100.10.0')

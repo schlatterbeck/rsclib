@@ -155,6 +155,15 @@ class IP4_Address (autosuper) :
         return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
     # end def contains
 
+    def dotted (self) :
+        ip = self.ip
+        r = []
+        for i in range (4) :
+            r.append (ip & 255)
+            ip >>= 8
+        return '.'.join (str (k) for k in reversed (r))
+    # end def dotted
+
     def net (self) :
         return self.__class__ (self.ip & self.bitmask)
     # end def net
@@ -189,12 +198,7 @@ class IP4_Address (autosuper) :
     # end def __cmp__
 
     def __repr__ (self) :
-        ip = self.ip
-        r = []
-        for i in range (4) :
-            r.append (ip & 255)
-            ip >>= 8
-        ret = '.'.join (str (k) for k in reversed (r))
+        ret = self.dotted ()
         if self.mask != 32 :
             ret += '/%s' % self.mask
         return ret

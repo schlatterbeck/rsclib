@@ -40,6 +40,8 @@ The library includes various utility modules used in other projects.
  - lcr: model the status of Linux Call Router ISDN lines.
  - Math implements Euclids algorithm for greatest common divisor and as
    a by-product the least common multiple
+ - nmap: A parser for output of nmap scans to (e.g. to generate tables
+   in TeX)
  - ocf: small framework for writing OCF scripts for the heartbeat
    cluster resource manager (probably also usable for the newer version
    called pacemaker but for now only tested with the version in Debian
@@ -82,6 +84,7 @@ pipe forks into two or more pipelines fed by the output of one process.
  - HTML_Parse now has an explicit translate hook for preprocessing the
    html page before parsing it. This defaults to the old behaviour of
    filtering out common characters in broken HTML.
+ - Add nmap parser (e.g. to generate TeX tables from an nmap scan)
 
 Version 0.13: Not announced on freshmeat
 

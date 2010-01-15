@@ -119,7 +119,7 @@ class Host (autosuper) :
 
     @property
     def is_filtered (self) :
-        return self.state == 'filtered' and not self.ports
+        return self.state == 'filtered' and not self.ports and not self.state2
     # end def is_filtered
 
     def state_ports (self, state) :
@@ -272,6 +272,8 @@ class NMAP (autosuper) :
                 po = 'all'
             if pc == '--' and h1.state == 'closed' :
                 pc = 'all'
+            if pc == '--' and h1.state == 'filtered' and h1.state2 == 'closed' :
+                pc = '[%s closed]' % h1.count2
             if str (h1.ip) in ip_map :
                 assert (not x2)
                 x = r"\multicolumn{5}{l}{%s}" % ip_map [str (h1.ip)]

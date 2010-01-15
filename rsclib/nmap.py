@@ -189,8 +189,8 @@ class NMAP (autosuper) :
             Optionally add a caption and a label to the generated TeX
             table.
 
-            if no_filtered is specified, only we don't show hosts with
-            all ports filtered.
+            if no_filtered is specified, we don't show hosts with all
+            ports filtered.
 
             Some ip addresses may be explicitly printed with a name by
             specifying the ip/name pair in ip_map. Those explicitly
@@ -210,7 +210,7 @@ class NMAP (autosuper) :
                     ) :
                     hosts.append (h)
         for h1, h2 in ranges \
-            ( sorted (hosts)
+            ( sorted (hosts, key = lambda x: (str (x.ip) in ip_map, x))
             , lambda x : x.ip.ip
             , lambda x, y : x.equivalent (y, ip_map)
             ) :
@@ -350,7 +350,7 @@ class NMAP_Parser (Parser) :
     # end def _get_name_and_ip
 # end class NMAP_Parser
 
-if __name__ == '__main__' :
+def main () :
     import sys
     from optparse import OptionParser
 
@@ -408,3 +408,7 @@ if __name__ == '__main__' :
         for n in NMAP.list :
             if not opt.no_filtered or not n.is_filtered :
                 print n.as_string (no_filtered = opt.no_filtered)
+# end def main
+
+if __name__ == '__main__' :
+    main ()

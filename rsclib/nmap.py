@@ -13,8 +13,9 @@ re_done  = rc (r"Nmap (done|finished): (\d+) IP address[es]* "
                r"[(](\d+) hosts? ([a-z]+)[)] scanned in ([0-9.]+) seconds"
               )
 re_intr  = rc (r"Interesting ports on %(re_addr)s:" % locals ())
+re_or    =     r"( \((\d+)\) or ([a-z]+) \((\d+)\))?"
 re_show  = rc (r"Not shown: (\d+) ([a-z]+) ports")
-re_all   = rc ( r"All (\d+) scanned ports on %(re_addr)s are ([a-z]+)"
+re_all   = rc ( r"All (\d+) scanned ports on %(re_addr)s are ([a-z]+)%(re_or)s$"
               % locals ()
               )
 re_warn  = rc (r"^Warning:(.*)$")
@@ -72,10 +73,22 @@ class Port (autosuper) :
 
 class Host (autosuper) :
     """ A Target-Host of nmap """
-    def __init__ (self, ip, name = None, state = "filtered", count = 0) :
+    def __init__ \
+        ( self
+        , ip
+        , name   = None
+        , state  = "filtered"
+        , count  = 0
+        , state2 = None
+        , count1 = 0
+        , count2 = 0
+        ) :
         self.count    = int (count)
+        self.count1   = int (count1)
+        self.count2   = int (count2)
         self.name     = name
         self.state    = state
+        self.state2   = state2
         self.ip       = IP4_Address (ip)
         self.ports    = []
         self.warnings = []
@@ -97,7 +110,11 @@ class Host (autosuper) :
         """
         if str (self.ip) in except_dict or str (other.ip) in except_dict :
             return False
-        return self.ports == other.ports and self.state == other.state
+        return \
+            (   self.ports  == other.ports
+            and self.state  == other.state
+            and self.state2 == other.state2
+            )
     # end def equivalent
 
     @property
@@ -142,6 +159,12 @@ class Host (autosuper) :
             ( 'Host (%s, name = %s, state = %s, count = %s'
             % (self.ip, self.name, self.state, self.count)
             )
+        if self.state2 :
+            ret.append \
+                ( ' state2 = %s count1 = %s count2 = %s)'
+                % (self.state2, self.count1, self.count2)
+                )
+        ret.append (''.join (x))
         for p in self.ports :
             ret.append (repr (p))
         return '\n'.join (ret)
@@ -162,10 +185,17 @@ class Host (autosuper) :
                 ret.append ("Not shown: %s %s ports" % (rest, self.state))
             ret.append (Port.template % ('PORT', 'STATE', 'SERVICE'))
         else :
-            ret.append \
+            x = []
+            x.append \
                 ( "All %s scanned ports on %s are %s"
                 % (self.count, name, self.state)
                 )
+            if self.state2 :
+                x.append \
+                    ( ' (%s) or %s (%s)'
+                    % (self.count1, self.state2, self.count2)
+                    )
+            ret.append (''.join (x))
         for p in self.ports :
             ret.append (str (p))
         ret.append ('')
@@ -323,7 +353,15 @@ class NMAP_Parser (Parser) :
     def do_all (self, state, new_state, match) :
         g    = match.groups ()
         name, ip = self._get_name_and_ip (g [1], g [3])
-        host = Host (ip, name, state = g [4], count = g [0])
+        host = Host \
+            ( ip
+            , name
+            , state  = g [4]
+            , count  = g [0]
+            , state2 = g [7]
+            , count1 = int (g [6] or 0)
+            , count2 = int (g [8] or 0)
+            )
         if self.warnings :
             host.add_warnings (self.warnings)
         self.nmap.add_host (host)

@@ -17,6 +17,7 @@ re_show  = rc (r"Not shown: (\d+) ([a-z]+) ports")
 re_all   = rc ( r"All (\d+) scanned ports on %(re_addr)s are ([a-z]+)"
               % locals ()
               )
+re_warn  = rc (r"^Warning:(.*)$")
 re_plist = rc (r"PORT +STATE +SERVICE")
 
 #State                  Pattern                new State          Action
@@ -26,6 +27,7 @@ Matrix = \
 , ["started",         re_intr,                  "interest",    "interest"]
 , ["started",         re_all,                   "started",     "do_all"]
 , ["started",         rc (r"^$"),               "started",     None]
+, ["started",         re_warn,                  "started",     "warning"]
 , ["started",         re_done,                  "init",        "end"]
 , ["interest",        re_show,                  "interest",    "notshown"]
 , ["interest",        re_plist,                 "portlist",    None]
@@ -71,17 +73,22 @@ class Port (autosuper) :
 class Host (autosuper) :
     """ A Target-Host of nmap """
     def __init__ (self, ip, name = None, state = "filtered", count = 0) :
-        self.count   = int (count)
-        self.name    = name
-        self.state   = state
-        self.ip      = IP4_Address (ip)
-        self.ports   = []
+        self.count    = int (count)
+        self.name     = name
+        self.state    = state
+        self.ip       = IP4_Address (ip)
+        self.ports    = []
+        self.warnings = []
     # end def __init__
 
     def add_port (self, port) :
         self.ports.append (port)
         self.count += 1
     # end def add_port
+
+    def add_warnings (self, warnings) :
+        self.warnings = warnings [:]
+    # end def add_warnings
 
     def equivalent (self, other, except_dict = {}) :
         """ Check if two host have equivalent scan results. An optional
@@ -146,6 +153,8 @@ class Host (autosuper) :
         plen = len (self.ports)
         if self.name :
             name = "%s (%s)" % (self.name, self.ip)
+        for w in self.warnings :
+            ret.append (w)
         if plen :
             rest = self.count - plen
             ret.append ("Interesting ports on %s:" % name)
@@ -306,11 +315,19 @@ class NMAP (autosuper) :
 class NMAP_Parser (Parser) :
     """ Parses an nmap log (several scans) into a list of NMAP objects """
 
+    def __init__ (self, *args, **kw) :
+        self.warnings = []
+        self.__super.__init__ (*args, **kw)
+    # end def __init__
+
     def do_all (self, state, new_state, match) :
         g    = match.groups ()
         name, ip = self._get_name_and_ip (g [1], g [3])
         host = Host (ip, name, state = g [4], count = g [0])
+        if self.warnings :
+            host.add_warnings (self.warnings)
         self.nmap.add_host (host)
+        self.warnings = []
     # end def do_all
 
     def end (self, state, new_state, match) :
@@ -320,7 +337,11 @@ class NMAP_Parser (Parser) :
     def interest (self, state, new_state, match) :
         g = match.groups ()
         name, ip = self._get_name_and_ip (g [0], g [2])
-        self.nmap.add_host (Host (ip, name))
+        host = Host (ip, name)
+        if self.warnings :
+            host.add_warnings (self.warnings)
+        self.nmap.add_host (host)
+        self.warnings = []
         return self.push (state, new_state, match)
     # end def interest
 
@@ -339,6 +360,10 @@ class NMAP_Parser (Parser) :
     def start (self, state, new_state, match) :
         self.nmap = NMAP (* match.groups ())
     # end def start
+
+    def warning (self, state, new_state, match) :
+        self.warnings.append (self.line.strip ())
+    # end def warning
 
     def _get_name_and_ip (self, x1, x2) :
         ip   = x1

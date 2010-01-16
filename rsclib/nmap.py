@@ -273,7 +273,7 @@ class NMAP (autosuper) :
             if pc == '--' and h1.state == 'closed' :
                 pc = 'all'
             if pc == '--' and h1.state == 'filtered' and h1.state2 == 'closed' :
-                pc = '[%s closed]' % h1.count2
+                pc = '[%s closed ports]' % h1.count2
             if str (h1.ip) in ip_map :
                 assert (not x2)
                 x = r"\multicolumn{5}{l}{%s}" % ip_map [str (h1.ip)]

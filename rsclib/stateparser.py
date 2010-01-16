@@ -24,16 +24,6 @@ import re
 import sys
 from rsclib.autosuper import autosuper
 
-# rc = re.compile
-#State                 Pattern               new State         Action
-#Matrix = \
-#[ ["init",            "Groups",             "hostgroup_start" None]
-#, ["init",            None,                 "init"            None]
-#, ["hostgroup_start", rc ("=*"),            "hostgroup"       None]
-#, ["hostgroup"        rc ("([^:]*):$"),     "hostgroup_entry" None]
-#...
-#]
-
 class Parse_Error (StandardError) : pass
 
 class Debug (autosuper) :
@@ -85,14 +75,19 @@ class Transition (Debug) :
     def match (self) :
         line = self.state.parser.line
         if self.pattern is None or line == self.pattern :
-            self.debug (2, "match:", self.pattern)
+            self.debug \
+                (2, "match: %s (act = %s)" % (self.pattern, self.act_name))
             return self._transition ()
         if not isinstance (self.pattern, str) :
             m = self.pattern.search (line)
             if m :
-                self.debug (2, "match: <regex>")
+                self.debug (2, "match: <regex> (act = %s)" % self.act_name)
                 return self._transition (m)
-        self.debug (4, "state: %s: No match: %s" % (self.state.name, line))
+        self.debug \
+            ( 4
+            , "state: %s: No match: %s (act = %s)"
+              % (self.state.name, line, self.act_name)
+            )
         return None
     # end def match
 

@@ -126,7 +126,7 @@ class Host (autosuper) :
         return [p.port for p in self.ports if p.state == state]
     # end def state_ports
 
-    def state_ports_tex (self, state) :
+    def state_ports_tex (self, state, threshold = None) :
         """ Return closed ports as comma separated list with contiguous
             ranges replace by a range (double dash for TeX)
         """
@@ -137,6 +137,8 @@ class Host (autosuper) :
             return '--'
         if len (ports) == self.count :
             return 'all'
+        elif threshold and len (ports) > self.count * threshold :
+            return "[%s %s ports]" % (self.count, state)
         for p1, p2 in ranges (ports) :
             if p1 == p2 :
                 ret.append (str (p1))
@@ -216,10 +218,12 @@ class NMAP (autosuper) :
     @classmethod
     def as_tex \
         ( cls
-        , caption     = None
-        , label       = None
-        , no_filtered = False
-        , ip_map      = {}
+        , caption       = None
+        , label         = None
+        , no_filtered   = False
+        , ip_map        = {}
+        , thresh_open   = None
+        , thresh_closed = None
         ) :
         """ Build TeX table of open/closed ports from all nmap objects.
             Table is compressed if several adjacent hosts have the same
@@ -266,8 +270,8 @@ class NMAP (autosuper) :
                         break
                     x2.append (o2)
                 x2 = '--' + '.'.join (reversed (x2))
-            po = h1.state_ports_tex ('open')
-            pc = h1.state_ports_tex ('closed')
+            po = h1.state_ports_tex ('open',   threshold = thresh_open)
+            pc = h1.state_ports_tex ('closed', threshold = thresh_closed)
             if po == '--' and h1.state == 'open' :
                 po = 'all'
             if pc == '--' and h1.state == 'closed' :
@@ -449,6 +453,18 @@ def main () :
         , default = []
         , action  = "append"
         )
+    cmd.add_option \
+        ( "--threshold-open"
+        , dest    = "thresh_open"
+        , help    = "Threshold for summary info of open ports"
+        , type    = float
+        )
+    cmd.add_option \
+        ( "--threshold-closed"
+        , dest    = "thresh_closed"
+        , help    = "Threshold for summary info of closed ports"
+        , type    = float
+        )
     (opt, args) = cmd.parse_args ()
     if len (args) != 1 :
         cmd.error ("You must specify the nmap log file")
@@ -464,10 +480,12 @@ def main () :
         ip_map [k] = v
     if opt.as_tex :
         print NMAP.as_tex \
-            ( no_filtered = opt.no_filtered
-            , label       = opt.label
-            , caption     = opt.caption
-            , ip_map      = ip_map
+            ( no_filtered   = opt.no_filtered
+            , label         = opt.label
+            , caption       = opt.caption
+            , ip_map        = ip_map
+            , thresh_open   = opt.thresh_open
+            , thresh_closed = opt.thresh_closed
             )
     else :
         for n in NMAP.list :

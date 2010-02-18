@@ -30,6 +30,7 @@ except ImportError :
 from   rsclib.autosuper                import autosuper
 from   rsclib.Version                  import VERSION
 from   urllib                          import urlencode
+from   httplib                         import BadStatusLine
 
 namespace   = 'http://www.w3.org/1999/xhtml'
 
@@ -122,7 +123,7 @@ class Page_Tree (autosuper) :
         while not f and self.retry < self.retries :
             try :
                 f = op.open (rq) # urlopen
-            except (AttributeError, urllib2.URLError) :
+            except (AttributeError, urllib2.URLError, BadStatusLine) :
                 self.retry += 1
                 continue
             text      = translate (f.read ())

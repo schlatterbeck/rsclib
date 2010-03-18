@@ -29,6 +29,7 @@ except ImportError :
     from elementtree.ElementTree import ElementTree
 from   rsclib.autosuper                import autosuper
 from   rsclib.Version                  import VERSION
+from   rsclib.multipart_form           import Multipart_Form
 from   urllib                          import urlencode
 from   httplib                         import BadStatusLine
 

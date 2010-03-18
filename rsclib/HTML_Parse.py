@@ -64,6 +64,11 @@ class Page_Tree (autosuper) :
         - data is sent as a post request.
         - post is a dictionary converted to data suitable as a post
              request, if data is specified, post is ignored.
+        - files are converted to file upload data in a post request
+             if data is specified, files is ignored, files specifies
+             tuples of the form (fieldname, filename, filehandle, mimetype)
+             where the filehandle is an open file or None (in which case
+             filename is opened).
         - if username and password are specified we use simplte http auth
         - cookies is a cookiejar object
 
@@ -84,6 +89,7 @@ class Page_Tree (autosuper) :
         , html_charset = None
         , data         = None
         , post         = None
+        , files        = None
         , username     = None
         , password     = None
         , cookies      = None
@@ -117,8 +123,24 @@ class Page_Tree (autosuper) :
             password_mgr.add_password (None, self.site, username, password)
             handler = urllib2.HTTPBasicAuthHandler (password_mgr)
             op.add_handler (handler)
-        if not data and post :
-            data = urlencode (post)
+        if not data :
+            if files :
+                form = Multipart_Form ()
+                if post :
+                    iter = post
+                    if isinstance (post, dict) :
+                        iter = dict.itervalues
+                    for k, v in iter :
+                        form.add_field (k, v)
+                for fieldname, filename, filehandle, mimetype in files :
+                    if not filehandle :
+                        filehandle = open (filename, 'r')
+                    form.add_file (fieldname, filename, filehandle, mimetype)
+                data = str (form)
+                self.headers ['Content-type']   = form.get_content_type ()
+                self.headers ['Content-length'] = len (data)
+            elif post :
+                data = urlencode (post)
         rq = urllib2.Request (self.url, data, self.headers)
         f  = None
         while not f and self.retry < self.retries :
@@ -214,4 +236,5 @@ class Page_Tree (autosuper) :
     def set_useragent (self, ua) :
         self.set_header ('User-Agent', ua)
     # end def set_useragent
+
 # end class Page_Tree

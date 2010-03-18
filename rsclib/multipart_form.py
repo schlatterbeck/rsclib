@@ -5,7 +5,7 @@ import urllib2
 
 from   cStringIO import StringIO
 
-class MultiPartForm (object) :
+class Multipart_Form (object) :
     """ Accumulate the data to be used when posting a form.
         original from http://www.doughellmann.com/PyMOTW/urllib2/
     """
@@ -27,7 +27,9 @@ class MultiPartForm (object) :
     def add_file (self, fieldname, filename, fileHandle, mimetype = None) :
         """Add a file to be uploaded."""
         body = fileHandle.read ()
-        if mimetype is None:
+        if mimetype is None :
+            mimetype = mimetypes.guess_type (filename) [0]
+        if not mimetype :         # hack: don't guess if mimetype == ''
             mimetype = 'application/octet-stream'
         self.files.append ((fieldname, filename, mimetype, body))
         return
@@ -44,7 +46,7 @@ class MultiPartForm (object) :
         part_boundary = '--' + self.boundary
         
         # Add the form fields
-        parts.extend
+        parts.extend \
             ( [ part_boundary
               , 'Content-Disposition: form-data; name="%s"' % name
               , ''
@@ -54,7 +56,7 @@ class MultiPartForm (object) :
             )
         
         # Add the files to upload
-        parts.extend
+        parts.extend \
             ( [ part_boundary
               , 'Content-Disposition: file; name="%s"; filename="%s"'
               % (field_name, filename)
@@ -74,7 +76,7 @@ class MultiPartForm (object) :
 
 if __name__ == '__main__':
     # Create the form with simple fields
-    form = MultiPartForm ()
+    form = Multipart_Form ()
     form.add_field ('firstname', 'Doug')
     form.add_field ('lastname', 'Hellmann')
     
@@ -98,7 +100,7 @@ if __name__ == '__main__':
     print 'OUTGOING DATA:'
     print request.get_data ()
 
-    print
-    print 'SERVER RESPONSE:'
-    print urllib2.urlopen (request).read ()
+    #print
+    #print 'SERVER RESPONSE:'
+    #print urllib2.urlopen (request).read ()
 

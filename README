@@ -85,6 +85,7 @@ pipe forks into two or more pipelines fed by the output of one process.
    html page before parsing it. This defaults to the old behaviour of
    filtering out common characters in broken HTML.
  - Add nmap parser (e.g. to generate TeX tables from an nmap scan)
+ - add file upload to HTML_Parse
 
 Version 0.13: Not announced on freshmeat
 

@@ -25,6 +25,7 @@ import sys
 import logging
 import errno
 import signal
+import atexit
 from   logging.handlers import SysLogHandler
 from   traceback        import format_exc
 from   subprocess       import Popen, PIPE
@@ -111,25 +112,31 @@ class Exec (Log) :
 
 class Lock_Mixin (_Named) :
     def __init__ (self, *args, **kw) :
-        self.is_locked = False
+        self.need_unlock = True
         self.__super.__init__ (*args, **kw)
         self.lockfile = '/var/lock/%s.lock' % self.clsname
+        atexit.register (self.unlock)
         try :
             fd = os.open (self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR)
-            os.close (fd)
+            f  = os.fdopen (fd, 'w')
+            f.write ("%s\n" % os.getpid())
+            f.close ()
         except OSError, e:
             if e.errno != errno.EEXIST :
                 self.log_exception ()
                 raise
-            self.is_locked = True
+            self.need_unlock = False
             self.log.error ('Lockfile exists: %s' % self.lockfile)
             sys.exit (1)
     # end def __init__
 
-    def __del__ (self) :
-        if not self.is_locked :
+    def unlock (self) :
+        if self.need_unlock :
             os.unlink (self.lockfile)
-    # end def __del__
+        self.need_unlock = False # prevent second attempt at removal
+    # end def unlock
+
+    __del__ = unlock
 # end class Lock_Mixin
 
 def exitstatus (cmd, status) :

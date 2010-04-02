@@ -29,7 +29,7 @@ class Traffic_Shaping_Object (autosuper) :
     def __init__ (self, parent = None, **kw) :
         self.parent   = parent
         self._depth   = None
-        self._number  = None
+        self._number  = getattr (self.__class__, '_number', None)
         self.__super.__init__ (**kw)
         if self.parent :
             self.parent.register (self)
@@ -62,7 +62,7 @@ class Traffic_Shaping_Object (autosuper) :
 
     @property
     def number (self) :
-        if self._number :
+        if self._number is not None :
             return self._number
         if self.depth not in self.level_map :
             self._number = self.level_map [self.depth]  = 1
@@ -88,23 +88,30 @@ class Traffic_Shaping_Object (autosuper) :
 class Traffic_Leaf (Traffic_Shaping_Object) :
     """ Leaf in a Traffic shaping hierarchy.
     """
-    weight = 1 # when parent calls weightsum
+    weight  = 1 # when parent calls weightsum
+    _number = 0 # qdisc always numbered 0
+
+    def generate (self, kbit_per_second, wsum, dev) :
+        self.result = []
+        self.outp \
+            ( 'tc qdisc add dev %(dev)s parent %%(parentname)s '
+              'handle %%(name)s \\'
+            % locals ()
+            )
+    # end def generate
 # end class Traffic_Leaf
 
 class SFQ_Leaf (Traffic_Leaf) :
     def generate (self, kbit_per_second, wsum, dev) :
-        l = locals ()
-        self.result = []
-        self.outp ('tc qdisc add dev %(dev)s %%(name)s sfq perturb 10' % l)
+        self.__super.generate (kbit_per_second, wsum, dev)
+        self.outp ('sfq perturb 10')
         return '\n'.join (self.result)
     # end def generate
 # end class SFQ_Leaf
 
 class RED_Leaf (Traffic_Leaf) :
     def generate (self, kbit_per_second, wsum, dev) :
-        l = locals ()
-        self.result = []
-        self.outp ('')
+        self.__super.generate (kbit_per_second, wsum, dev)
         return '\n'.join (self.result)
     # end def generate
 # end class RED_Leaf

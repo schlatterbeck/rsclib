@@ -2,7 +2,23 @@
 
 from rsclib.autosuper import autosuper
 
+class Major_Counter (autosuper) :
+    def __init__ (self, value = 0) :
+        self.value = value
+    # end def __init__
+
+    def inc (self, amount = 1) :
+        self.value += amount
+        return self.value
+    # end def inc
+
+    def get_next (self) :
+        return self.inc ()
+    # end def get_next
+# end class Major_Counter
+
 class Weighted_Bandwidth (autosuper) :
+
     def __init__ (self, **kw) :
         self.children = []
         self.__super.__init__ (**kw)
@@ -24,12 +40,13 @@ class Weighted_Bandwidth (autosuper) :
 
 class Traffic_Shaping_Object (autosuper) :
 
-    level_map = {} # for naming
+    major_counter = Major_Counter ()
+    counter       = 1
 
     def __init__ (self, parent = None, **kw) :
         self.parent   = parent
         self._depth   = None
-        self._number  = getattr (self.__class__, '_number', None)
+        self._number  = None
         self.__super.__init__ (**kw)
         if self.parent :
             self.parent.register (self)
@@ -57,18 +74,15 @@ class Traffic_Shaping_Object (autosuper) :
 
     @property
     def name (self) :
-        return ':'.join ((str (self.depth), str (self.number)))
+        return ':'.join ((str (self.major_no), str (self.number)))
     # end def name
 
     @property
     def number (self) :
         if self._number is not None :
             return self._number
-        if self.depth not in self.level_map :
-            self._number = self.level_map [self.depth]  = 1
-        else :
-            self.level_map [self.depth] += 1
-            self._number = self.level_map [self.depth]
+        self._number = self.__class__.counter
+        self.__class__.counter += 1
         return self._number
     # end def number
 
@@ -88,8 +102,12 @@ class Traffic_Shaping_Object (autosuper) :
 class Traffic_Leaf (Traffic_Shaping_Object) :
     """ Leaf in a Traffic shaping hierarchy.
     """
-    weight  = 1 # when parent calls weightsum
-    _number = 0 # qdisc always numbered 0
+    weight   = 1 # when parent calls weightsum
+
+    @property
+    def name (self) :
+        return ':'.join ((str (self.major_counter.get_next ()), ''))
+    # end def name
 
     def generate (self, kbit_per_second, wsum, dev) :
         self.result = []
@@ -104,7 +122,7 @@ class Traffic_Leaf (Traffic_Shaping_Object) :
 class SFQ_Leaf (Traffic_Leaf) :
     def generate (self, kbit_per_second, wsum, dev) :
         self.__super.generate (kbit_per_second, wsum, dev)
-        self.outp ('sfq perturb 10')
+        self.outp ('   sfq perturb 10')
         return '\n'.join (self.result)
     # end def generate
 # end class SFQ_Leaf
@@ -134,6 +152,8 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         bulk traffic and SFQ in case of non-bulk traffic.
     """
 
+    major_no = Traffic_Shaping_Object.major_counter.get_next ()
+
     def __init__ (self, weight, size = 0, delay_ms = 0, is_bulk = False, **kw) :
         self.weight   = weight
         self.size     = size
@@ -149,8 +169,11 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
             nonlin = ' umax %(size)sb dmax %(delay_ms)sms' % self
         l = locals ()
         self.result = []
-        self.outp ('tc class add dev %(dev)s parent %%(parentname)s \\' % l)
-        self.outp ('   classid %(name)s hfsc \\')
+        self.outp \
+            ( 'tc class add dev %(dev)s parent %%(parentname)s '
+              'classid %%(name)s hfsc \\'
+            % l
+            )
         self.outp ('   sc rate %(rate)skbit%(nonlin)s \\' % l)
         self.outp ('   ul rate %(kbit_per_second)skbit'  % l)
         if not self.children :

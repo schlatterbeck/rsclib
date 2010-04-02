@@ -54,7 +54,7 @@ class Traffic_Shaping_Object (autosuper) :
 
     def ind (self, indent = None) :
         indent = indent or self.depth
-        return '   ' * (indent - 1)
+        return '    ' * (indent - 1)
     # end def ind
 
     def outp (self, ostr, indent = None) :
@@ -112,7 +112,7 @@ class Traffic_Leaf (Traffic_Shaping_Object) :
     def generate (self, kbit_per_second, wsum, dev) :
         self.result = []
         self.outp \
-            ( 'tc qdisc add dev %(dev)s parent %%(parentname)s '
+            ( '$TC qdisc add dev %(dev)s parent %%(parentname)s '
               'handle %%(name)s \\'
             % locals ()
             )
@@ -122,7 +122,7 @@ class Traffic_Leaf (Traffic_Shaping_Object) :
 class SFQ_Leaf (Traffic_Leaf) :
     def generate (self, kbit_per_second, wsum, dev) :
         self.__super.generate (kbit_per_second, wsum, dev)
-        self.outp ('   sfq perturb 10')
+        self.outp ('    sfq perturb 10')
         return '\n'.join (self.result)
     # end def generate
 # end class SFQ_Leaf
@@ -170,12 +170,12 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         l = locals ()
         self.result = []
         self.outp \
-            ( 'tc class add dev %(dev)s parent %%(parentname)s '
+            ( '$TC class add dev %(dev)s parent %%(parentname)s '
               'classid %%(name)s hfsc \\'
             % l
             )
-        self.outp ('   sc rate %(rate)skbit%(nonlin)s \\' % l)
-        self.outp ('   ul rate %(kbit_per_second)skbit'  % l)
+        self.outp ('    sc rate %(rate)skbit%(nonlin)s \\' % l)
+        self.outp ('    ul rate %(kbit_per_second)skbit'  % l)
         if not self.children :
             if self.is_bulk :
                 RED_Leaf (parent = self)
@@ -195,7 +195,8 @@ class Shaper (Weighted_Bandwidth) :
         The generator then generates the necessary statements to add the
         top-level qdisc (and delete it if it is already there).
     """
-    def __init__ (self, *classes, **kw) :
+    def __init__ (self, tc_cmd = '/sbin/tc', *classes, **kw) :
+        self.tc_cmd = tc_cmd
         self.__super.__init__ (**kw)
         for c in classes :
             assert (not c.parent)
@@ -204,11 +205,12 @@ class Shaper (Weighted_Bandwidth) :
     
     def generate (self, kbit_per_second, dev) :
         s = []
+        s.append ('TC=%s' % self.tc_cmd)
         s.append \
-            ( 'tc qdisc del dev %(dev)s root handle 1: hfsc 2> /dev/null'
+            ( '$TC qdisc del dev %(dev)s root handle 1: hfsc 2> /dev/null'
             % locals ()
             )
-        s.append ('tc qdisc add dev %(dev)s root handle 1: hfsc' % locals ())
+        s.append ('$TC qdisc add dev %(dev)s root handle 1: hfsc' % locals ())
         for c in self.children :
             s.append (c.generate (kbit_per_second, self.weightsum, dev))
         return '\n'.join (s)
@@ -229,7 +231,7 @@ if __name__ == '__main__' :
     bulk     = Traffic_Class \
         (25, parent = slower, is_bulk = True)
 
-    shaper   = Shaper (root)
+    shaper   = Shaper ('/bin/tc', root)
 
     print >> sys.stdout, shaper.generate (2000, 'eth0')
 

@@ -136,10 +136,12 @@ class RED_Leaf (Traffic_Leaf) :
             http://www.cs.unc.edu/~jeffay/papers/IEEE-ToN-01.pdf
             Another good source is
             http://www.icir.org/floyd/REDparameters.txt
-            A drop probability somewhere between 0.1 and 0.2 should be a
-            good tradeoff between link utilization and response time
-            (0.1: response; 0.2: utilization). Chosen settings stolen
-            from OpenWRT qos script.
+            All my sources (see above) seem to agree on a drop rate of
+            0.1 but OpenWRT is using 0.12. OpenWRT claims that a drop
+            probability somewhere between 0.1 and 0.2 should be a good
+            tradeoff between link utilization and response time (0.1:
+            response; 0.2: utilization) so I'm using 0.1 here.
+            Other chosen settings stolen from OpenWRT qos script.
         """
         self.__super.generate (kbit_per_second, wsum, dev)
         av    = 1500 # pkt size
@@ -153,7 +155,7 @@ class RED_Leaf (Traffic_Leaf) :
             burst = 2
         l     = locals ()
         self.outp ('    red min %(rmin)s max %(rmax)s burst %(burst)s \\'  % l)
-        self.outp ('    avpkt %(av)s limit %(limit)s probability 0.12 ecn' % l)
+        self.outp ('    avpkt %(av)s limit %(limit)s probability 0.1 ecn' % l)
         return '\n'.join (self.result)
     # end def generate
 # end class RED_Leaf

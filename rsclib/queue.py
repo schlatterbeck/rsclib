@@ -129,7 +129,31 @@ class SFQ_Leaf (Traffic_Leaf) :
 
 class RED_Leaf (Traffic_Leaf) :
     def generate (self, kbit_per_second, wsum, dev) :
+        """ For details on RED parameter selection, see 
+            M. Christiansen, K. Jeffay, D. Ott, and F.D. Smith 
+            "Tuning RED for Web Traffic"
+            ACM/IEEE Transactions on Networking, 2001. 
+            http://www.cs.unc.edu/~jeffay/papers/IEEE-ToN-01.pdf
+            Another good source is
+            http://www.icir.org/floyd/REDparameters.txt
+            A drop probability somewhere between 0.1 and 0.2 should be a
+            good tradeoff between link utilization and response time
+            (0.1: response; 0.2: utilization). Chosen settings stolen
+            from OpenWRT qos script.
+        """
         self.__super.generate (kbit_per_second, wsum, dev)
+        av    = 1500 # pkt size
+        rmin  = int (kbit_per_second * 1024 / 8 * 0.05) # 50 ms queue
+        if rmin < 3000 : # at least 2 max-size pkts
+            rmin = 3000
+        rmax  = 3 * rmin
+        limit = 3 * (rmin + rmax)
+        burst = int ((2 * rmin + rmax) / (3 * av))
+        if burst < 2 :
+            burst = 2
+        l     = locals ()
+        self.outp ('    red min %(rmin)s max %(rmax)s burst %(burst)s \\'  % l)
+        self.outp ('    avpkt %(av)s limit %(limit)s probability 0.12 ecn' % l)
         return '\n'.join (self.result)
     # end def generate
 # end class RED_Leaf

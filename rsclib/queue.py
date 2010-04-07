@@ -52,6 +52,10 @@ class Traffic_Shaping_Object (autosuper) :
             self.parent.register (self)
     # end def __init__
 
+    def gen_filter (self, dev) :
+        pass
+    # end def gen_filter
+
     def ind (self, indent = None) :
         indent = indent or self.depth
         return '    ' * (indent - 1)
@@ -92,6 +96,13 @@ class Traffic_Shaping_Object (autosuper) :
             return '1:'
         return self.parent.name
     # end def parentname
+
+    @property
+    def rootname (self) :
+        if not self.parent :
+            return self.parentname
+        return self.parent.rootname
+    # end def rootname
 
     def __getitem__ (self, key) :
         return getattr (self, key)
@@ -170,21 +181,32 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         video when a video frame consists of several packets), the
         realtime delay and optionally a parent Traffic_Class object.
         Optionally is_bulk can be specified to use Random Early
-        Detection as leaf-qdisc. For bulk TCP traffic it is desirable to
-        do early drop of packets to minimize bulk retransmits when
-        dropping everything at the queue tail due to overflow.  We use
-        this information to output a Linux traffic shaping configuration
-        using HFSC qdisc/class. The leaf qdisc will be RED in case of
-        bulk traffic and SFQ in case of non-bulk traffic.
+        Detection (RED) as leaf-qdisc. For bulk TCP traffic it is
+        desirable to do early drop of packets to minimize bulk
+        retransmits when dropping everything at the queue tail due to
+        overflow.  We use this information to output a Linux traffic
+        shaping configuration using HFSC qdisc/class. The leaf qdisc
+        will be RED in case of bulk traffic and Stochastic Fairness
+        Queuing (SFQ) in case of non-bulk traffic.
     """
 
     major_no = Traffic_Shaping_Object.major_counter.get_next ()
 
-    def __init__ (self, weight, size = 0, delay_ms = 0, is_bulk = False, **kw) :
+    def __init__ \
+        ( self
+        , weight
+        , size     = 0
+        , delay_ms = 0
+        , is_bulk  = False
+        , fwmark   = None
+        , **kw
+        ) :
         self.weight   = weight
         self.size     = size
         self.delay_ms = delay_ms
+        self.fwmark   = fwmark
         self.is_bulk  = is_bulk
+        self.is_leaf  = False
         self.__super.__init__ (**kw)
     # end def __init__
 
@@ -203,6 +225,7 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         self.outp ('    sc rate %(rate)skbit%(nonlin)s \\' % l)
         self.outp ('    ul rate %(kbit_per_second)skbit'  % l)
         if not self.children :
+            self.is_leaf = True
             if self.is_bulk :
                 RED_Leaf (parent = self)
             else :
@@ -212,6 +235,20 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
                 (c.generate (kbit_per_second, self.weightsum, dev))
         return '\n'.join (self.result)
     # end def generate
+
+    def gen_filter (self, dev) :
+        self.result = []
+        for c in self.children :
+            r = c.gen_filter (dev)
+            if r :
+                self.result.append (r)
+        if self.is_leaf :
+            assert (self.fwmark)
+            l = locals ()
+            self.outp ('$TC filter add dev %(dev)s parent %%(rootname)s \\' % l)
+            self.outp ('    protocol ip handle %(fwmark)s fw flowid %(name)s')
+        return '\n'.join (self.result)
+    # end def gen_filter
 
 # end class Traffic_Class
 
@@ -239,6 +276,8 @@ class Shaper (Weighted_Bandwidth) :
         s.append ('$TC qdisc add dev %(dev)s root handle 1: hfsc' % locals ())
         for c in self.children :
             s.append (c.generate (kbit_per_second, self.weightsum, dev))
+        for c in self.children :
+            s.append (c.gen_filter (dev))
         return '\n'.join (s)
     # end def generate
 # end class Shaper
@@ -246,16 +285,20 @@ class Shaper (Weighted_Bandwidth) :
 if __name__ == '__main__' :
     import sys
 
-    root     = Traffic_Class (100)
-    fast     = Traffic_Class (80, parent = root)
-    express  = Traffic_Class ( 5, size =  128, delay_ms = 10, parent = fast)
-    interact = Traffic_Class (20, size =  512, delay_ms = 15, parent = fast)
-    vpn      = Traffic_Class (55, size = 1500, delay_ms = 20, parent = fast)
-    slower   = Traffic_Class (20, parent = root)
-    normal   = Traffic_Class \
-        (25, size = 1500, delay_ms = 20, parent = slower, is_bulk = True)
-    bulk     = Traffic_Class \
-        (25, parent = slower, is_bulk = True)
+    TC = Traffic_Class
+    root = TC (100)
+    fast = TC (80, parent = root)
+    slow = TC (20, parent = root)
+    # express
+    TC ( 5,  128, delay_ms = 10, parent = fast,                 fwmark = 10)
+    # interactive
+    TC (20,  512, delay_ms = 15, parent = fast,                 fwmark = 11)
+    # vpn
+    TC (55, 1500, delay_ms = 20, parent = fast,                 fwmark = 12)
+    # normal
+    TC (25, 1500, delay_ms = 20, parent = slow, is_bulk = True, fwmark = 13)
+    # bulk
+    TC (25,                      parent = slow, is_bulk = True, fwmark = 14)
 
     shaper   = Shaper ('/bin/tc', root)
 

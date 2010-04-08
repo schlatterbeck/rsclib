@@ -57,6 +57,9 @@ The library includes various utility modules used in other projects.
  - Tex_CSV_Writer: Write CVS files in a syntax that can be parsed by
    TeX. Implements same interface as the csv module. Only implements
    writing.
+ - trafficshape: Simple traffic shaping configuration: Currently
+   generates Linux tc commands for a traffic shaping config using hfsc
+   for shaping and sfq or red for the leaf qdiscs.
 
 .. _`bero*fos`: https://shop.beronet.com/product_info.php/cPath/56/products_id/159
 .. _`blogpost`: http://blog.runtux.com/2009/04/09/81/
@@ -72,6 +75,12 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.15: Not announced on freshmeat
+
+Add a framework for traffic shaping with linux iproute (tc).
+
+ - Initial implementation of trafficshape.py
 
 Version 0.14: Not announced on freshmeat
 

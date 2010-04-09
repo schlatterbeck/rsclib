@@ -214,7 +214,7 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         rate   = float (self.weight) / wsum * kbit_per_second
         nonlin = ''
         if self.size and self.delay_ms and not self.children :
-            nonlin = ' umax %(size)sb dmax %(delay_ms)sms' % self
+            nonlin = 'umax %(size)sb dmax %(delay_ms)sms ' % self
         l = locals ()
         self.result = []
         self.outp \
@@ -222,7 +222,7 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
               'classid %%(name)s hfsc \\'
             % l
             )
-        self.outp ('    sc rate %(rate)skbit%(nonlin)s \\' % l)
+        self.outp ('    sc %(nonlin)srate %(rate)skbit \\' % l)
         self.outp ('    ul rate %(kbit_per_second)skbit'  % l)
         if not self.children :
             self.is_leaf = True

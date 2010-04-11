@@ -85,3 +85,30 @@ def ranges (iterable, key = None, condition = None) :
         else :
             yield (last, last)
 # end def ranges
+
+try :
+    from itertools import combinations
+except ImportError :
+    def combinations (iterable, r) :
+        """ stolen from python2.6 manpage of itertools:
+        >>> tuple (tuple (i) for i in combinations ('ABCD', 2))
+        (('A', 'B'), ('A', 'C'), ('A', 'D'), ('B', 'C'), ('B', 'D'), ('C', 'D'))
+        >>> tuple (tuple (i) for i in combinations (range (4), 3))
+        ((0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3))
+        """
+        pool = tuple (iterable)
+        n = len (pool)
+        if r > n :
+            return
+        indices = range (r)
+        yield tuple (pool [i] for i in indices)
+        while True:
+            for i in reversed (range (r)) :
+                if indices [i] != i + n - r:
+                    break
+            else:
+                return
+            indices [i] += 1
+            for j in range (i+1, r) :
+                indices [j] = indices [j-1] + 1
+            yield tuple (pool [i] for i in indices)

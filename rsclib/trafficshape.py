@@ -249,7 +249,7 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
             l = locals ()
             f = '$TC filter add dev %(dev)s parent %%(rootname)s \\' % l
             self.outp (f)
-            self.outp ('    protocol ip prio 1')
+            self.outp ('    protocol ip prio 1 \\')
             self.outp ('    handle %(fwmark)s fw flowid %(name)s')
             if self.is_default :
                 self.outp (f)

@@ -195,18 +195,20 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
     def __init__ \
         ( self
         , weight
-        , size     = 0
-        , delay_ms = 0
-        , is_bulk  = False
-        , fwmark   = None
+        , size       = 0
+        , delay_ms   = 0
+        , is_bulk    = False
+        , fwmark     = None
+        , is_default = False
         , **kw
         ) :
-        self.weight   = weight
-        self.size     = size
-        self.delay_ms = delay_ms
-        self.fwmark   = fwmark
-        self.is_bulk  = is_bulk
-        self.is_leaf  = False
+        self.weight     = weight
+        self.size       = size
+        self.delay_ms   = delay_ms
+        self.fwmark     = fwmark
+        self.is_bulk    = is_bulk
+        self.is_default = is_default
+        self.is_leaf    = False
         self.__super.__init__ (**kw)
     # end def __init__
 
@@ -245,8 +247,13 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         if self.is_leaf :
             assert (self.fwmark)
             l = locals ()
-            self.outp ('$TC filter add dev %(dev)s parent %%(rootname)s \\' % l)
-            self.outp ('    protocol ip handle %(fwmark)s fw flowid %(name)s')
+            f = '$TC filter add dev %(dev)s parent %%(rootname)s \\' % l
+            self.outp (f)
+            self.outp ('    protocol ip prio 1')
+            self.outp ('    handle %(fwmark)s fw flowid %(name)s')
+            if self.is_default :
+                self.outp (f)
+                self.outp ('    protocol ip prio 2 flowid %(name)s')
         return '\n'.join (self.result)
     # end def gen_filter
 
@@ -298,7 +305,7 @@ if __name__ == '__main__' :
     # normal
     TC (25, 1500, delay_ms = 20, parent = slow, is_bulk = True, fwmark = 13)
     # bulk
-    TC (25,                      parent = slow, is_bulk = True, fwmark = 14)
+    TC (25,      is_default = 1, parent = slow, is_bulk = True, fwmark = 14)
 
     shaper   = Shaper ('/bin/tc', root)
 

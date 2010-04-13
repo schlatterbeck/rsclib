@@ -258,6 +258,17 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         return '\n'.join (self.result)
     # end def gen_filter
 
+    def get_default_name (self) :
+        x = self.name # side effect: set numbers in depth first order
+        if self.is_default :
+            return self.name.split (':', 1) [1]
+        for c in self.children :
+            d = c.get_default_name ()
+            if d :
+                return d
+        return None
+    # end def get_default_name
+
 # end class Traffic_Class
 
 class Shaper (Weighted_Bandwidth) :
@@ -275,13 +286,17 @@ class Shaper (Weighted_Bandwidth) :
     # end def __init__
     
     def generate (self, kbit_per_second, dev) :
+        default = ''
+        for c in self.children :
+            default = c.get_default_name ()
+            if default :
+                default = ' default %s' % default
+                break
         s = []
+        l = locals ()
         s.append ('TC=%s' % self.tc_cmd)
-        s.append \
-            ( '$TC qdisc del dev %(dev)s root handle 1: hfsc 2> /dev/null'
-            % locals ()
-            )
-        s.append ('$TC qdisc add dev %(dev)s root handle 1: hfsc' % locals ())
+        s.append ('$TC qdisc del dev %(dev)s root 2> /dev/null' % l)
+        s.append ('$TC qdisc add dev %(dev)s root handle 1: hfsc%(default)s' %l)
         for c in self.children :
             s.append (c.generate (kbit_per_second, self.weightsum, dev))
         for c in self.children :

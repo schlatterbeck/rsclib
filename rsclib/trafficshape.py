@@ -262,10 +262,11 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         x = self.name # side effect: set numbers in depth first order
         if self.is_default :
             return self.name.split (':', 1) [1]
-        for c in self.children :
-            d = c.get_default_name ()
-            if d :
-                return d
+        if not self.is_leaf :
+            for c in self.children :
+                d = c.get_default_name ()
+                if d :
+                    return d
         return None
     # end def get_default_name
 
@@ -325,5 +326,6 @@ if __name__ == '__main__' :
 
     shaper   = Shaper ('/bin/tc', root)
 
-    print >> sys.stdout, shaper.generate (2000, 'eth0')
+    for bw, dev in (2000, 'eth0'), (1000, 'ppp0') :
+        print >> sys.stdout, shaper.generate (bw, dev)
 

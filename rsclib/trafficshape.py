@@ -188,6 +188,13 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         shaping configuration using HFSC qdisc/class. The leaf qdisc
         will be RED in case of bulk traffic and Stochastic Fairness
         Queuing (SFQ) in case of non-bulk traffic.
+
+        A note on the default class (is_default setting): This sets the
+        default option on the top-level hfsc qdisc. If this is not
+        specified, traffic that is not properly marked is dropped. In my
+        experience this *includes* ARP traffic. That means if no default
+        is specified and you don't take special precautions for ARP, no
+        communication is possible (if you're on ethernet).
     """
 
     major_no = Traffic_Shaping_Object.major_counter.get_next ()

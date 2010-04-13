@@ -253,7 +253,8 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
             self.outp ('    handle %(fwmark)s fw flowid %(name)s')
             if self.is_default :
                 self.outp (f)
-                self.outp ('    protocol ip prio 2 flowid %(name)s')
+                self.outp ('    protocol ip prio 2 \\')
+                self.outp ('    u32 match u8 0 0 flowid %(name)s')
         return '\n'.join (self.result)
     # end def gen_filter
 

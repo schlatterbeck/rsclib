@@ -78,9 +78,12 @@ Changes
 
 Version 0.15: Not announced on freshmeat
 
-Add a framework for traffic shaping with linux iproute (tc).
+Add a framework for traffic shaping with linux iproute (tc). Minor
+updates to iter_recipes.
 
  - Initial implementation of trafficshape.py
+ - Add iter_recipes.combinations from python2.6 manpage of itertools
+   for backward compatibility
 
 Version 0.14: Not announced on freshmeat
 

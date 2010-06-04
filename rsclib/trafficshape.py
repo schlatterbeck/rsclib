@@ -356,6 +356,14 @@ class IPTables_Mangle_Rule (autosuper) :
                              )
         }
 
+    protocols = \
+        { 'icmp' :  1
+        , 'tcp'  :  6
+        , 'udp'  : 17
+        , 'esp'  : 50
+        , 'ah'   : 51
+        }
+
     def __init__ (self, line) :
         self.pkgcount       = 0
         self.bytecount      = 0
@@ -443,6 +451,51 @@ class IPTables_Mangle_Rule (autosuper) :
             ret.append ('--set-xmark %s' % self.xmark)
         return ' '.join (ret)
     # end def as_iptables
+
+    def as_tc_filter (self, dev, parent, prio = 1) :
+        """ Output rules as tc filter commands using the u32 classifier
+            and the ipt action.
+        """
+        if not self.xmark :
+            return ''
+        ret = []
+        ret.append ("tc filter add dev %(dev)s"     % locals ())
+        ret.append ("protocol ip parent %(parent)s" % locals ())
+        ret.append ("prio %(prio)s basic match '"   % locals ())
+
+        r = []
+        if self.mark :
+            try :
+                mark, mask = self.mark.split ('/')
+                r.append ("meta(nfmark mask %s eq %s)" % (mask, mark))
+            except ValueError :
+                r.append ("meta(nfmark eq %s)" % self.mask)
+        if self.length :
+            (lower, upper) = (int (x) for x in self.length.split (':'))
+            if lower :
+                r.append ("meta(pkt_len ge %s)" % lower)
+            if upper < 65535 :
+                r.append ("meta(pkt_len le %s)" % upper)
+        if self.protocol :
+            r.append \
+                ( "u32 (ip protocol %s 0xff)"
+                % self.protocols [self.protocol.lower ()]
+                )
+        r_or = []
+        for sp in self.sports :
+            r_or.append ("u32(ip sport %(sp)s 0xffff)" % locals ())
+        if r_or :
+            r.append ('(%s)' % ' or '.join (r_or))
+        r_or = []
+        for dp in self.dports :
+            r_or.append ("u32(ip dport %(dp)s 0xffff)" % locals ())
+        if r_or :
+            r.append ('(%s)' % ' or '.join (r_or))
+        ret.append (' and '.join (r))
+        ret.append ("'")
+        ret.append ("action ipt -j MARK --set-xmark %s" % self.xmark)
+        return ' '.join (ret)
+    # end def as_tc_filter
 
     def parse (self, line) :
         nargs = 0

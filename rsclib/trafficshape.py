@@ -494,7 +494,7 @@ class IPTables_Mangle_Rule (autosuper) :
         """
         if file is None :
             x = Exec ()
-            lines = x.exec_pipe (split ('iptables -t mangle -S PREROUTING -v'))
+            lines = x.exec_pipe ('iptables -t mangle -S PREROUTING -v'.split ())
         else :
             lines = file.readlines ()
         for line in lines :

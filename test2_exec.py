@@ -4,10 +4,8 @@ import sys
 from rsclib.execute import exitstatus, Method_Process, Exec_Process
 
 def reader () :
-    while 1 :
-        b = sys.stdin.read (512)
-        print len(b), b
-        if not b : return
+    for line in sys.stdin :
+        print "%5d:" % len(line), line.rstrip ()
 
 def writer () :
     print 1,2,3,4,5,6,7,8

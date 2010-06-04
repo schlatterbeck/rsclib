@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from rsclib.autosuper import autosuper
+from rsclib.execute   import Exec
 
 class Major_Counter (autosuper) :
     def __init__ (self, value = 0) :
@@ -312,6 +313,195 @@ class Shaper (Weighted_Bandwidth) :
         return '\n'.join (s)
     # end def generate
 # end class Shaper
+
+class IPTables_Mangle_Rule (autosuper) :
+    """ Represent an IPTables mangle rule.
+        We parse the rule saved with the command ::
+
+         iptables  -t mangle -S PREROUTING  -v
+
+        this saves all prerouting rules used for traffic marking.
+    """
+
+    rules = []
+
+    # for parsing saved iptables rules
+    #     option       nargs  (type, argument)* (reversed)
+    options = \
+        { '!'              : (0, ('bool', 'negate_option'))
+        , '-A'             : (1, ('str',  'chain'))
+        , '-c'             : (2, ('int',  'bytecount')
+                               , ('int',  'pkgcount')
+                             )
+        , '-i'             : (1, ('str',  'interface'))
+        , '-j'             : (1, ('str',  'action'))
+        , '-m'             : (1, ('list', 'modules'))
+        , '-p'             : (1, ('str',  'protocol'))
+        , '-P'             : (2, ('str',  'policy')
+                               , ('str',  'chain')
+                             )
+        , '--ctmask'       : (1, ('str',  'ctmask'))
+        , '--dport'        : (1, ('port', 'dports'))
+        , '--dports'       : (1, ('port', 'dports'))
+        , '--length'       : (1, ('str',  'length'))
+        , '--mark'         : (1, ('str',  'mark'))
+        , '--nfmask'       : (1, ('str',  'nfmask'))
+        , '--restore-mark' : (0, ('bool', 'restore'))
+        , '--set-xmark'    : (1, ('str',  'xmark'))
+        , '--sport'        : (1, ('port', 'sports'))
+        , '--sports'       : (1, ('port', 'sports'))
+        , '--state'        : (1, ('str',  'state'))
+        , '--tcp-flags'    : (2, ('str', 'tcp_flags_comp')
+                               , ('str', 'tcp_flags_mask')
+                             )
+        }
+
+    def __init__ (self, line) :
+        self.pkgcount       = 0
+        self.bytecount      = 0
+        self.restore        = False
+        self.negate_option  = False
+        self.negate         = {}
+        self.action         = None
+        self.chain          = None
+        self.dports         = []
+        self.interface      = None
+        self.length         = None
+        self.mark           = None
+        self.modules        = None
+        self.policy         = None
+        self.protocol       = None
+        self.sports         = []
+        self.state          = None
+        self.xmark          = None
+        self.tcp_flags_comp = None
+        self.tcp_flags_mask = None
+        self.parse (line)
+        self.rules.append (self)
+    # end def __init__
+
+    def as_iptables (self, prefix = None) :
+        """ output as iptables rule, the prefix should be the iptables
+            command, if not given, output only the options.
+        """
+        ret = []
+        if (prefix is not None) :
+            ret.append (prefix)
+        if (self.policy) :
+            ret.append ('-P %s %s' % (self.chain, self.policy))
+        elif (self.chain) :
+            ret.append ('-A %s' % self.chain)
+        if (self.interface) :
+            ret.append ('-i %s' % self.interface)
+        if (self.state) :
+            assert ('state' in self.modules)
+            ret.append ('-m state')
+            ret.append ('--state %s' % self.state)
+        if (self.protocol) :
+            ret.append ('-p %s' % self.protocol)
+        if (self.mark) :
+            assert ('mark' in self.modules)
+            ret.append ('-m mark')
+            if 'mark' in self.negate :
+                ret.append ('!')
+            ret.append ('--mark %s' % self.mark)
+        if self.dports or self.sports or self.tcp_flags_mask :
+            if 'tcp' in self.modules :
+                ret.append ('-m tcp')
+            if 'udp' in self.modules :
+                ret.append ('-m udp')
+            if self.tcp_flags_mask :
+                ret.append \
+                    ('--tcp-flags %s %s'
+                    % (self.tcp_flags_mask, self.tcp_flags_comp)
+                    )
+            if self.sports or self.dports :
+                if len (self.sports) > 1 or len (self.dports) > 1 :
+                    assert ('multiport' in self.modules)
+                    ret.append ('-m multiport')
+
+            for p, x in ('s', self.sports), ('d', self.dports) :
+                if not x :
+                    continue
+                if len (x) > 1 :
+                    ret.append ('--%sports %s' % (p, ','.join (x)))
+                else :
+                    ret.append ('--%sport %s' % (p, x [0]))
+        if self.length :
+            assert ('length' in self.modules)
+            ret.append ('-m length')
+            ret.append ('--length %s' % (self.length))
+        if self.pkgcount or self.bytecount :
+            ret.append ('-c %d %d' % (self.pkgcount, self.bytecount))
+        if self.action :
+            ret.append ('-j %s' % self.action)
+        if self.restore :
+            ret.append ('--restore-mark')
+            ret.append ('--nfmask %s' % self.nfmask)
+            ret.append ('--ctmask %s' % self.ctmask)
+        if self.xmark :
+            ret.append ('--set-xmark %s' % self.xmark)
+        return ' '.join (ret)
+    # end def as_iptables
+
+    def parse (self, line) :
+        nargs = 0
+        opt   = None
+        for arg in line.split () :
+            if not nargs :
+                opt = self.options [arg]
+                nargs = opt [0]
+                if nargs == 0 :
+                    assert (opt [1][0] == 'bool')
+                    self.parse_bool (opt [1][1])
+            else :
+                name = opt [nargs][1]
+                method = getattr (self, 'parse_' + opt [nargs][0])
+                method (name, arg)
+                if self.negate_option :
+                    self.negate [name] = True
+                    self.negate_option = False
+                nargs -= 1
+    # end def parse
+
+    def parse_bool (self, name) :
+        setattr (self, name, True)
+    # end def parse_bool
+
+    def parse_int (self, name, arg) :
+        setattr (self, name, int (arg))
+    # end def parse_int
+
+    def parse_list (self, name, arg) :
+        l = getattr (self, name)
+        if l is None :
+            l = []
+            setattr (self, name, l)
+        l.append (arg)
+    # end def parse_list
+
+    def parse_port (self, name, arg) :
+        setattr (self, name, arg.split (','))
+    # end def parse_port
+
+    def parse_str (self, name, arg) :
+        setattr (self, name, arg)
+    # end def parse_str
+
+    @classmethod
+    def parse_prerouting_rules (cls, file = None) :
+        """ Parse prerouting rules from file or iptables pipe.
+        """
+        if file is None :
+            x = Exec ()
+            lines = x.exec_pipe (split ('iptables -t mangle -S PREROUTING -v'))
+        else :
+            lines = file.readlines ()
+        for line in lines :
+            cls (line)
+    # end def parse_prerouting_rules
+
+# end class IPTables_Mangle_Rule
 
 if __name__ == '__main__' :
     import sys

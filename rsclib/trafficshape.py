@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from operator         import or_
 from rsclib.autosuper import autosuper
 from rsclib.execute   import Exec
 
@@ -364,6 +365,17 @@ class IPTables_Mangle_Rule (autosuper) :
         , 'ah'   : 51
         }
 
+    _tcp_flags = \
+        { 'CWR' : 0x80
+        , 'ECE' : 0x40
+        , 'URG' : 0x20
+        , 'ACK' : 0x10
+        , 'PSH' : 0x08
+        , 'RST' : 0x04
+        , 'SYN' : 0x02
+        , 'FIN' : 0x01
+        }
+
     def __init__ (self, line) :
         self.pkgcount       = 0
         self.bytecount      = 0
@@ -465,11 +477,14 @@ class IPTables_Mangle_Rule (autosuper) :
 
         r = []
         if self.mark :
+            neg = ''
+            if 'mark' in self.negate :
+                neg = 'not '
             try :
                 mark, mask = self.mark.split ('/')
-                r.append ("meta(nfmark mask %s eq %s)" % (mask, mark))
+                r.append ("%smeta(nfmark mask %s eq %s)" % (neg, mask, mark))
             except ValueError :
-                r.append ("meta(nfmark eq %s)" % self.mask)
+                r.append ("%smeta(nfmark eq %s)" % (neg, self.mask))
         if self.length :
             (lower, upper) = (int (x) for x in self.length.split (':'))
             if lower :
@@ -480,6 +495,13 @@ class IPTables_Mangle_Rule (autosuper) :
             r.append \
                 ( "u32 (u8 0x%x 0xff at 0x9)"
                 % self.protocols [self.protocol.lower ()]
+                )
+        if self.tcp_flags_comp :
+            r.append \
+                ( "u32 (u16 0x%x 0x%x at nexthdr+0xC)"
+                % ( self.tcp_flags (self.tcp_flags_comp)
+                  , self.tcp_flags (self.tcp_flags_mask)
+                  )
                 )
         r_or = []
         for sp in self.sports :
@@ -553,6 +575,10 @@ class IPTables_Mangle_Rule (autosuper) :
         for line in lines :
             cls (line)
     # end def parse_prerouting_rules
+
+    def tcp_flags (self, flags) :
+        return reduce (or_, (self._tcp_flags [f] for f in flags.split ()), 0)
+    # end def tcp_flags
 
 # end class IPTables_Mangle_Rule
 

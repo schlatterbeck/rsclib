@@ -478,17 +478,17 @@ class IPTables_Mangle_Rule (autosuper) :
                 r.append ("meta(pkt_len le %s)" % upper)
         if self.protocol :
             r.append \
-                ( "u32 (ip protocol %s 0xff)"
+                ( "u32 (u8 0x%x 0xff at 0x9)"
                 % self.protocols [self.protocol.lower ()]
                 )
         r_or = []
         for sp in self.sports :
-            r_or.append ("u32(ip sport %(sp)s 0xffff)" % locals ())
+            r_or.append ("u32(u16 %(sp)s 0xffff at nexthdr+0)" % locals ())
         if r_or :
             r.append ('(%s)' % ' or '.join (r_or))
         r_or = []
         for dp in self.dports :
-            r_or.append ("u32(ip dport %(dp)s 0xffff)" % locals ())
+            r_or.append ("u32(u16 %(dp)s 0xffff at nexthdr+2)" % locals ())
         if r_or :
             r.append ('(%s)' % ' or '.join (r_or))
         ret.append (' and '.join (r))

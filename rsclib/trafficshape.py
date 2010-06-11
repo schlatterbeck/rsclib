@@ -54,7 +54,7 @@ class Traffic_Shaping_Object (autosuper) :
             self.parent.register (self)
     # end def __init__
 
-    def gen_filter (self, dev) :
+    def gen_filter (self, dev, realdev) :
         pass
     # end def gen_filter
 
@@ -214,6 +214,8 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         self.weight     = weight
         self.size       = size
         self.delay_ms   = delay_ms
+        if fwmark :
+            fwmark = '/'.join ("0x%x" % int (f, 0) for f in fwmark.split ('/'))
         self.fwmark     = fwmark
         self.is_bulk    = is_bulk
         self.is_default = is_default
@@ -247,22 +249,49 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
         return '\n'.join (self.result)
     # end def generate
 
-    def gen_filter (self, dev) :
+    def gen_filter (self, dev, realdev) :
+        """ Generate tc filter configuration for given devices.
+            The realdev is given if we redirect traffic from a real
+            device to an ifb device for inbound shaping. In that case
+            we generate the redirection rules from the real device to
+            the ifb device by translating PREROUTING iptables mark rules
+            to appropriate tc filters in both, the realdev (for marking
+            and redirecting to the ifb dev) and the ifb dev (for rules
+            that depend on previous marks and finally for redirecting to
+            appropriate leaf qdiscs by fwmark).
+        """
         self.result = []
         for c in self.children :
-            r = c.gen_filter (dev)
+            r = c.gen_filter (dev, realdev)
             if r :
                 self.result.append (r)
         if self.is_leaf :
+            prio = 1
             assert (self.fwmark)
             l = locals ()
+            if realdev :
+                for r in IPTables_Mangle_Rule.rules :
+                    if r.xmark != self.fwmark :
+                        continue
+                    act = 'action mirred egress redirect dev %(dev)s' % l
+                    if r.mark :
+                        flow = 'flowid %(name)s'
+                        f = r.as_tc_filter (dev, self.rootname, action = flow)
+                        self.outp (f)
+                    else :
+                        f = r.as_tc_filter (realdev, 'ffff:', action = act)
+                        self.outp (f)
+                prio = IPTables_Mangle_Rule.maxprio ()
+
             f = '$TC filter add dev %(dev)s parent %%(rootname)s \\' % l
+            l = locals ()
             self.outp (f)
-            self.outp ('    protocol ip prio 1 \\')
+            self.outp ('    protocol ip prio %(prio)s \\' % l)
             self.outp ('    handle %(fwmark)s fw flowid %(name)s')
             if self.is_default :
+                prio += 1
                 self.outp (f)
-                self.outp ('    protocol ip prio 2 \\')
+                self.outp ('    protocol ip prio %(prio)s \\' % locals ())
                 self.outp ('    u32 match u8 0 0 flowid %(name)s')
         return '\n'.join (self.result)
     # end def gen_filter
@@ -366,6 +395,7 @@ class IPTables_Mangle_Rule (autosuper) :
         self.tcp_flags_mask = None
         self.parse (line)
         self.rules.append (self)
+        self._prio          = len (self.rules) # for filter rules
     # end def __init__
 
     def u32_nexthdr (self, width, value, mask, at) :
@@ -452,14 +482,17 @@ class IPTables_Mangle_Rule (autosuper) :
         return ' '.join (ret)
     # end def as_iptables
 
-    def as_tc_filter (self, dev, parent, prio = 1) :
-        """ Output rules as tc filter commands using the u32 classifier
-            and the ipt action.
+    def as_tc_filter (self, dev, parent, prio = None, action = None) :
+        """ Output rules as tc filter commands using the basic classifier
+            and the ipt action. In addition optionally add another
+            action.
         """
+        if prio is None :
+            prio = self.prio
         if not self.xmark :
             return ''
         ret = []
-        ret.append ("tc filter add dev %(dev)s"     % locals ())
+        ret.append ("$TC filter add dev %(dev)s"    % locals ())
         ret.append ("protocol ip parent %(parent)s" % locals ())
         ret.append ("prio %(prio)s basic match '"   % locals ())
 
@@ -508,6 +541,8 @@ class IPTables_Mangle_Rule (autosuper) :
         ret.append (' and '.join (r))
         ret.append ("'")
         ret.append ("action ipt -j MARK --set-xmark %s" % self.xmark)
+        if action :
+            ret.append (action)
         return ' '.join (ret)
     # end def as_tc_filter
 
@@ -555,6 +590,16 @@ class IPTables_Mangle_Rule (autosuper) :
         setattr (self, name, arg)
     # end def parse_str
 
+    @property
+    def prio (self) :
+        return len (self.rules) - self._prio + 1
+    # end def prio
+
+    @classmethod
+    def maxprio (cls) :
+        return len (cls.rules) + 2
+    # end def maxprio
+
     @classmethod
     def parse_prerouting_rules (cls, file = None) :
         """ Parse prerouting rules from file or iptables pipe.
@@ -588,7 +633,27 @@ class Shaper (Weighted_Bandwidth) :
             self.register (c)
     # end def __init__
     
-    def generate (self, kbit_per_second, dev) :
+    def generate (self, kbit_per_second, dev, rulefile = None) :
+        """ Generate traffic shaping configuration.
+            We need the bandwidth and the device. The device can be
+            special: If we're using ifb for inbound shaping, we can
+            specify the device as ifb=real, e.g. ifb0=eth0 -- this
+            will generate tc filter actions for matching the right
+            packets in the *inbound* path of eth0 (or whatever the
+            *real* interface is named) by translating the PREROUTING
+            mangle rules that mark packets for shaping into appropriate
+            tc filter actions. Additional mangle rules are generated in
+            the toplevel qdisc for ifb0 in addition to the rules we
+            would normally generate (for sorting packets with the
+            appropriate firewall marks into the correct buckets).
+            Rules in PREROUTING of the real device that match packets
+            which already carry a mark are instantiated as tc filters in
+            the ifb device.
+        """
+        rdev = None
+        if '=' in dev :
+            dev, rdev = dev.split ('=', 1)
+            IPTables_Mangle_Rule.parse_prerouting_rules (rulefile)
         default = ''
         for c in self.children :
             default = c.get_default_name ()
@@ -598,12 +663,23 @@ class Shaper (Weighted_Bandwidth) :
         s = []
         l = locals ()
         s.append ('TC=%s' % self.tc_cmd)
-        s.append ('$TC qdisc del dev %(dev)s root 2> /dev/null' % l)
+        s.append ('$TC qdisc del dev %(dev)s root 2>&1 > /dev/null' % l)
         s.append ('$TC qdisc add dev %(dev)s root handle 1: hfsc%(default)s' %l)
+        if rdev :
+            # remove top-level qdisc in rdev and re-add
+            s.append ('$TC qdisc del dev %(rdev)s ingress 2>&1 > /dev/null' % l)
+            s.append ('$TC qdisc add dev %(rdev)s ingress' % l)
         for c in self.children :
             s.append (c.generate (kbit_per_second, self.weightsum, dev))
         for c in self.children :
-            s.append (c.gen_filter (dev))
+            s.append (c.gen_filter (dev, rdev))
+        # redirect everything else that wasn't marked:
+        if rdev :
+            prio = IPTables_Mangle_Rule.maxprio () + 2
+            l = locals ()
+            s.append ('$TC filter add dev %(rdev)s parent ffff: \\' % l)
+            s.append ('    protocol ip prio %(prio)s u32 match u32 0 0 \\' % l)
+            s.append ('    action mirred egress redirect dev %(dev)s' % l)
         return '\n'.join (s)
     # end def generate
 # end class Shaper
@@ -616,18 +692,19 @@ if __name__ == '__main__' :
     fast = TC (80, parent = root)
     slow = TC (20, parent = root)
     # express
-    TC ( 5,  128, delay_ms = 10, parent = fast,                 fwmark = 10)
+    TC ( 5,  128, delay_ms = 10, parent = fast,                 fwmark='1/0xf')
     # interactive
-    TC (20,  512, delay_ms = 15, parent = fast,                 fwmark = 11)
+    TC (20,  512, delay_ms = 15, parent = fast,                 fwmark='2/0xf')
     # vpn
-    TC (55, 1500, delay_ms = 20, parent = fast,                 fwmark = 12)
+    TC (55, 1500, delay_ms = 20, parent = fast,                 fwmark='3/0xf')
     # normal
-    TC (25, 1500, delay_ms = 20, parent = slow, is_bulk = True, fwmark = 13)
+    TC (25, 1500, delay_ms = 20, parent = slow, is_bulk = True, fwmark='4/0xf')
     # bulk
-    TC (25,      is_default = 1, parent = slow, is_bulk = True, fwmark = 14)
+    TC (25,      is_default = 1, parent = slow, is_bulk = True, fwmark='5/0xf')
 
     shaper   = Shaper ('/bin/tc', root)
 
-    for bw, dev in (2000, 'eth0'), (1000, 'ppp0') :
-        print >> sys.stdout, shaper.generate (bw, dev)
+    for bw, dev in (2000, 'eth0'), (1000, 'ifb0=eth0') :
+        print >> sys.stdout, shaper.generate \
+            (bw, dev, rulefile = open ('prerouting.out'))
 

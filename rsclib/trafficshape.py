@@ -341,7 +341,7 @@ class IPTables_Mangle_Rule (autosuper) :
         , '--ctmask'       : (1, ('str',  'ctmask'))
         , '--dport'        : (1, ('port', 'dports'))
         , '--dports'       : (1, ('port', 'dports'))
-        , '--icmp-type'    : (1, ('int',  'icmp_type'))
+        , '--icmp-type'    : (1, ('str',  'icmp_type'))
         , '--length'       : (1, ('str',  'length'))
         , '--mark'         : (1, ('str',  'mark'))
         , '--nfmask'       : (1, ('str',  'nfmask'))
@@ -529,7 +529,12 @@ class IPTables_Mangle_Rule (autosuper) :
                     )
                 )
         if self.icmp_type is not None :
-            r.append (self.u32_nexthdr (8, self.icmp_type, 0xff, 0))
+            try :
+                type, code = self.icmp_type.split ('/')
+                r.append (self.u32_nexthdr (8, type, 0xff, 0))
+                r.append (self.u32_nexthdr (8, code, 0xff, 1))
+            except ValueError :
+                r.append (self.u32_nexthdr (8, self.icmp_type, 0xff, 0))
         r_or = []
         for sp in self.sports :
             r_or.append (self.u32_nexthdr(16, sp, 0xffff, 0))

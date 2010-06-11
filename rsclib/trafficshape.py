@@ -511,9 +511,9 @@ class IPTables_Mangle_Rule (autosuper) :
         if self.length :
             (lower, upper) = (int (x) for x in self.length.split (':'))
             if lower :
-                r.append ("meta(pkt_len ge %s)" % lower)
+                r.append ("meta(pkt_len gt %s)" % lower - 1)
             if upper < 65535 :
-                r.append ("meta(pkt_len le %s)" % upper)
+                r.append ("meta(pkt_len lt %s)" % upper + 1)
         if self.protocol :
             r.append \
                 ( "u32 (u8 0x%x 0xff at 0x9)"

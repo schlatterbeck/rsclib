@@ -281,40 +281,6 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
 
 # end class Traffic_Class
 
-class Shaper (Weighted_Bandwidth) :
-    """ Top-Level container of Traffic_Class(es), this gets a list of
-        Traffic classes to install at top-level in an interface.
-        The generator then generates the necessary statements to add the
-        top-level qdisc (and delete it if it is already there).
-    """
-    def __init__ (self, tc_cmd = '/sbin/tc', *classes, **kw) :
-        self.tc_cmd = tc_cmd
-        self.__super.__init__ (**kw)
-        for c in classes :
-            assert (not c.parent)
-            self.register (c)
-    # end def __init__
-    
-    def generate (self, kbit_per_second, dev) :
-        default = ''
-        for c in self.children :
-            default = c.get_default_name ()
-            if default :
-                default = ' default %s' % default
-                break
-        s = []
-        l = locals ()
-        s.append ('TC=%s' % self.tc_cmd)
-        s.append ('$TC qdisc del dev %(dev)s root 2> /dev/null' % l)
-        s.append ('$TC qdisc add dev %(dev)s root handle 1: hfsc%(default)s' %l)
-        for c in self.children :
-            s.append (c.generate (kbit_per_second, self.weightsum, dev))
-        for c in self.children :
-            s.append (c.gen_filter (dev))
-        return '\n'.join (s)
-    # end def generate
-# end class Shaper
-
 class IPTables_Mangle_Rule (autosuper) :
     """ Represent an IPTables mangle rule.
         We parse the rule saved with the command ::
@@ -607,6 +573,40 @@ class IPTables_Mangle_Rule (autosuper) :
     # end def tcp_flags
 
 # end class IPTables_Mangle_Rule
+
+class Shaper (Weighted_Bandwidth) :
+    """ Top-Level container of Traffic_Class(es), this gets a list of
+        Traffic classes to install at top-level in an interface.
+        The generator then generates the necessary statements to add the
+        top-level qdisc (and delete it if it is already there).
+    """
+    def __init__ (self, tc_cmd = '/sbin/tc', *classes, **kw) :
+        self.tc_cmd = tc_cmd
+        self.__super.__init__ (**kw)
+        for c in classes :
+            assert (not c.parent)
+            self.register (c)
+    # end def __init__
+    
+    def generate (self, kbit_per_second, dev) :
+        default = ''
+        for c in self.children :
+            default = c.get_default_name ()
+            if default :
+                default = ' default %s' % default
+                break
+        s = []
+        l = locals ()
+        s.append ('TC=%s' % self.tc_cmd)
+        s.append ('$TC qdisc del dev %(dev)s root 2> /dev/null' % l)
+        s.append ('$TC qdisc add dev %(dev)s root handle 1: hfsc%(default)s' %l)
+        for c in self.children :
+            s.append (c.generate (kbit_per_second, self.weightsum, dev))
+        for c in self.children :
+            s.append (c.gen_filter (dev))
+        return '\n'.join (s)
+    # end def generate
+# end class Shaper
 
 if __name__ == '__main__' :
     import sys

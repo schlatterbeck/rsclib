@@ -505,9 +505,9 @@ class IPTables_Mangle_Rule (autosuper) :
                 neg = 'not '
             try :
                 mark, mask = self.mark.split ('/')
-                r.append ("%smeta(nfmark mask %s eq %s)" % (neg, mask, mark))
+                r.append ("%smeta(fwmark mask %s eq %s)" % (neg, mask, mark))
             except ValueError :
-                r.append ("%smeta(nfmark eq %s)" % (neg, self.mask))
+                r.append ("%smeta(fwmark eq %s)" % (neg, self.mask))
         if self.length :
             (lower, upper) = (int (x) for x in self.length.split (':'))
             if lower :

@@ -406,7 +406,7 @@ class IPTables_Mangle_Rule (autosuper) :
             Or to "cmp(u%(width)s at %(at)s layer transport mask %(mask)s
                    eq %(value)s"
         """
-        nexthdr = 0x20 # IP packet without options
+        nexthdr = 20 # IP packet without options
         value   = int (value)
         mask    = int (mask)
         offset  = nexthdr + at

@@ -344,6 +344,7 @@ class IPTables_Mangle_Rule (autosuper) :
         , '--ctmask'       : (1, ('str',  'ctmask'))
         , '--dport'        : (1, ('port', 'dports'))
         , '--dports'       : (1, ('port', 'dports'))
+        , '--icmp-type'    : (1, ('int',  'icmp_type'))
         , '--length'       : (1, ('str',  'length'))
         , '--mark'         : (1, ('str',  'mark'))
         , '--nfmask'       : (1, ('str',  'nfmask'))
@@ -386,6 +387,7 @@ class IPTables_Mangle_Rule (autosuper) :
         self.chain          = None
         self.dports         = []
         self.interface      = None
+        self.icmp_type      = None
         self.length         = None
         self.mark           = None
         self.modules        = None
@@ -399,6 +401,22 @@ class IPTables_Mangle_Rule (autosuper) :
         self.parse (line)
         self.rules.append (self)
     # end def __init__
+
+    def u32_nexthdr (self, width, value, mask, at) :
+        """ Hack: work-around for non-working nexthdr.
+            This should really expand to "at nexthdr+%s" % at
+            Or to "cmp(u%(width)s at %(at)s layer transport mask %(mask)s
+                   eq %(value)s"
+        """
+        nexthdr = 0x20 # IP packet without options
+        value   = int (value)
+        mask    = int (mask)
+        offset  = nexthdr + at
+        return \
+            ( "u32(u%(width)s 0x%(value)x 0x%(mask)x at 0x%(offset)x)"
+            % locals ()
+            )
+    # end def u32_nexthdr
 
     def as_iptables (self, prefix = None) :
         """ output as iptables rule, the prefix should be the iptables
@@ -425,6 +443,10 @@ class IPTables_Mangle_Rule (autosuper) :
             if 'mark' in self.negate :
                 ret.append ('!')
             ret.append ('--mark %s' % self.mark)
+        if self.icmp_type is not None :
+            assert ('icmp' in self.modules)
+            ret.append ('-m icmp')
+            ret.append ('--icmp-type %s' % self.icmp_type)
         if self.dports or self.sports or self.tcp_flags_mask :
             if 'tcp' in self.modules :
                 ret.append ('-m tcp')
@@ -451,7 +473,7 @@ class IPTables_Mangle_Rule (autosuper) :
             assert ('length' in self.modules)
             ret.append ('-m length')
             ret.append ('--length %s' % (self.length))
-        if self.pkgcount or self.bytecount :
+        if self.pkgcount is not None and self.bytecount is not None :
             ret.append ('-c %d %d' % (self.pkgcount, self.bytecount))
         if self.action :
             ret.append ('-j %s' % self.action)
@@ -498,19 +520,23 @@ class IPTables_Mangle_Rule (autosuper) :
                 )
         if self.tcp_flags_comp :
             r.append \
-                ( "u32 (u16 0x%x 0x%x at nexthdr+0xC)"
-                % ( self.tcp_flags (self.tcp_flags_comp)
-                  , self.tcp_flags (self.tcp_flags_mask)
-                  )
+                ( self.u32_nexthdr
+                    ( 16
+                    , self.tcp_flags (self.tcp_flags_comp)
+                    , self.tcp_flags (self.tcp_flags_mask)
+                    , 0xC
+                    )
                 )
+        if self.icmp_type is not None :
+            r.append (self.u32_nexthdr (8, self.icmp_type, 0xff, 0))
         r_or = []
         for sp in self.sports :
-            r_or.append ("u32(u16 %(sp)s 0xffff at nexthdr+0)" % locals ())
+            r_or.append (self.u32_nexthdr(16, sp, 0xffff, 0))
         if r_or :
             r.append ('(%s)' % ' or '.join (r_or))
         r_or = []
         for dp in self.dports :
-            r_or.append ("u32(u16 %(dp)s 0xffff at nexthdr+2)" % locals ())
+            r_or.append (self.u32_nexthdr(16, dp, 0xffff, 2))
         if r_or :
             r.append ('(%s)' % ' or '.join (r_or))
         ret.append (' and '.join (r))

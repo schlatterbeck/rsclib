@@ -270,15 +270,15 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
             assert (self.fwmark)
             l = locals ()
             if realdev :
+                act = 'action mirred egress redirect dev %(dev)s' % l
                 for r in IPTables_Mangle_Rule.rules :
                     if r.xmark != self.fwmark :
                         continue
                     if r.interface and r.interface != realdev :
                         continue
-                    act = 'action mirred egress redirect dev %(dev)s' % l
                     if r.mark :
                         flow = 'flowid %(name)s'
-                        f = r.as_tc_filter (dev, self.rootname, action = flow)
+                        f = r.as_tc_filter (dev, self.rootname, replace = flow)
                         self.outp (f)
                     else :
                         f = r.as_tc_filter (realdev, 'ffff:', action = act)
@@ -484,10 +484,14 @@ class IPTables_Mangle_Rule (autosuper) :
         return ' '.join (ret)
     # end def as_iptables
 
-    def as_tc_filter (self, dev, parent, prio = None, action = None) :
+    def as_tc_filter \
+        (self, dev, parent, prio = None, action = None, replace = None) :
         """ Output rules as tc filter commands using the basic classifier
             and the ipt action. In addition optionally add another
             action.
+            Default action is to mark the packet. This can be overridden
+            with replace. In addition an additional action may be
+            specified with action.
         """
         if prio is None :
             prio = self.prio
@@ -547,7 +551,10 @@ class IPTables_Mangle_Rule (autosuper) :
             r.append ('(%s)' % ' or '.join (r_or))
         ret.append (' and '.join (r))
         ret.append ("'")
-        ret.append ("action ipt -j MARK --set-xmark %s" % self.xmark)
+        if replace :
+            ret.append (replace)
+        else :
+            ret.append ("action ipt -j MARK --set-xmark %s" % self.xmark)
         if action :
             ret.append (action)
         return ' '.join (ret)

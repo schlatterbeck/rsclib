@@ -27,4 +27,4 @@
 -A PREROUTING -p tcp -m tcp --sport 110 -c 9376 7090915 -j MARK --set-xmark 0x5/0xf 
 -A PREROUTING -p tcp -m tcp --sport 995 -c 166 39653 -j MARK --set-xmark 0x5/0xf 
 -A PREROUTING -p tcp -m tcp -m multiport --dports 20,143,993,25,465,110,995 -c 953070 880128568 -j MARK --set-xmark 0x5/0xf 
--A PREROUTING -p icmp -m icmp --icmp-type 8 -c 0 0 -j MARK --set-xmark 0x5/0xf 
+-A PREROUTING -p icmp -m icmp --icmp-type 8 -c 0 0 -j MARK --set-xmark 0x1/0xf 

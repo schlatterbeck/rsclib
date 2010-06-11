@@ -273,6 +273,8 @@ class Traffic_Class (Traffic_Shaping_Object, Weighted_Bandwidth) :
                 for r in IPTables_Mangle_Rule.rules :
                     if r.xmark != self.fwmark :
                         continue
+                    if r.interface and r.interface != realdev :
+                        continue
                     act = 'action mirred egress redirect dev %(dev)s' % l
                     if r.mark :
                         flow = 'flowid %(name)s'

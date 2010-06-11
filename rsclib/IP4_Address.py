@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2005 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-10 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -130,6 +130,13 @@ class IP4_Address (autosuper) :
         True
         >>> f == IP4_Address ('10.100.0.0', 16)
         True
+        >>> IP4_Address ('10.40.57.205').as_tc_basic_u32 ()
+        'u32 (u32 0x0a2839cd 0xffffffff at 0xc)'
+        >>> z = IP4_Address ('10.40.57.205/22')
+        >>> z
+        10.40.56.0/22
+        >>> z.as_tc_basic_u32 (27)
+        'u32 (u32 0x0a283800 0xfffffc00 at 0x10)'
         >>> list (sorted ((a, b, c, d, e, f, g)))
         [10.100.0.0, 10.100.0.0/16, 10.100.0.0/16, 10.100.0.0/16, 10.100.10.0, 10.100.10.0/24, 10.100.10.2]
     """
@@ -143,6 +150,17 @@ class IP4_Address (autosuper) :
         self.bitmask = ((1L << self.mask) - 1L) << (32L - self.mask)
         self.ip &= self.bitmask
     # end def __init__
+
+    def as_tc_basic_u32 (self, is_dst = False) :
+        """ Compute tc "basic" u32 match.
+            is_dst specifies a destination address, otherwise source is
+            assumed.
+        """
+        return \
+            ( "u32 (u32 0x%08x 0x%08x at 0x%x)"
+            % (self.ip, self.bitmask, 12 + bool (is_dst) * 4)
+            )
+    # end def as_tc_basic_u32
 
     def broadcast_address (self) :
         mask = ~self.bitmask

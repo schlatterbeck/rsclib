@@ -2,16 +2,18 @@
 -A PREROUTING -c 35133927 22937404321 -j CONNMARK --restore-mark --nfmask 0xffffffff --ctmask 0xffffffff 
 -A PREROUTING -i eth2 -m state --state NEW -c 38864 2666248 -j In_RULE_0 
 -A PREROUTING -i eth3 -m state --state NEW -c 3991 201849 -j In_RULE_1 
--A PREROUTING -p udp -m udp --sport 123 -c 37477 2849996 -j MARK --set-xmark 0x1/0xf 
--A PREROUTING -p udp -m udp --dport 123 -c 37243 2830324 -j MARK --set-xmark 0x1/0xf 
+-A PREROUTING ! -p udp -c 37477 2849996 -j MARK --set-xmark 0x1/0xf 
+-A PREROUTING -p udp -m udp ! --sport 123 -c 37477 2849996 -j MARK --set-xmark 0x1/0xf 
+-A PREROUTING -p udp -m udp ! --dport 123 -c 37243 2830324 -j MARK --set-xmark 0x1/0xf 
 -A PREROUTING -p tcp -m tcp --sport 22 -c 1227828 1705743644 -j MARK --set-xmark 0x2/0xf 
 -A PREROUTING -p tcp -m tcp --sport 2222 -c 127803 132538512 -j MARK --set-xmark 0x2/0xf 
 -A PREROUTING -p tcp -m tcp --sport 2224 -c 1423 98062 -j MARK --set-xmark 0x2/0xf 
--A PREROUTING -p tcp -m tcp -m multiport --dports 22,2222,2224 -c 428994 54975517 -j MARK --set-xmark 0x2/0xf 
+-A PREROUTING -p tcp -m tcp -m multiport --dports 22,2221:2222,2224 -c 428994 54975517 -j MARK --set-xmark 0x2/0xf 
 -A PREROUTING -p udp -m udp --sport 53 -c 573673 78702099 -j MARK --set-xmark 0x2/0xf 
 -A PREROUTING -p udp -m udp --dport 53 -c 404424 28852725 -j MARK --set-xmark 0x2/0xf 
 -A PREROUTING -p tcp -m mark ! --mark 0x5/0xf -m tcp --tcp-flags ACK ACK -m length --length 0:128 -c 12782248 715899210 -j MARK --set-xmark 0x2/0xf 
 -A PREROUTING -p tcp -m mark ! --mark 0x5/0xf -m tcp --tcp-flags SYN SYN -m length --length 0:128 -c 325369 17258664 -j MARK --set-xmark 0x2/0xf 
+-A PREROUTING -p tcp -m mark ! --mark 0x5/0xf -m tcp ! --tcp-flags SYN,RST,ACK,FIN SYN -m length ! --length 2:128 -c 325369 17258664 -j MARK --set-xmark 0x2/0xf 
 -A PREROUTING -p tcp -m tcp --sport 1194 -c 370 93619 -j MARK --set-xmark 0x3/0xf 
 -A PREROUTING -p tcp -m tcp --dport 1194 -c 1159410 422411260 -j MARK --set-xmark 0x3/0xf 
 -A PREROUTING -p udp -m udp --sport 1194 -c 77 5745 -j MARK --set-xmark 0x3/0xf 
@@ -28,4 +30,11 @@
 -A PREROUTING -p tcp -m tcp --sport 995 -c 166 39653 -j MARK --set-xmark 0x5/0xf 
 -A PREROUTING -p tcp -m tcp -m multiport --dports 20,143,993,25,465,110,995 -c 953070 880128568 -j MARK --set-xmark 0x5/0xf 
 -A PREROUTING -p icmp -m icmp --icmp-type 8 -c 0 0 -j MARK --set-xmark 0x1/0xf 
+-A PREROUTING -p icmp -m icmp ! --icmp-type 8 -c 0 0 -j MARK --set-xmark 0x1/0xf 
 -A PREROUTING -p icmp -m icmp --icmp-type 8/0 -c 0 0 -j MARK --set-xmark 0x1/0xf 
+-A PREROUTING -p icmp -m icmp ! --icmp-type 8/0 -c 0 0 -j MARK --set-xmark 0x1/0xf 
+-A PREROUTING ! -d 10.40.57.205/32 -i eth0 -p tcp -m tcp ! --dport 21 -c 2498 120724 -j MARK --set-xmark 0x1/0xf
+-A PREROUTING -d 10.40.56.0/22 -i eth0 -p tcp -m tcp --dport 21 -c 2498 120724 -j MARK --set-xmark 0x1/0xf
+-A PREROUTING -s 10.40.57.205/32 -i eth0 -p tcp -m tcp ! --dport 21 -c 2498 120724 -j MARK --set-xmark 0x1/0xf
+-A PREROUTING ! -s 10.40.57.205/32 -i eth0 -p tcp -m tcp --dport 21 -c 2498 120724 -j MARK --set-xmark 0x1/0xf
+-A PREROUTING -p udp -m udp --dport 33434:34000 -c 13248 3072171 -j MARK --set-xmark 0x1/0xf

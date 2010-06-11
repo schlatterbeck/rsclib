@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
-from operator         import or_
-from rsclib.autosuper import autosuper
-from rsclib.execute   import Exec
+from operator           import or_
+from rsclib.autosuper   import autosuper
+from rsclib.execute     import Exec
+from rsclib.IP4_Address import IP4_Address
 
 class Major_Counter (autosuper) :
     def __init__ (self, value = 0) :
@@ -324,34 +325,37 @@ class IPTables_Mangle_Rule (autosuper) :
     rules = []
 
     # for parsing saved iptables rules
+    # Note: if there are multiple args, they are parsed right to left!
     #     option       nargs  (type, argument)* (reversed)
     options = \
-        { '!'              : (0, ('bool', 'negate_option'))
-        , '-A'             : (1, ('str',  'chain'))
-        , '-c'             : (2, ('int',  'bytecount')
-                               , ('int',  'pkgcount')
+        { '!'              : (0, ('bool',  'negate_option'))
+        , '-A'             : (1, ('str',   'chain'))
+        , '-c'             : (2, ('int',   'bytecount')
+                               , ('int',   'pkgcount')
                              )
-        , '-i'             : (1, ('str',  'interface'))
-        , '-j'             : (1, ('str',  'action'))
-        , '-m'             : (1, ('list', 'modules'))
-        , '-p'             : (1, ('str',  'protocol'))
-        , '-P'             : (2, ('str',  'policy')
-                               , ('str',  'chain')
+        , '-d'             : (1, ('str',   'destination'))
+        , '-i'             : (1, ('str',   'interface'))
+        , '-j'             : (1, ('str',   'action'))
+        , '-m'             : (1, ('list',  'modules'))
+        , '-p'             : (1, ('str',   'protocol'))
+        , '-P'             : (2, ('str',   'policy')
+                               , ('str',   'chain')
                              )
-        , '--ctmask'       : (1, ('str',  'ctmask'))
-        , '--dport'        : (1, ('port', 'dports'))
-        , '--dports'       : (1, ('port', 'dports'))
-        , '--icmp-type'    : (1, ('str',  'icmp_type'))
-        , '--length'       : (1, ('str',  'length'))
-        , '--mark'         : (1, ('str',  'mark'))
-        , '--nfmask'       : (1, ('str',  'nfmask'))
-        , '--restore-mark' : (0, ('bool', 'restore'))
-        , '--set-xmark'    : (1, ('str',  'xmark'))
-        , '--sport'        : (1, ('port', 'sports'))
-        , '--sports'       : (1, ('port', 'sports'))
-        , '--state'        : (1, ('str',  'state'))
-        , '--tcp-flags'    : (2, ('str', 'tcp_flags_comp')
-                               , ('str', 'tcp_flags_mask')
+        , '-s'             : (1, ('str',   'source'))
+        , '--ctmask'       : (1, ('str',   'ctmask'))
+        , '--dport'        : (1, ('port',  'dports'))
+        , '--dports'       : (1, ('port',  'dports'))
+        , '--icmp-type'    : (1, ('str',   'icmp_type'))
+        , '--length'       : (1, ('range', 'length'))
+        , '--mark'         : (1, ('str',   'mark'))
+        , '--nfmask'       : (1, ('str',   'nfmask'))
+        , '--restore-mark' : (0, ('bool',  'restore'))
+        , '--set-xmark'    : (1, ('str',   'xmark'))
+        , '--sport'        : (1, ('port',  'sports'))
+        , '--sports'       : (1, ('port',  'sports'))
+        , '--state'        : (1, ('str',   'state'))
+        , '--tcp-flags'    : (2, ('str',   'tcp_flags_comp')
+                               , ('str',   'tcp_flags_mask')
                              )
         }
 
@@ -382,14 +386,16 @@ class IPTables_Mangle_Rule (autosuper) :
         self.negated        = {}
         self.action         = None
         self.chain          = None
+        self.destination    = None
         self.dports         = []
         self.interface      = None
         self.icmp_type      = None
-        self.length         = None
+        self.length         = []
         self.mark           = None
         self.modules        = None
         self.policy         = None
         self.protocol       = None
+        self.source         = None
         self.sports         = []
         self.state          = None
         self.xmark          = None
@@ -400,7 +406,7 @@ class IPTables_Mangle_Rule (autosuper) :
         self._prio          = len (self.rules) # for filter rules
     # end def __init__
 
-    def u32_nexthdr (self, width, value, mask, at) :
+    def u32_nexthdr (self, width, value, mask, at, op = '') :
         """ Hack: work-around for non-working nexthdr.
             This should really expand to "at nexthdr+%s" % at
             Or to "cmp(u%(width)s at %(at)s layer transport mask %(mask)s
@@ -410,6 +416,12 @@ class IPTables_Mangle_Rule (autosuper) :
         value   = int (value)
         mask    = int (mask)
         offset  = nexthdr + at
+        if op :
+            return \
+                ( "cmp(u%(width)s at 0x%(offset)x mask 0x%(mask)x "
+                  "%(op)s 0x%(value)x)"
+                % locals ()
+                )
         return \
             ( "u32(u%(width)s 0x%(value)x 0x%(mask)x at 0x%(offset)x)"
             % locals ()
@@ -427,13 +439,25 @@ class IPTables_Mangle_Rule (autosuper) :
             ret.append ('-P %s %s' % (self.chain, self.policy))
         elif (self.chain) :
             ret.append ('-A %s' % self.chain)
+        if (self.source) :
+            if 'source' in self.negated :
+                ret.append ('!')
+            ret.append ('-s %s' % self.source)
+        if (self.destination) :
+            if 'destination' in self.negated :
+                ret.append ('!')
+            ret.append ('-d %s' % self.destination)
         if (self.interface) :
+            if 'interface' in self.negated :
+                ret.append ('!')
             ret.append ('-i %s' % self.interface)
         if (self.state) :
             assert ('state' in self.modules)
             ret.append ('-m state')
             ret.append ('--state %s' % self.state)
         if (self.protocol) :
+            if 'protocol' in self.negated :
+                ret.append ('!')
             ret.append ('-p %s' % self.protocol)
         if (self.mark) :
             assert ('mark' in self.modules)
@@ -444,6 +468,8 @@ class IPTables_Mangle_Rule (autosuper) :
         if self.icmp_type is not None :
             assert ('icmp' in self.modules)
             ret.append ('-m icmp')
+            if 'icmp_type' in self.negated :
+                ret.append ('!')
             ret.append ('--icmp-type %s' % self.icmp_type)
         if self.dports or self.sports or self.tcp_flags_mask :
             if 'tcp' in self.modules :
@@ -451,6 +477,8 @@ class IPTables_Mangle_Rule (autosuper) :
             if 'udp' in self.modules :
                 ret.append ('-m udp')
             if self.tcp_flags_mask :
+                if 'tcp_flags_mask' in self.negated :
+                    ret.append ('!')
                 ret.append \
                     ('--tcp-flags %s %s'
                     % (self.tcp_flags_mask, self.tcp_flags_comp)
@@ -463,14 +491,16 @@ class IPTables_Mangle_Rule (autosuper) :
             for p, x in ('s', self.sports), ('d', self.dports) :
                 if not x :
                     continue
-                if len (x) > 1 :
-                    ret.append ('--%sports %s' % (p, ','.join (x)))
-                else :
-                    ret.append ('--%sport %s' % (p, x [0]))
+                if '%sports' % p in self.negated :
+                    ret.append ('!')
+                plist = ','.join (':'.join (str (a) for a in z) for z in x)
+                ret.append ('--%sport%s %s' % (p, ['','s'][len (x) > 1], plist))
         if self.length :
             assert ('length' in self.modules)
             ret.append ('-m length')
-            ret.append ('--length %s' % (self.length))
+            if 'length' in self.negated :
+                ret.append ('!')
+            ret.append ('--length %s' % ':'.join (str (i) for i in self.length))
         if self.pkgcount is not None and self.bytecount is not None :
             ret.append ('-c %d %d' % (self.pkgcount, self.bytecount))
         if self.action :
@@ -503,52 +533,87 @@ class IPTables_Mangle_Rule (autosuper) :
         ret.append ("prio %(prio)s basic match '"   % locals ())
 
         r = []
+        if self.source :
+            r.append \
+                ("%s%s"
+                % ( self.neg ("source")
+                  , IP4_Address (self.source).as_tc_basic_u32 ()
+                  )
+                )
+        if self.destination :
+            r.append \
+                ("%s%s"
+                % ( self.neg ("destination")
+                  , IP4_Address (self.destination).as_tc_basic_u32 (is_dst = 1)
+                  )
+                )
         if self.mark :
-            neg = ''
-            if 'mark' in self.negated :
-                neg = 'not '
+            neg = self.neg ('mark')
             try :
                 mark, mask = self.mark.split ('/')
                 r.append ("%smeta(fwmark mask %s eq %s)" % (neg, mask, mark))
             except ValueError :
                 r.append ("%smeta(fwmark eq %s)" % (neg, self.mask))
         if self.length :
-            (lower, upper) = (int (x) for x in self.length.split (':'))
+            xx = []
+            (lower, upper) = self.length
             if lower :
-                r.append ("meta(pkt_len gt %s)" % (lower - 1))
+                xx.append ("meta(pkt_len gt %s)" % (lower - 1))
             if upper < 65535 :
-                r.append ("meta(pkt_len lt %s)" % (upper + 1))
+                xx.append ("meta(pkt_len lt %s)" % (upper + 1))
+            if len (xx) > 1 and self.neg ('length') :
+                xx = "(%s)" % ' and '.join (xx)
+            else :
+                xx = ' and '.join (xx)
+            r.append (self.neg ('length') + xx)
         if self.protocol :
             r.append \
-                ( "u32 (u8 0x%x 0xff at 0x9)"
-                % self.protocols [self.protocol.lower ()]
+                ( "%su32 (u8 0x%x 0xff at 0x9)"
+                % ( self.neg ("protocol")
+                  , self.protocols [self.protocol.lower ()]
+                  )
                 )
         if self.tcp_flags_comp :
             r.append \
-                ( self.u32_nexthdr
-                    ( 16
-                    , self.tcp_flags (self.tcp_flags_comp)
-                    , self.tcp_flags (self.tcp_flags_mask)
-                    , 0xC
-                    )
+                ( "%s%s"
+                % ( self.neg ("tcp_flags_mask")
+                  , self.u32_nexthdr
+                        ( 16
+                        , self.tcp_flags (self.tcp_flags_comp)
+                        , self.tcp_flags (self.tcp_flags_mask)
+                        , 0xC
+                        )
+                  )
                 )
         if self.icmp_type is not None :
             try :
                 type, code = self.icmp_type.split ('/')
-                r.append (self.u32_nexthdr (8, type, 0xff, 0))
-                r.append (self.u32_nexthdr (8, code, 0xff, 1))
+                x = []
+                x.append (self.u32_nexthdr (8, type, 0xff, 0))
+                x.append (self.u32_nexthdr (8, code, 0xff, 1))
+                if len (x) > 1 and self.neg ("icmp_type") :
+                    r.append \
+                        ("%s(%s)" % (self.neg ("icmp_type"), " and ".join (x)))
+                else :
+                    r.append \
+                        ("%s%s" % (self.neg ("icmp_type"), " and ".join (x)))
             except ValueError :
-                r.append (self.u32_nexthdr (8, self.icmp_type, 0xff, 0))
-        r_or = []
-        for sp in self.sports :
-            r_or.append (self.u32_nexthdr(16, sp, 0xffff, 0))
-        if r_or :
-            r.append ('(%s)' % ' or '.join (r_or))
-        r_or = []
-        for dp in self.dports :
-            r_or.append (self.u32_nexthdr(16, dp, 0xffff, 2))
-        if r_or :
-            r.append ('(%s)' % ' or '.join (r_or))
+                v = self.u32_nexthdr (8, self.icmp_type, 0xff, 0)
+                r.append ("%s%s" % (self.neg ("icmp_type"), v))
+        for t, pp, off in (("s", self.sports, 0), ("d", self.dports, 2)) :
+            t = t + "ports"
+            r_or = []
+            for p in pp :
+                if len (p) == 1 :
+                    r_or.append (self.u32_nexthdr(16, p [0], 0xffff, off))
+                else :
+                    v = ' and '.join \
+                        (( self.u32_nexthdr (16, p [0] - 1, 0xffff, off, 'gt')
+                        ,  self.u32_nexthdr (16, p [1] + 1, 0xffff, off, 'lt')
+                        ))
+                    r_or.append (v)
+            if r_or :
+                r.append ('%s(%s)' % (self.neg (t), ' or '.join (r_or)))
         ret.append (' and '.join (r))
         ret.append ("'")
         if replace :
@@ -559,6 +624,12 @@ class IPTables_Mangle_Rule (autosuper) :
             ret.append (action)
         return ' '.join (ret)
     # end def as_tc_filter
+
+    def neg (self, name) :
+        if name in self.negated :
+            return 'not '
+        return ''
+    # end def neg
 
     def parse (self, line) :
         nargs = 0
@@ -597,8 +668,13 @@ class IPTables_Mangle_Rule (autosuper) :
     # end def parse_list
 
     def parse_port (self, name, arg) :
-        setattr (self, name, arg.split (','))
+        val = [[int (x) for x in a.split (':')] for a in arg.split (',')]
+        setattr (self, name, val)
     # end def parse_port
+
+    def parse_range (self, name, arg) :
+        setattr (self, name, [int (a) for a in arg.split (':', 1)])
+    # end def parse_str
 
     def parse_str (self, name, arg) :
         setattr (self, name, arg)
@@ -628,7 +704,7 @@ class IPTables_Mangle_Rule (autosuper) :
     # end def parse_prerouting_rules
 
     def tcp_flags (self, flags) :
-        return reduce (or_, (self._tcp_flags [f] for f in flags.split ()), 0)
+        return reduce (or_, (self._tcp_flags [f] for f in flags.split (',')), 0)
     # end def tcp_flags
 
 # end class IPTables_Mangle_Rule

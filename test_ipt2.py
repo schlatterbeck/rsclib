@@ -8,4 +8,4 @@ if len (sys.argv) > 1 :
     f = open (sys.argv [1])
 IPTables_Mangle_Rule.parse_prerouting_rules (f)
 for r in IPTables_Mangle_Rule.rules :
-    print r.as_tc_filter ('eth0', 'root')
+    print r.as_tc_filter ('eth0', 'root', prio = 1)

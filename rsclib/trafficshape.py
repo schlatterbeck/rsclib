@@ -379,7 +379,7 @@ class IPTables_Mangle_Rule (autosuper) :
         self.bytecount      = 0
         self.restore        = False
         self.negate_option  = False
-        self.negate         = {}
+        self.negated        = {}
         self.action         = None
         self.chain          = None
         self.dports         = []
@@ -438,7 +438,7 @@ class IPTables_Mangle_Rule (autosuper) :
         if (self.mark) :
             assert ('mark' in self.modules)
             ret.append ('-m mark')
-            if 'mark' in self.negate :
+            if 'mark' in self.negated :
                 ret.append ('!')
             ret.append ('--mark %s' % self.mark)
         if self.icmp_type is not None :
@@ -505,7 +505,7 @@ class IPTables_Mangle_Rule (autosuper) :
         r = []
         if self.mark :
             neg = ''
-            if 'mark' in self.negate :
+            if 'mark' in self.negated :
                 neg = 'not '
             try :
                 mark, mask = self.mark.split ('/')
@@ -575,8 +575,8 @@ class IPTables_Mangle_Rule (autosuper) :
                 method = getattr (self, 'parse_' + opt [nargs][0])
                 method (name, arg)
                 if self.negate_option :
-                    self.negate [name] = True
-                    self.negate_option = False
+                    self.negated [name] = True
+                    self.negate_option  = False
                 nargs -= 1
     # end def parse
 

@@ -59,7 +59,26 @@ The library includes various utility modules used in other projects.
    writing.
  - trafficshape: Simple traffic shaping configuration: Currently
    generates Linux tc commands for a traffic shaping config using hfsc
-   for shaping and sfq or red for the leaf qdiscs.
+   for shaping and sfq or red for the leaf qdiscs. We also provide a
+   translator from iptables mangle rules (for traffic marking) to tc
+   commands for filtering. This is needed if we want to do inbound
+   shaping. The Linux kernel doesn't support inbound shaping, so we need
+   to redirect all traffic to an ifb device. On that device we do
+   *outbound* shaping. Unfortunately when sending traffic to an ifb
+   device with a tc filter + action mirred command this occurs *before*
+   the PREROUTING chain. This means packets are not yet marked. So we
+   provide a parser to translate mangle rules in the PREROUTING chain to
+   appropriate tc commands. For implementing this we mark packets (using
+   the tc action ipt for iptables marking) in the original device and
+   then use the marked information in the ifb device to send the traffic
+   to appropriate qdiscs. This supports a two-level approach: Rules in
+   iptables that match on a packet mark (using --mark) are translated to
+   tc commands in the ifb device (they depend on the mark already
+   present). All other rules are translated to a tc action ipt (using -j
+   MARK) and a tc action mirred redirect (for sending the traffic to the
+   ifb device) for the *original* device (e.g. eth0 redirecting to
+   ifb0). The PREROUTING commands by default are directly taken from the
+   running kernel by default (using "iptables -t mangle -S -v")
 
 .. _`bero*fos`: https://shop.beronet.com/product_info.php/cPath/56/products_id/159
 .. _`blogpost`: http://blog.runtux.com/2009/04/09/81/
@@ -75,6 +94,14 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.16: Not announced on freshmeat
+
+Add an iptables to tc translator for translating mangle rules in the
+iptables PREROUTING chain to appropriate tc commands (using an ipt
+action and mirred redirect actions).
+
+ - Add iptables to tc translator to trafficshape.py
 
 Version 0.15: Not announced on freshmeat
 

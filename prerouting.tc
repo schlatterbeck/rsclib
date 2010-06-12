@@ -2,6 +2,8 @@
 
 
 
+$TC filter add dev eth0 protocol ip parent root prio 1 basic match ' not u32 (u16 0x1FFF 0 at 6) ' action ipt -j MARK --set-xmark 0x5/0xf
+$TC filter add dev eth0 protocol ip parent root prio 1 basic match ' u32 (u16 0x1FFF 0 at 6) ' action ipt -j MARK --set-xmark 0x5/0xf
 $TC filter add dev eth0 protocol ip parent root prio 1 basic match ' not u32 (u8 0x11 0xff at 0x9) ' action ipt -j MARK --set-xmark 0x1/0xf
 $TC filter add dev eth0 protocol ip parent root prio 1 basic match ' u32 (u8 0x11 0xff at 0x9) and not (u32(u16 0x7b 0xffff at 0x14)) ' action ipt -j MARK --set-xmark 0x1/0xf
 $TC filter add dev eth0 protocol ip parent root prio 1 basic match ' u32 (u8 0x11 0xff at 0x9) and not (u32(u16 0x7b 0xffff at 0x16)) ' action ipt -j MARK --set-xmark 0x1/0xf

@@ -2,6 +2,8 @@
 -A PREROUTING -c 35133927 22937404321 -j CONNMARK --restore-mark --nfmask 0xffffffff --ctmask 0xffffffff 
 -A PREROUTING -i eth2 -m state --state NEW -c 38864 2666248 -j In_RULE_0 
 -A PREROUTING -i eth3 -m state --state NEW -c 3991 201849 -j In_RULE_1 
+-A PREROUTING -f -c 18 31 -j MARK --set-xmark 0x5/0xf
+-A PREROUTING ! -f -c 18 31 -j MARK --set-xmark 0x5/0xf
 -A PREROUTING ! -p udp -c 37477 2849996 -j MARK --set-xmark 0x1/0xf 
 -A PREROUTING -p udp -m udp ! --sport 123 -c 37477 2849996 -j MARK --set-xmark 0x1/0xf 
 -A PREROUTING -p udp -m udp ! --dport 123 -c 37243 2830324 -j MARK --set-xmark 0x1/0xf 

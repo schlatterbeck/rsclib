@@ -334,6 +334,7 @@ class IPTables_Mangle_Rule (autosuper) :
                                , ('int',   'pkgcount')
                              )
         , '-d'             : (1, ('str',   'destination'))
+        , '-f'             : (0, ('bool',  'is_fragment'))
         , '-i'             : (1, ('str',   'interface'))
         , '-j'             : (1, ('str',   'action'))
         , '-m'             : (1, ('list',  'modules'))
@@ -390,6 +391,7 @@ class IPTables_Mangle_Rule (autosuper) :
         self.dports         = []
         self.interface      = None
         self.icmp_type      = None
+        self.is_fragment    = False
         self.length         = []
         self.mark           = None
         self.modules        = None
@@ -433,33 +435,37 @@ class IPTables_Mangle_Rule (autosuper) :
             command, if not given, output only the options.
         """
         ret = []
-        if (prefix is not None) :
+        if prefix is not None :
             ret.append (prefix)
-        if (self.policy) :
+        if self.policy :
             ret.append ('-P %s %s' % (self.chain, self.policy))
-        elif (self.chain) :
+        elif self.chain :
             ret.append ('-A %s' % self.chain)
-        if (self.source) :
+        if self.source :
             if 'source' in self.negated :
                 ret.append ('!')
             ret.append ('-s %s' % self.source)
-        if (self.destination) :
+        if self.destination :
             if 'destination' in self.negated :
                 ret.append ('!')
             ret.append ('-d %s' % self.destination)
-        if (self.interface) :
+        if self.interface :
             if 'interface' in self.negated :
                 ret.append ('!')
             ret.append ('-i %s' % self.interface)
-        if (self.state) :
+        if self.state :
             assert ('state' in self.modules)
             ret.append ('-m state')
             ret.append ('--state %s' % self.state)
-        if (self.protocol) :
+        if self.is_fragment :
+            if 'is_fragment' in self.negated :
+                ret.append ('!')
+            ret.append ('-f')
+        if self.protocol :
             if 'protocol' in self.negated :
                 ret.append ('!')
             ret.append ('-p %s' % self.protocol)
-        if (self.mark) :
+        if self.mark :
             assert ('mark' in self.modules)
             ret.append ('-m mark')
             if 'mark' in self.negated :
@@ -554,6 +560,15 @@ class IPTables_Mangle_Rule (autosuper) :
                 r.append ("%smeta(fwmark mask %s eq %s)" % (neg, mask, mark))
             except ValueError :
                 r.append ("%smeta(fwmark eq %s)" % (neg, self.mask))
+        if self.is_fragment :
+            # bit 19-31 are fragment offset
+            # according to iptables(8), is_fragment means "that the rule
+            # only refers to second and further fragments of fragmented
+            # packets". So a non-fragment *or first fragment* is 0 in
+            # the lower 13 bit. So we negate this (and the negate option
+            # is inverted).
+            neg = self.neg ("is_fragment", invert = True)
+            r.append ("%su32 (u16 0x1FFF 0 at 6)" % neg)
         if self.length :
             xx = []
             (lower, upper) = self.length
@@ -625,8 +640,11 @@ class IPTables_Mangle_Rule (autosuper) :
         return ' '.join (ret)
     # end def as_tc_filter
 
-    def neg (self, name) :
-        if name in self.negated :
+    def neg (self, name, invert = False) :
+        cond = name in self.negated
+        if invert :
+            cond = not cond
+        if cond :
             return 'not '
         return ''
     # end def neg
@@ -635,20 +653,22 @@ class IPTables_Mangle_Rule (autosuper) :
         nargs = 0
         opt   = None
         for arg in line.split () :
+            name = None
             if not nargs :
                 opt = self.options [arg]
                 nargs = opt [0]
                 if nargs == 0 :
                     assert (opt [1][0] == 'bool')
-                    self.parse_bool (opt [1][1])
+                    name = opt [1][1]
+                    self.parse_bool (name)
             else :
                 name = opt [nargs][1]
                 method = getattr (self, 'parse_' + opt [nargs][0])
                 method (name, arg)
-                if self.negate_option :
-                    self.negated [name] = True
-                    self.negate_option  = False
                 nargs -= 1
+            if self.negate_option and name and name != 'negate_option' :
+                self.negated [name] = True
+                self.negate_option  = False
     # end def parse
 
     def parse_bool (self, name) :

@@ -152,7 +152,8 @@ class Page_Tree (autosuper) :
             text      = translate (f.read ())
             builder   = TidyHTMLTreeBuilder (encoding = self.html_charset)
             builder.feed (text)
-            self.tree = ElementTree (builder.close ())
+            self.tree = ETree \
+                (ElementTree (builder.close ()), charset = charset)
             try :
                 self.parse ()
             except Retry :
@@ -165,29 +166,12 @@ class Page_Tree (autosuper) :
 
     def as_string (self, n = None, indent = 0, with_text = False) :
         """ Return given node (default root) as a string """
-        s = [u"    " * indent]
-        if n is None :
-            n = self.tree.getroot ()
-        s.append (n.tag)
-        for attr in sorted (n.attrib.keys ()) :
-            s.append (u' %s="%s"' % (attr, n.attrib [attr]))
-        if with_text :
-            if n.text :
-                s.append (u" TEXT: %s" % n.text)
-            if n.tail :
-                s.append (u" TAIL: %s" % n.tail)
-        return ''.join (s).encode (self.charset)
+        return self.tree (n, indent, with_text)
     # end def as_string
 
     def tree_as_string (self, n = None, indent = 0, with_text = False) :
         """ Return tree starting at given node n (default root) to string """
-        if n is None :
-            n = self.tree.getroot ()
-        s = [self.as_string (n, indent = indent, with_text = with_text)]
-        for sub in n :
-            s.append \
-                (self.tree_as_string (sub, indent + 1, with_text = with_text))
-        return '\n'.join (s)
+        return self.tree (n, indent, with_text)
     # end def tree_as_string
 
     def convert_to_html (self) :
@@ -201,19 +185,7 @@ class Page_Tree (autosuper) :
 
     def get_text (self, node = None, strip = True) :
         """ Return all text below starting node n (default root) """
-        if node is None :
-            node = self.tree.getroot ()
-        text = []
-        if node.text :
-            text.append (node.text)
-        for n in node :
-            text.append (self.get_text (n, strip = False))
-        if node.tail :
-            text.append (node.tail)
-        text = ''.join (text)
-        if strip :
-            return text.strip ()
-        return text
+        return self.tree (node, strip)
     # end def get_text
 
     def parse (self) :

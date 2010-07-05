@@ -25,7 +25,8 @@ class ETree (autosuper) :
     """ Extend ElementTree with some useful stuff
     """
     def __init__ (self, etree, charset = 'utf-8') :
-        self.etree = etree
+        self.etree   = etree
+        self.charset = charset
     # end def __init__
 
     def as_string (self, n = None, indent = 0, with_text = False) :

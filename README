@@ -95,6 +95,12 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.XX: Not announced on freshmeat
+
+Factor ETree (extended ElementTree) from HTML_Parse.
+
+ - New ETree (extended ElementTree)
+
 Version 0.16: Not announced on freshmeat
 
 Add an iptables to tc translator for translating mangle rules in the

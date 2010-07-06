@@ -42,14 +42,32 @@ class Get_Request_With_Data (Request) :
     # end def get_method
 # end class Get_Request_With_Data
 
+class Put_Request_With_Data (Request) :
+    """ This is a normal urllib2 Request but it will always use the
+        "PUT" method even when used with data (normal urllib2 Request
+        will always use "POST" in that case). This is needed for
+        freshmeats REST API.
+    """
+    def get_method (self) :
+        return 'PUT'
+    # end def get_method
+# end class Put_Request_With_Data
+
 class Freshmeat_Object (ETree) :
     url = "http://freshmeat.net/projects/%(project)s/%(objname)s.xml"
 
-    """ Class the get freshmeat objects.
+    """ Class the get or put freshmeat objects.
         Example is the list of releases for a specific project, e.g.
     """
 
-    def __init__ (self, project, objname, auth_code = None, charset = 'utf-8') :
+    def __init__ \
+        ( self
+        , project
+        , objname
+        , auth_code = None
+        , put       = None
+        , charset   = 'utf-8'
+        ) :
         """
         >>> import sys
         >>> f = Freshmeat_Object ('ooopy', 'releases')
@@ -72,18 +90,52 @@ class Freshmeat_Object (ETree) :
             <tag-list>Minor bugfixes</tag-list>
           </release>
         <BLANKLINE>
+        >>> f = Freshmeat_Object ('ooopy', 'releases/%s' % '272703')
+        >>> f.write (sys.stdout)
+        <release>
+          <approved-at type="datetime">2008-02-28T04:55:33Z</approved-at>
+          <changelog>Small documentation changes.</changelog>
+          <hidden-from-frontpage type="boolean">false</hidden-from-frontpage>
+          <id type="integer">272703</id>
+          <version>1.1.4477</version>
+          <tag-list>Minor bugfixes</tag-list>
+        </release>
+        >>> r = Release ('1.2.3', 'something changed', False, 'bugfix')
+        >>> url = "http://localhost/%(project)s/%(objname)s.xml"
+        >>> Freshmeat_Object.url = url
+        >>> f = Freshmeat_Object ('ooopy', 'releases', put = r.element)
+        Traceback (most recent call last):
+        HTTPError: HTTP Error 405: Method Not Allowed
         """
-        self.project = project
-        self.objname = objname
-        self.charset = charset
-        self.url     = self.url % locals ()
-        if auth_code is None :
-            auth_code = self.get_auth ()
-        data = urlencode (dict (auth_code = auth_code))
+        self.project   = project
+        self.objname   = objname
+        self.charset   = charset
+        self.url       = self.url % locals ()
+        self.auth_code = auth_code or self.get_auth ()
+        if put :
+            self.__super.__init__ (self._put (put))
+        else :
+            self.__super.__init__ (self._get ())
+    # end def from_file
+
+    def _get (self) :
+        data = urlencode (dict (auth_code = self.auth_code))
         r    = Get_Request_With_Data (self.url, data)
         f = urlopen (r)
-        self.__super.__init__ (ElementTree (file = f))
-    # end def from_file
+        return ElementTree (file = f)
+    # end def _get
+
+    def _put (self, putobj) :
+        self.url = 'http://localhost'
+        e = Element ('releases')
+        e.append (putobj)
+        data = ETree (e).as_xml ()
+        r = Put_Request_With_Data (self.url, data)
+        r.add_header ('Content-Type', 'text/xml; charset=%s' % self.charset)
+        f = urlopen (r)
+        self.result = f.read ()
+        return ElementTree (e)
+    # end def _put
 
     def get_auth (self, netrc_file = None, netrc_host = 'freshmeat.net') :
         n = netrc (netrc_file)
@@ -94,6 +146,7 @@ class Freshmeat_Object (ETree) :
 class Release (autosuper) :
     def __init__ (self, version, changelog, hidden = False, *tags) :
         """
+        >>> import sys
         >>> r = Release ('1.2.3', 'something changed', False, 'bugfix')
         >>> e = ETree (ElementTree (r.element))
         >>> print e.tree_as_string ()
@@ -102,16 +155,25 @@ class Release (autosuper) :
             hidden-from-frontpage type="boolean"
             version
             tag-list
+        >>> print e.pretty (with_text = True)
+        <release>
+            <changelog>something changed</changelog>
+            <hidden-from-frontpage type="boolean">false</hidden-from-frontpage>
+            <version>1.2.3</version>
+            <tag-list>bugfix</tag-list>
+        </release>
+        <BLANKLINE>
         """
-        r   = Element ('release')
+        r = Element ('release')
         c = SubElement (r, 'changelog')
         c.text = changelog
         h = SubElement (r, 'hidden-from-frontpage', type = 'boolean')
         h.text = str (hidden).lower ()
         v = SubElement (r, 'version')
         v.text = version
-        t = SubElement (r, 'tag-list')
-        t.text = ','.join (tags)
+        if tags :
+            t = SubElement (r, 'tag-list')
+            t.text = ','.join (tags)
         self.element = r
     # end def __init__
 # end class Release

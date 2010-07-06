@@ -19,24 +19,33 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-from   rsclib.autosuper                import autosuper
+from   rsclib.autosuper import autosuper
+from   StringIO         import StringIO
+try :
+    from xml.etree.ElementTree   import ElementTree, Element, SubElement
+except ImportError :
+    from elementtree.ElementTree import ElementTree, Element, SubElement
 
 class ETree (autosuper) :
     """ Extend ElementTree with some useful stuff
     """
     def __init__ (self, etree, charset = 'utf-8') :
+        if not isinstance (etree, ElementTree) :
+            etree = ElementTree (etree)
         self.etree   = etree
         self.charset = charset
     # end def __init__
 
-    def as_string (self, n = None, indent = 0, with_text = False) :
+    def as_string \
+        (self, n = None, indent = 0, with_text = False, with_attr = True) :
         """ Return given node (default root) as a string """
         s = [u"    " * indent]
         if n is None :
             n = self.etree.getroot ()
         s.append (n.tag)
-        for attr in sorted (n.attrib.keys ()) :
-            s.append (u' %s="%s"' % (attr, n.attrib [attr]))
+        if with_attr :
+            for attr in sorted (n.attrib.keys ()) :
+                s.append (u' %s="%s"' % (attr, n.attrib [attr]))
         if with_text :
             if n.text :
                 s.append (u" TEXT: %s" % n.text)
@@ -44,6 +53,17 @@ class ETree (autosuper) :
                 s.append (u" TAIL: %s" % n.tail)
         return ''.join (s).encode (self.charset)
     # end def as_string
+
+    def as_xml (self) :
+        """ Convenience wrapper to return XML as a string using
+            ElementTree.write
+        """
+        s = StringIO ()
+        self.write (s)
+        r = s.getvalue ()
+        s.close ()
+        return r
+    # end def as_xml
 
     def tree_as_string (self, n = None, indent = 0, with_text = False) :
         """ Return tree starting at given node n (default root) to string """
@@ -72,6 +92,34 @@ class ETree (autosuper) :
             return text.strip ()
         return text
     # end def get_text
+
+    def pretty (self, node = None, indent = 0, with_text = False) :
+        """ Pretty printed XML, default to start at root node """
+        if node is None :
+            node = self.etree.getroot ()
+        s = [u'    ' * indent]
+        if len (node) or with_text and node.text :
+            s.append (u"<%s>" % self.as_string (node))
+            if len (node) :
+                s.append ('\n')
+            if with_text and node.text :
+                if len (node) :
+                    s.append (u'    ' * indent)
+                s.append (node.text)
+                if len (node) :
+                    s.append ('\n')
+            for n in node :
+                s.append (self.pretty (n, indent + 1, with_text))
+            if len (node) :
+                s.append (u'    ' * indent)
+            s.append (u"</%s>\n" % self.as_string (node, with_attr = False))
+        else :
+            s.append (u"<%s/>\n" % self.as_string (node))
+        if with_text and node.tail :
+            s.append (node.tail)
+            s.append ('\n')
+        return ''.join (s)
+    # end def pretty
 
     def __getattr__ (self, name) :
         """ Delegate everything to our ElementTree and cache the result """

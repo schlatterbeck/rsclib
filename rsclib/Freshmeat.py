@@ -26,34 +26,12 @@ except ImportError :
     from elementtree.ElementTree import ElementTree, Element, SubElement
 from netrc   import netrc
 from urllib  import urlencode
-from urllib2 import urlopen, Request
+from urllib2 import urlopen, Request, HTTPError
 
 from rsclib.autosuper import autosuper
 from rsclib.ETree     import ETree
 
-class Get_Request_With_Data (Request) :
-    """ This is a normal urllib2 Request but it will always use the
-        "GET" method even when used with data (normal urllib2 Request
-        will always use "POST" in that case). This is needed for
-        freshmeats REST API.
-    """
-    def get_method (self) :
-        return 'GET'
-    # end def get_method
-# end class Get_Request_With_Data
-
-class Put_Request_With_Data (Request) :
-    """ This is a normal urllib2 Request but it will always use the
-        "PUT" method even when used with data (normal urllib2 Request
-        will always use "POST" in that case). This is needed for
-        freshmeats REST API.
-    """
-    def get_method (self) :
-        return 'PUT'
-    # end def get_method
-# end class Put_Request_With_Data
-
-class Freshmeat_Object (ETree) :
+class Freshmeat (ETree) :
     url = "http://freshmeat.net/projects/%(project)s/%(objname)s.xml"
 
     """ Class the get or put freshmeat objects.
@@ -70,7 +48,7 @@ class Freshmeat_Object (ETree) :
         ) :
         """
         >>> import sys
-        >>> f = Freshmeat_Object ('ooopy', 'releases')
+        >>> f = Freshmeat ('ooopy', 'releases')
         >>> print f.tree_as_string (f.getroot ()[-3])
         release
             approved-at type="datetime"
@@ -90,7 +68,7 @@ class Freshmeat_Object (ETree) :
             <tag-list>Minor bugfixes</tag-list>
           </release>
         <BLANKLINE>
-        >>> f = Freshmeat_Object ('ooopy', 'releases/%s' % '272703')
+        >>> f = Freshmeat ('ooopy', 'releases/%s' % '272703')
         >>> f.write (sys.stdout)
         <release>
           <approved-at type="datetime">2008-02-28T04:55:33Z</approved-at>
@@ -102,16 +80,18 @@ class Freshmeat_Object (ETree) :
         </release>
         >>> r = Release ('1.2.3', 'something changed', False, 'bugfix')
         >>> url = "http://localhost/%(project)s/%(objname)s.xml"
-        >>> Freshmeat_Object.url = url
-        >>> f = Freshmeat_Object ('ooopy', 'releases', put = r.element)
-        Traceback (most recent call last):
-        HTTPError: HTTP Error 405: Method Not Allowed
+        >>> Freshmeat.url = url
+        >>> f = Freshmeat ('ooopy', 'releases', put = r.element)
+        >>> print f.code, f.result
+        404 Not Found
         """
         self.project   = project
         self.objname   = objname
         self.charset   = charset
         self.url       = self.url % locals ()
         self.auth_code = auth_code or self.get_auth ()
+        self.code      = None
+        self.result    = None
         if put :
             self.__super.__init__ (self._put (put))
         else :
@@ -119,29 +99,30 @@ class Freshmeat_Object (ETree) :
     # end def from_file
 
     def _get (self) :
-        data = urlencode (dict (auth_code = self.auth_code))
-        r    = Get_Request_With_Data (self.url, data)
+        r    = Request (self.url + '?auth_code=%s' % self.auth_code)
         f = urlopen (r)
         return ElementTree (file = f)
     # end def _get
 
     def _put (self, putobj) :
-        self.url = 'http://localhost'
-        e = Element ('releases')
-        e.append (putobj)
-        data = ETree (e).as_xml ()
-        r = Put_Request_With_Data (self.url, data)
+        tree = ETree (putobj)
+        data = tree.as_xml ()
+        r = Request (self.url + '?auth_code=%s' % self.auth_code, data)
         r.add_header ('Content-Type', 'text/xml; charset=%s' % self.charset)
-        f = urlopen (r)
-        self.result = f.read ()
-        return ElementTree (e)
+        try :
+            f = urlopen (r)
+            result = f.read ()
+        except HTTPError, cause :
+            self.code   = cause.code
+            self.result = cause.msg
+        return tree.etree
     # end def _put
 
     def get_auth (self, netrc_file = None, netrc_host = 'freshmeat.net') :
         n = netrc (netrc_file)
         return n.authenticators (netrc_host)[2]
     # end def get_auth
-# end class Freshmeat_Object
+# end class Freshmeat
 
 class Release (autosuper) :
     def __init__ (self, version, changelog, hidden = False, *tags) :
@@ -177,24 +158,3 @@ class Release (autosuper) :
         self.element = r
     # end def __init__
 # end class Release
-
-#class Freshmeat (autosuper) :
-#    def __init__ (self, project) :
-#        self.project = project
-#        
-#        ooopy/releases.xml
-#    # end def __init__
-#
-#    def post_release (self, auth_code, release) :
-#        url = self.url + 'releases.xml'
-#    # end def post_release
-## end class Freshmeat
-
-#<release>
-#<approved-at type="datetime">2008-06-03T12:51:40Z</approved-at>
-#<changelog>Doctest was fixed to hopefully run on Windows.</changelog>
-#<hidden-from-frontpage type="boolean">true</hidden-from-frontpage>
-#<id type="integer">278892</id>
-#<version>1.4.4873</version>
-#<tag-list>Minor bugfixes</tag-list>
-#</release>

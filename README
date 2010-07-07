@@ -95,11 +95,14 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
-Version 0.XX: Not announced on freshmeat
+Version 0.17: Not announced on freshmeat
 
-Factor ETree (extended ElementTree) from HTML_Parse.
+Factor ETree (extended ElementTree) from HTML_Parse. New Freshmeat
+module to get project information and submit new releases via the new
+freshmeat REST API.
 
- - New ETree (extended ElementTree)
+ - New ETree.py (extended ElementTree)
+ - New Freshmeat.py
 
 Version 0.16: Not announced on freshmeat
 

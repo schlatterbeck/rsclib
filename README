@@ -30,8 +30,14 @@ The library includes various utility modules used in other projects.
    executing processes in a pipeline, there can be fork-points in the
    pipeline where the output of one process feeds several pipelines.
    See test_exec.py and test2_exec.py.
+ - ETree: wrapper around ElementTree for pretty-printing and xml export.
+   This uses delegation (not inheritance) because we can't seem to
+   inherit from ElementTree.
  - Firstname: given a string-candidate of a first name, check with
    popular web-site if it is really considered a first name. 
+ - Freshmeat: Get project and release information via the freshmeat.net
+   REST API. Also support submit of a new release. I'm now using this
+   for announcing new releases for my projects.
  - grepmime: search for pattern in email attachments (even if these are
    encoded)
  - HTML_Parse for opening and parsing URLs

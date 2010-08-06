@@ -34,11 +34,10 @@ from   rsclib.autosuper import autosuper
 class Exec_Error    (RuntimeError) : pass
 
 class _Named (autosuper) :
-    def _name (self) :
+    @property
+    def clsname (self) :
         return self.__class__.__name__.lower ().replace ('_', '-')
-    # end def _name
-
-    clsname = property (_name)
+    # end def clsname
 # end class _Named
 
 class Log (_Named) :

@@ -46,8 +46,9 @@ class Log (_Named) :
         arguments for setting log_level and log_prefix.
         Use as self.log.debug (msg), self.log.info (msg) etc.
     """
+    logprefix = 'ast-'
     def __init__ (self, log_level = None, log_prefix = None, *args, **kw) :
-        log_prefix = log_prefix or 'ast-%s' % self.clsname
+        log_prefix = log_prefix or '%s%s' % (self.logprefix, self.clsname)
         self.log_prefix = log_prefix
         self.log        = logging.getLogger (log_prefix)
         if not len (self.log.handlers) :

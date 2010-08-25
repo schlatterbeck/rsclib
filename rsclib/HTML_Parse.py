@@ -30,6 +30,7 @@ except ImportError :
 from   rsclib.autosuper                import autosuper
 from   rsclib.Version                  import VERSION
 from   rsclib.multipart_form           import Multipart_Form
+from   rsclib.ETree                    import ETree
 from   urllib                          import urlencode
 from   httplib                         import BadStatusLine
 

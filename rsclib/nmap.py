@@ -18,22 +18,30 @@ re_show  = rc (r"Not shown: (\d+) ([a-z]+) ports")
 re_all   = rc ( r"All (\d+) scanned ports on %(re_addr)s are ([a-z]+)%(re_or)s$"
               % locals ()
               )
+re_md    =     r"[A-F0-9]{2}"
+re_mac   = rc ( r"MAC Address:\s+((%s:){5}%s)(\s+[(]([^)]+)[)])?"
+              % (re_md, re_md)
+              )
 re_warn  = rc (r"^Warning:(.*)$")
 re_plist = rc (r"PORT +STATE +SERVICE")
+re_empty = rc (r"^$")
 
 #State                  Pattern                new State          Action
 Matrix = \
 [ ["init",            re_nmap,                  "started",     "start"]
 , ["init",            "",                       "init",        None]
 , ["started",         re_intr,                  "interest",    "interest"]
-, ["started",         re_all,                   "started",     "do_all"]
-, ["started",         rc (r"^$"),               "started",     None]
+, ["started",         re_all,                   "mac",         "do_all"]
+, ["started",         re_empty,                 "started",     None]
 , ["started",         re_warn,                  "started",     "warning"]
 , ["started",         re_done,                  "init",        "end"]
 , ["interest",        re_show,                  "interest",    "notshown"]
 , ["interest",        re_plist,                 "portlist",    None]
+, ["mac",             re_mac,                   "started",     "mac"]
+, ["mac",             None,                     "started",     None]
 , ["portlist",        re_port,                  "portlist",    "port"]
-, ["portlist",        rc ("^$"),                "started",     "pop"]
+, ["portlist",        re_empty,                 "started",     "pop"]
+, ["portlist",        re_mac,                   "started",     "mac"]
 ]
 
 class Port (autosuper) :
@@ -86,6 +94,8 @@ class Host (autosuper) :
         self.count    = int (count)
         self.count1   = int (count1)
         self.count2   = int (count2)
+        self.macaddr  = None
+        self.macname  = None
         self.name     = name
         self.state    = state
         self.state2   = state2
@@ -93,6 +103,12 @@ class Host (autosuper) :
         self.ports    = []
         self.warnings = []
     # end def __init__
+
+    def add_mac (self, macaddr, macname) :
+        print "HUHU", macaddr, macname
+        self.macaddr = macaddr
+        self.macname = macname or ''
+    # end def add_mac
 
     def add_port (self, port) :
         self.ports.append (port)
@@ -169,6 +185,11 @@ class Host (autosuper) :
         ret.append (''.join (x))
         for p in self.ports :
             ret.append (repr (p))
+        if self.macaddr :
+            mn = ''
+            if self.macname :
+                mn = ' (%s)' % self.macname
+            ret.append ('MAC Address: %s%s' % (self.macaddr, mn))
         return '\n'.join (ret)
     # end def __repr__
 
@@ -388,6 +409,12 @@ class NMAP_Parser (Parser) :
         self.warnings = []
         return self.push (state, new_state, match)
     # end def interest
+
+    def mac (self, state, new_state, match) :
+        g = match.groups ()
+        macaddr, macname = g [0], g [3]
+        self.nmap.hosts [-1].add_mac (macaddr, macname)
+    # end def mac
 
     def notshown (self, state, new_state, match) :
         g = match.groups ()

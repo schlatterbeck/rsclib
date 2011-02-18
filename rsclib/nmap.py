@@ -105,7 +105,6 @@ class Host (autosuper) :
     # end def __init__
 
     def add_mac (self, macaddr, macname) :
-        print "HUHU", macaddr, macname
         self.macaddr = macaddr
         self.macname = macname or ''
     # end def add_mac
@@ -221,6 +220,11 @@ class Host (autosuper) :
             ret.append (''.join (x))
         for p in self.ports :
             ret.append (str (p))
+        if self.macaddr :
+            mn = ''
+            if self.macname :
+                mn = ' (%s)' % self.macname
+            ret.append ('MAC Address: %s%s' % (self.macaddr, mn))
         ret.append ('')
         return '\n'.join (ret)
     # end def __str__

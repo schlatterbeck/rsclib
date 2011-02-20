@@ -497,10 +497,12 @@ def main () :
         , type    = float
         )
     (opt, args) = cmd.parse_args ()
-    if len (args) != 1 :
-        cmd.error ("You must specify the nmap log file")
     p = NMAP_Parser (Matrix, verbose = 0)
-    p.parse (open (args [0]))
+    if len (args) == 0 :
+        p.parse (sys.stdin)
+    else :
+        for fn in args :
+            p.parse (open (fn))
     
     ip_map = {}
     for ipname in opt.ip_map :

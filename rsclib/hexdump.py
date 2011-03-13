@@ -25,12 +25,12 @@ def ascii (s) :
     return s
 # end def ascii
 
-def dumphex (s) :
+def hexdump (s) :
     r = []
     for x in xrange (len (s) / 16 + 1) :
         hex  = '%-48s' % ' '.join ("%02x" % ord (k) for k in s [x*16:(x+1)*16])
         char = '%-16s' % ''.join (ascii (k) for k in s [x*16:(x+1)*16])
         r.append ('  '.join ((hex, char)))
     return '\n'.join (r)
-# end def dumphex
+# end def hexdump
 

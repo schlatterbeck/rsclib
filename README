@@ -110,6 +110,7 @@ freshmeat REST API. New simple hexdump module.
  - New ETree.py (extended ElementTree)
  - New Freshmeat.py
  - New hexdump.py
+ - adapt lcr module to new version of Linux Call Router
 
 Version 0.16: Not announced on freshmeat
 

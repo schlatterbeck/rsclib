@@ -74,7 +74,7 @@ class LCR_Ports (Parser, Exec) :
 
     re_empty = re.compile (r"^$")
     re_start = re.compile (r"^([0-9-a-zA-Z]+):\s*$")
-    re_param = re.compile (r"\s+([a-z0-9 ]*[a-zA-Z0-9])\s+=\s+(.*)$")
+    re_param = re.compile (r"\s+([-a-z0-9 ]*[a-zA-Z0-9])\s+=\s+(.*)$")
     re_port  = re.compile (r'^([0-9]+)\s+"([^"]+)"')
 
     #       State   Pattern   new State Action
@@ -91,11 +91,15 @@ class LCR_Ports (Parser, Exec) :
         , 'l2 link'   : 'l2'
         }
 
-    def __init__ (self, **kw) :
+    def __init__ (self, parsestring = None, **kw) :
         self.__super.__init__ (**kw)
         self.interface = None
         self.port      = None
-        self.parse (self.exec_pipe (("lcradmin", "portinfo")))
+        if parsestring :
+            parsestring = parsestring.split ('\n')
+        else :
+            parsestring = self.exec_pipe (("lcradmin", "portinfo"))
+        self.parse (parsestring)
     # end def __init__
 
     def port_start (self, state, new_state, match) :
@@ -106,6 +110,7 @@ class LCR_Ports (Parser, Exec) :
 
     def port_set (self, state, new_state, match) :
         name, value = match.groups ()
+        name = name.replace ('-', '_')
         name = self.attrs.get (name, name)
         if name == 'port' :
             m = self.re_port.match (value)
@@ -128,5 +133,47 @@ def lcr_init (**kw) :
 # end def lcr_init
 
 if __name__ == '__main__' :
-    lcr_init ()
+    output = """
+Ext1:
+         port = 0 "hfc-4s.1-1"
+         extension = no
+         status = unblocked
+         mode = TE-mode ptp l2hold
+         out-channel = any
+         in-channel = free
+         l1 link = up
+         l2 link = up
+         usage = 0
+Ext2:
+         port = 1 "hfc-4s.1-2"
+         extension = no
+         status = unblocked
+         mode = TE-mode ptp l2hold
+         out-channel = any
+         in-channel = free
+         l1 link = up
+         l2 link = up
+         usage = 0
+Int:
+         port = 2 "hfc-4s.1-3"
+         extension = no
+         status = unblocked
+         mode = NT-mode ptp l2hold
+         out-channel = free
+         in-channel = free
+         l1 link = up
+         l2 link = up
+         usage = 0
+Int:
+         port = 3 "hfc-4s.1-4"
+         extension = no
+         status = unblocked
+         mode = NT-mode ptp l2hold
+         out-channel = free
+         in-channel = free
+         l1 link = down
+         l2 link = unknown
+         usage = 0
+"""
+    lcr_init (parsestring = output)
     print LCR_Port.by_portnumber

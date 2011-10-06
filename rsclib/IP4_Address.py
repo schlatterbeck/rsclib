@@ -139,6 +139,8 @@ class IP4_Address (autosuper) :
         'u32 (u32 0x0a283800 0xfffffc00 at 0x10)'
         >>> list (sorted ((a, b, c, d, e, f, g)))
         [10.100.0.0, 10.100.0.0/16, 10.100.0.0/16, 10.100.0.0/16, 10.100.10.0, 10.100.10.0/24, 10.100.10.2]
+        >>> IP4_Address ('108.62.8.0/21').netblk ()
+        [108.62.8.0, 108.62.15.255]
     """
 
     def __init__ (self, address, mask = 32L) :
@@ -187,6 +189,12 @@ class IP4_Address (autosuper) :
     # end def net
     
     network = net
+
+    def netblk (self) :
+        x1 = IP4_Address (self.ip)
+        x2 = IP4_Address (self.ip | ~self.bitmask)
+        return [x1, x2]
+    # end def netblk
 
     def overlaps (self, other) :
         return \

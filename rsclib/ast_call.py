@@ -316,7 +316,9 @@ class Call_Manager (object) :
             , variables = vars
             )
         self.call_by_number [actionid] = number
-        self.queue_handler (timeout)
+        # maybe call already terminated or we have a permission problem:
+        if actionid not in self.closed_calls :
+            self.queue_handler (timeout)
         try :
             return self.closed_calls [actionid]
         except KeyError :
@@ -352,9 +354,14 @@ class Call_Manager (object) :
             , caller_id = kw.get ('caller_id')
             , context   = kw.get ('context')
             )
-        self.open_calls [actionid] = call
-        if match_channel :
-            self.open_by_chan [kw ['channel']] = call
+        if result.headers.get ('Response') == 'Error' :
+            call.causetext = result.headers.get ('Message') or 'Unknown error'
+            call.causecode = -1
+            self.closed_calls [actionid] = call
+        else :
+            self.open_calls [actionid] = call
+            if match_channel :
+                self.open_by_chan [kw ['channel']] = call
         return actionid
     # end def originate
 

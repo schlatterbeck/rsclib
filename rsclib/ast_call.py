@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2008-9 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2008-11 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -22,6 +22,7 @@
 import asterisk.manager
 from Queue              import Queue, Empty
 from time               import sleep
+from random             import randint
 from rsclib.Config_File import Config_File
 
 def call_id (uniqid) :
@@ -55,6 +56,7 @@ class Config (Config_File) :
             , CALL_PRIORITY         = '1'
             , CHANNEL_TYPE          = 'Local'
             , CHANNEL_SUFFIX        = '@dialout'
+            , ACCOUNT_CODE          = 'RANDOMID'
             )
     # end def __init__
 # end class Config
@@ -196,7 +198,10 @@ class Call (object) :
         chan = self.event.headers ['Channel']
         if chan not in self.state_by_chan :
             self.state_by_chan [chan] = {}
-        self.state_by_chan [chan][self.event.headers ['State']] = True
+        for k in 'State', 'ChannelState' :
+            if k in self.event.headers :
+                self.state_by_chan [chan][self.event.headers [k]] = True
+                break
     # end def handle_Newstate
 
     def handle_OriginateResponse (self) :
@@ -263,6 +268,7 @@ class Call_Manager (object) :
         self.open_calls     = {} # by actionid
         self.open_by_id     = {} # by callid (part of uniqueid)
         self.open_by_chan   = {} # by channel
+        self.open_by_acct   = {} # by account code
         self.closed_calls   = {} # by actionid
         self.queue          = Queue ()
         self.call_by_number = {}
@@ -284,6 +290,7 @@ class Call_Manager (object) :
         , call_context   = None
         , call_priority  = None
         , caller_id      = None
+        , account        = None
         ) :
         """ Originate a call using parameters from configuration.
             Parameter override is possible via call parameters.
@@ -294,6 +301,8 @@ class Call_Manager (object) :
             constructing the asterisk channel. The call parameters are
             used for specifying the dialplan destination after a
             successful call. The caller_id the caller id for the call.
+            Special account code "RANDOMID" will place a (unique) random
+            ID into the account-code for matching a call.
         """
         vars = \
             { 'SOUND'      : sound      or self.cfg.SOUND
@@ -312,6 +321,7 @@ class Call_Manager (object) :
             , context   = call_context   or self.cfg.CALL_CONTEXT
             , priority  = call_priority  or self.cfg.CALL_PRIORITY
             , caller_id = caller_id      or self.cfg.CALLER_ID
+            , account   = account        or self.cfg.ACCOUNT_CODE
             , async     = True
             , variables = vars
             )
@@ -342,7 +352,16 @@ class Call_Manager (object) :
             If match_channel we try fuzzy-matching on the called channel
             name when trying to determine the open call. This is needed
             with asterisk 1.2 since 1.2 doesn't return the unique id.
+            Special handling for account code: if it is RANDOMID we pass
+            a unique value as action id for (fuzzy) matching.
         """
+        random_account = False
+        if 'account' in kw and kw ['account'] is None :
+            del kw ['account']
+        if kw.get ('account') == 'RANDOMID' :
+            kw ['account'] = str (randint (0, 2 ** 32 - 1))
+            random_account = True
+
         result = self.manager.originate (*args, **kw)
         #print "Originate:", result.__dict__
         actionid = result.headers ['ActionID']
@@ -362,6 +381,8 @@ class Call_Manager (object) :
             self.open_calls [actionid] = call
             if match_channel :
                 self.open_by_chan [kw ['channel']] = call
+            if random_account :
+                self.open_by_acct [kw ['account']] = call
         return actionid
     # end def originate
 
@@ -374,7 +395,7 @@ class Call_Manager (object) :
             #print "Received event: %s" % event.name, event.headers
             assert ('Uniqueid' in event.headers)
             uniqueid = event.headers ['Uniqueid']
-            # ignore bogus uniqueid in asterisk 1.4
+            # ignore bogus uniqueid in asterisk 1.4 and 1.6
             if uniqueid == '<null>' :
                 continue
             callid   = call_id (uniqueid)
@@ -384,6 +405,11 @@ class Call_Manager (object) :
             if channel in self.open_by_chan :
                 call = self.open_by_chan [channel]
                 del self.open_by_chan [channel]
+                call.set_id (event)
+            account = event.headers.get ('AccountCode')
+            if account in self.open_by_acct :
+                call = self.open_by_acct [account]
+                del self.open_by_acct [account]
                 call.set_id (event)
             if callid in self.open_by_id :
                 self._handle_queued_event (event)

@@ -101,6 +101,17 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.18: Not announced on freshmeat
+
+Bugfix of ast_call and update for asterisk 1.6, small extension to
+IP4_Address.
+
+ - ast_call: match calls via (unique) account code
+ - ast_call: State vs ChannelState parameter in Newstate event
+ - ast_call: handle immediate error from asterisk (e.g. Permission Denied)
+ - IP4_Address: add netblk (start and end address for address with
+   netmask)
+
 Version 0.17: Not announced on freshmeat
 
 Factor ETree (extended ElementTree) from HTML_Parse. New Freshmeat

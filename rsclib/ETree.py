@@ -26,6 +26,21 @@ try :
 except ImportError :
     from elementtree.ElementTree import ElementTree, Element, SubElement
 
+def _walk (root, before = None, after = None) :
+    """ Walk the tree starting at root, call method "before" before
+        descending into child nodes and method "after" afterwards. Both
+        methods won't be called if not callable.
+
+        We iterate over a copy so that all children of root are reached.
+    """
+    for n, sub in enumerate (root [:]) :
+        if callable (before) :
+            before (root, sub)
+        _walk (sub, before, after)
+        if callable (after) :
+            after (root, sub)
+# end def _walk
+
 class ETree (autosuper) :
     """ Extend ElementTree with some useful stuff
     """
@@ -120,6 +135,16 @@ class ETree (autosuper) :
             s.append ('\n')
         return ''.join (s)
     # end def pretty
+
+    def walk (self, before = None, after = None) :
+        """ Walk the tree starting at root, call method "before" before
+            descending into child nodes and method "after" afterwards.
+            Both methods won't be called if not callable.
+
+            We iterate over a copy so that all children of root are reached.
+        """
+        return _walk (self.getroot (), before, after)
+    # end def walk
 
     def __getattr__ (self, name) :
         """ Delegate everything to our ElementTree and cache the result """

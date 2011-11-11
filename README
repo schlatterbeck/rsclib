@@ -44,6 +44,9 @@ The library includes various utility modules used in other projects.
  - IP4_Address: IP v4 Addresses with subnet masking
  - iter_recipes: magic with iterators
  - lcr: model the status of Linux Call Router ISDN lines.
+ - ldap_lib: some routines for common ldap tasks including an iterator
+   for LDAP implementations that use paged search (notably active
+   directory).
  - Math implements Euclids algorithm for greatest common divisor and as
    a by-product the least common multiple
  - nmap: A parser for output of nmap scans to (e.g. to generate tables
@@ -100,6 +103,15 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.19: Not announced on freshmeat
+
+Extend ETree with a walk method and implement small ldap library
+
+ - ETree: add walk method to walk the tree and call an optional pre- and
+   post-hook function
+ - ldap_lib: common ldap tasks for user and group search, and an
+   iterator for paged search (used with active directory).
 
 Version 0.18: Not announced on freshmeat
 

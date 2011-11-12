@@ -7,6 +7,8 @@
 rsclib: Utility Routines
 ========================
 
+:Author: Ralf Schlatterbeck <rsc@runtux.com>
+
 The library includes various utility modules used in other projects.
 
  - ast_call: A simple call manager using asterisk: This can be used to

@@ -51,14 +51,14 @@ def L_s (l, d, n) :
     >>> print "%2.5f" % L_s ( 8.0, 200,  100)
     51599.29039
     """
-    q = float (l) / float (d)
+    u = float (l) / float (d)
     return 0.002 * pi * d * n**2 * \
         ( log (1.0 + (pi * d) / (2.0 * l))
         + 1.0
-          / ( 2.3004
-            + 3.437 * q
-            + 1.7636 * (q ** 2)
-            - 0.47 * ((0.755 + q) ** 1.44)
+          / ( (1. / (log (8. / pi) - 0.5))
+            + 3.437  * u
+            + (24. / (3. * pi**2 - 16)) * (u ** 2)
+            - 0.47 * ((0.755 + u) ** 1.44)
             )
         )
 # end def L_s
@@ -82,9 +82,9 @@ def k_m (n) :
 # end def k_m
 
 def delta_roundwire (r, n, pitch, diameter) :
-    """ Round wire correction according to Rosa, Rosa, Edward B.;
-        Calculation of the Self-Inductance of Single-Layer Coils, NBS
-        Bulletin, Vol. 2, No. 2, 1907.
+    """ Round wire correction according to Rosa, Edward B.;
+        Calculation of the Self-Inductance of Single-Layer Coils,
+        NBS Bulletin, Vol. 2, No. 2, 1907.
         This was later adapted for computer calculation by Robert
         Weaver, Weaver, Robert; Investigation of E.B. Rosa's Round Wire
         Mutual Inductance Correction Formula, July 2008.

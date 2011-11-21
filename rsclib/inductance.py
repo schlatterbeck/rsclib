@@ -26,30 +26,30 @@ def L_s (l, d, n) :
         where he used a solver to optimize the formula for low errors.
         Note: This is a current sheet formula, and will require round
         wire corrections for best accuracy.
-    >>> print "%2.5f" % L_s ( 0.8,   2,  10)
-    2.32856
-    >>> print "%2.5f" % L_s ( 1.6,   2,  20)
-    6.29773
-    >>> print "%2.5f" % L_s ( 4.0,   2,  50)
-    20.18669
-    >>> print "%2.5f" % L_s ( 8.0,   2, 100)
-    44.49461
-    >>> print "%2.5f" % L_s ( 2.0,   2,  10)
-    1.35889
-    >>> print "%2.5f" % L_s ( 4.0,   2,  20)
-    3.22987
-    >>> print "%2.5f" % L_s (10.0,   2,  50)
-    9.08095
-    >>> print "%2.5f" % L_s (20.0,   2, 100)
-    18.92609
-    >>> print "%2.5f" % L_s ( 0.8,  10,   10)
-    21.45928
-    >>> print "%2.5f" % L_s ( 8.0,  10,  100)
-    787.21645
-    >>> print "%2.5f" % L_s ( 0.8, 200,   10)
-    805.22408
-    >>> print "%2.5f" % L_s ( 8.0, 200,  100)
-    51599.29039
+    >>> print "%2.2f" % L_s ( 0.8,   2,  10)
+    2.38
+    >>> print "%2.2f" % L_s ( 1.6,   2,  20)
+    6.41
+    >>> print "%2.2f" % L_s ( 4.0,   2,  50)
+    20.42
+    >>> print "%2.2f" % L_s ( 8.0,   2, 100)
+    44.78
+    >>> print "%2.2f" % L_s ( 2.0,   2,  10)
+    1.38
+    >>> print "%2.2f" % L_s ( 4.0,   2,  20)
+    3.27
+    >>> print "%2.2f" % L_s (10.0,   2,  50)
+    9.13
+    >>> print "%2.2f" % L_s (20.0,   2, 100)
+    18.97
+    >>> print "%2.2f" % L_s ( 0.8,  10,   10)
+    21.84
+    >>> print "%2.2f" % L_s ( 8.0,  10,  100)
+    801.34
+    >>> print "%2.2f" % L_s ( 0.8, 200,   10)
+    813.80
+    >>> print "%2.2f" % L_s ( 8.0, 200,  100)
+    52416.06
     """
     u = float (l) / float (d)
     return 0.002 * pi * d * n**2 * \
@@ -122,30 +122,30 @@ def delta_roundwire (r, n, pitch, diameter) :
 
 def induction (l, d, n, diameter) :
     """ induction with round-wire correction
-    >>> print "%2.5f" % induction ( 0.8,   2,  10, 0.05)
-    2.28417
-    >>> print "%2.5f" % induction ( 1.6,   2,  20, 0.05)
-    6.20142
-    >>> print "%2.5f" % induction ( 4.0,   2,  50, 0.05)
-    19.93218
-    >>> print "%2.5f" % induction ( 8.0,   2, 100, 0.05)
-    43.97469
-    >>> print "%2.5f" % induction ( 2.0,   2,  10, 0.05)
-    1.42964
-    >>> print "%2.5f" % induction ( 4.0,   2,  20, 0.05)
-    3.36385
-    >>> print "%2.5f" % induction (10.0,   2,  50, 0.05)
-    9.40216
-    >>> print "%2.5f" % induction (20.0,   2, 100, 0.05)
-    19.55761
-    >>> print "%2.5f" % induction ( 0.8,  10,  10, 0.05)
-    21.23732
-    >>> print "%2.5f" % induction ( 8.0,  10, 100, 0.05)
-    784.61683
-    >>> print "%2.5f" % induction ( 0.8, 200,  10, 0.05)
-    800.78491
-    >>> print "%2.5f" % induction ( 8.0, 200, 100, 0.05)
-    51547.29797
+    >>> print "%2.2f" % induction ( 0.8,   2,  10, 0.05)
+    2.33
+    >>> print "%2.2f" % induction ( 1.6,   2,  20, 0.05)
+    6.31
+    >>> print "%2.2f" % induction ( 4.0,   2,  50, 0.05)
+    20.17
+    >>> print "%2.2f" % induction ( 8.0,   2, 100, 0.05)
+    44.26
+    >>> print "%2.2f" % induction ( 2.0,   2,  10, 0.05)
+    1.45
+    >>> print "%2.2f" % induction ( 4.0,   2,  20, 0.05)
+    3.40
+    >>> print "%2.2f" % induction (10.0,   2,  50, 0.05)
+    9.45
+    >>> print "%2.2f" % induction (20.0,   2, 100, 0.05)
+    19.60
+    >>> print "%2.2f" % induction ( 0.8,  10,  10, 0.05)
+    21.62
+    >>> print "%2.2f" % induction ( 8.0,  10, 100, 0.05)
+    798.74
+    >>> print "%2.2f" % induction ( 0.8, 200,  10, 0.05)
+    809.36
+    >>> print "%2.2f" % induction ( 8.0, 200, 100, 0.05)
+    52364.07
     """
     pitch = float (l) / float (n)
     return L_s (l, d, n) - delta_roundwire (d / 2.0, n, pitch, diameter)

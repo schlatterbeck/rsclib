@@ -122,32 +122,34 @@ def delta_roundwire (r, n, pitch, diameter) :
 
 def induction (d, n, diameter, l = 0, pitch = 0) :
     """ induction with round-wire correction
-    >>> print "%2.2f" % induction (  2,  10, 0.05,  0.8)
+    >>> print "%2.2f" % induction (  2,  10, 0.05, l =  0.8)
     2.33
-    >>> print "%2.2f" % induction (  2,  20, 0.05,  1.6)
+    >>> print "%2.2f" % induction (  2,  20, 0.05, l =  1.6)
     6.31
-    >>> print "%2.2f" % induction (  2,  50, 0.05,  4.0)
+    >>> print "%2.2f" % induction (  2,  50, 0.05, l =  4.0)
     20.17
-    >>> print "%2.2f" % induction (  2, 100, 0.05,  8.0)
+    >>> print "%2.2f" % induction (  2, 100, 0.05, l =  8.0)
     44.26
-    >>> print "%2.2f" % induction (  2,  10, 0.05,  2.0)
+    >>> print "%2.2f" % induction (  2,  10, 0.05, l =  2.0)
     1.45
-    >>> print "%2.2f" % induction (  2,  20, 0.05,  4.0)
+    >>> print "%2.2f" % induction (  2,  20, 0.05, l =  4.0)
     3.40
-    >>> print "%2.2f" % induction (  2,  50, 0.05, 10.0)
+    >>> print "%2.2f" % induction (  2,  50, 0.05, l = 10.0)
     9.45
-    >>> print "%2.2f" % induction (  2, 100, 0.05, 20.0)
+    >>> print "%2.2f" % induction (  2, 100, 0.05, l = 20.0)
     19.60
-    >>> print "%2.2f" % induction ( 10,  10, 0.05,  0.8)
+    >>> print "%2.2f" % induction ( 10,  10, 0.05, l =  0.8)
     21.62
-    >>> print "%2.2f" % induction ( 10, 100, 0.05,  8.0)
+    >>> print "%2.2f" % induction ( 10, 100, 0.05, l =  8.0)
     798.74
-    >>> print "%2.2f" % induction (200,  10, 0.05,  0.8)
+    >>> print "%2.2f" % induction (200,  10, 0.05, l =  0.8)
     809.36
-    >>> print "%2.2f" % induction (200, 100, 0.05,  8.0)
+    >>> print "%2.2f" % induction (200, 100, 0.05, l =  8.0)
     52364.07
+    >>> print "%2.2f" % induction (  2,  10, 0.05, pitch = 0.08)
+    2.33
     """
-    if n :
+    if l :
         pitch = float (l) / float (n)
     elif pitch :
         l = float (pitch) * float (n)
@@ -159,4 +161,4 @@ def induction (d, n, diameter, l = 0, pitch = 0) :
 if __name__ == "__main__" :
     import sys
     args = [float (i) for i in sys.argv [1:]]
-    print induction (*args)
+    print induction (*args [:3], pitch = args [3])

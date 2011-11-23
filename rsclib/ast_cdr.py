@@ -23,29 +23,74 @@
 import csv
 import time
 from   gzip             import open as gzopen
+from   datetime         import datetime
 from   rsclib.autosuper import autosuper
 
 class CDR (autosuper) :
+
+    ama_table = \
+        { 'OMIT'          : 1
+        , 'BILLING'       : 2
+        , 'DOCUMENTATION' : 3
+        }
+
+    non_db_fields = dict.fromkeys (('start', 'answer', 'end'))
+
     def __init__ (self, dictionary) :
         self.dict = dictionary
     # end def __init__
 
     def __getattr__ (self, name) :
-        if name in self.dict :
+        if name.startswith ('db_') and name [3:] in self.dict :
+            value = self.dict [name [3:]]
+        elif name in self.dict :
             value = self.dict [name]
-            setattr (self, name, self.dict [name])
-            return value
-        raise AttributeError, name
+        else :
+            raise AttributeError, name
+        setattr (self, name, value)
+        return value
     # end def __getattr__
 
     def __getitem__ (self, name) :
-        return self.dict [name]
+        try :
+            return getattr (self, name)
+        except AttributeError :
+            raise KeyError, name
     # end def __getitem__
 
     def __repr__ (self) :
         return repr (self.dict)
     # end def __repr__
     __str__ = __repr__
+
+    @property
+    def db_dict (self) :
+        return dict ((i, self ['db_' + i]) for i in self.db_fields ())
+    # end def db_dict
+
+    @classmethod
+    def db_fields (cls) :
+        for f, dummy in CDR_Parser.fields :
+            if f in cls.non_db_fields :
+                continue
+            yield f
+        yield 'calldate'
+    # end def db_fields
+
+    def db_props (self) :
+        return (self ['db_' + i] for i in self.db_fields ())
+    # end def db_props
+
+    @property
+    def calldate (self) :
+        return datetime.strptime (self.start, "%Y-%m-%d %H:%M:%S")
+    # end def calldate
+    db_calldate = calldate
+
+    @property
+    def db_amaflags (self) :
+        return self.ama_table [self.amaflags]
+    # end def db_amaflags
 # end class CDR
 
 class CDR_Parser (autosuper) :
@@ -71,6 +116,20 @@ class CDR_Parser (autosuper) :
         DOCUMENTATION ANSWERED lcr/439 11
         asterisk-1240499812.774 102441/54
         TEST
+        >>> p = CDR_Parser (StringIO (line))
+        >>> for cdr in p.iter () :
+        ...     print cdr.db_dst
+        ...     print list (cdr.db_fields ()) [-1]
+        ...     print list (cdr.db_props  ()) [-1]
+        ...     print cdr.db_dict ['amaflags']
+        11
+        calldate
+        2009-04-23 15:16:52
+        3
+        11
+        calldate
+        2009-04-23 15:16:52
+        3
     """
     fields = \
         ( ('accountcode', "What account number to use")

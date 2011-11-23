@@ -43,6 +43,9 @@ The library includes various utility modules used in other projects.
  - grepmime: search for pattern in email attachments (even if these are
    encoded)
  - HTML_Parse for opening and parsing URLs
+ - inductance: Inductance calculation of air-cored cylindrical
+   flat-winded coil according to Robert Weaver
+   http://electronbunker.sasktelwebsite.net
  - IP4_Address: IP v4 Addresses with subnet masking
  - iter_recipes: magic with iterators
  - lcr: model the status of Linux Call Router ISDN lines.
@@ -105,6 +108,16 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.20: Not announced on freshmeat
+
+Database value output for ast_cdr, added inductance calculation.
+
+ - ast_cdr: Add methods for database values of CDR records -- database
+   values of CDRs are different, they don't include start, end, answer
+   time-stamps but instead only a calldate, in addition the amaflags are
+   numerical in the database.
+ - added inductance calculation
 
 Version 0.19: Not announced on freshmeat
 

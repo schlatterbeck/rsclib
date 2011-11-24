@@ -160,5 +160,9 @@ def induction (d, n, diameter, l = 0, pitch = 0) :
 
 if __name__ == "__main__" :
     import sys
+    if len (sys.argv) != 5 :
+        print >> sys.stderr \
+            , "Usage: %s diameter windings wirediameter pitch" % sys.argv [0]
+        sys.exit (23)
     args = [float (i) for i in sys.argv [1:]]
     print induction (*args [:3], pitch = args [3])

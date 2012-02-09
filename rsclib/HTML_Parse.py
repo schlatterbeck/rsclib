@@ -167,12 +167,12 @@ class Page_Tree (autosuper) :
 
     def as_string (self, n = None, indent = 0, with_text = False) :
         """ Return given node (default root) as a string """
-        return self.tree (n, indent, with_text)
+        return self.tree.as_string (n, indent, with_text)
     # end def as_string
 
     def tree_as_string (self, n = None, indent = 0, with_text = False) :
         """ Return tree starting at given node n (default root) to string """
-        return self.tree (n, indent, with_text)
+        return self.tree.tree_as_string (n, indent, with_text)
     # end def tree_as_string
 
     def convert_to_html (self) :
@@ -186,7 +186,7 @@ class Page_Tree (autosuper) :
 
     def get_text (self, node = None, strip = True) :
         """ Return all text below starting node n (default root) """
-        return self.tree (node, strip)
+        return self.tree.get_text (node, strip)
     # end def get_text
 
     def parse (self) :

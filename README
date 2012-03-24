@@ -109,6 +109,18 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.21: TODO
+
+Fix autosuper: allow to inherit from non-autosuper classes
+
+ - Since python2.6 constructor of "object" do not allow parameters, so
+   we need to strip these when doing the upcall from autosuper. This
+   fails when e.g. inheriting from a non-autosuper enabled class, e.g.,
+   class (With_Autosuper, dict)
+   in that case dict would get empty parameters. New implementation
+   finds out if our upcall is to "object", only in that case strip
+   parameters.
+
 Version 0.20: Not announced on freshmeat
 
 Database value output for ast_cdr, added inductance calculation.

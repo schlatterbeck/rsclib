@@ -13,6 +13,9 @@ class _autosuper (type) :
 class autosuper (object) :
     __metaclass__ = _autosuper
     def __init__ (self, *args, **kw) :
-        self.__super.__init__ ()
+        if self.__super.__init__.__objclass__ is object :
+            self.__super.__init__ ()
+        else :
+            self.__super.__init__ (*args, **kw)
     # end def __init__
 # end class autosuper

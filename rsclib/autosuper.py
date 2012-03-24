@@ -11,7 +11,24 @@ class _autosuper (type) :
 # end class _autosuper
 
 class autosuper (object) :
+    """ Test new autsuper magic
+    >>> from autosuper import autosuper
+    >>> class X (autosuper, dict) :
+    ...     def __init__ (self, *args, **kw) :
+    ...         return self.__super.__init__ (*args, **kw)
+    ...
+    >>> X((x,1) for x in range(3))
+    {0: 1, 1: 1, 2: 1}
+    >>> class Y (autosuper) :
+    ...     def __repr__ (self) :
+    ...         return "class Y"
+    ...
+    >>> Y((x,1) for x in range(23))
+    class Y
+    """
+
     __metaclass__ = _autosuper
+
     def __init__ (self, *args, **kw) :
         if self.__super.__init__.__objclass__ is object :
             self.__super.__init__ ()

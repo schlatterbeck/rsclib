@@ -419,17 +419,17 @@ class Call_Manager (object) :
                 if actionid and actionid in self.open_calls :
                     call = self.open_calls [actionid]
                     call.set_id (event)
-                    new_unhandled = []
-                    for e in self.unhandled :
-                        if not self._handle_queued_event (e) :
-                            new_unhandled.append (e)
-                    self.unhandled = new_unhandled
     # end def queue_handler
 
     def register (self, call) :
         """ Called when one of our calls knows its callid. """
         assert (call.callid not in self.open_by_id)
         self.open_by_id [call.callid] = call
+        new_unhandled = []
+        for e in self.unhandled :
+            if not self._handle_queued_event (e) :
+                new_unhandled.append (e)
+        self.unhandled = new_unhandled
     # end def register
 
     __del__ = close

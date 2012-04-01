@@ -75,7 +75,7 @@ class LCR_Ports (Parser, Exec) :
     re_empty = re.compile (r"^$")
     re_start = re.compile (r"^([0-9-a-zA-Z]+):\s*$")
     re_param = re.compile (r"\s+([-a-z0-9 ]*[a-zA-Z0-9])\s+=\s+(.*)$")
-    re_port  = re.compile (r'^([0-9]+)\s+"([^"]+)"')
+    re_port  = re.compile (r'^([0-9]+)\s+"([^"]*)"')
 
     #       State   Pattern   new State Action
     matrix = \

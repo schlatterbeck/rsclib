@@ -63,6 +63,9 @@ class Config (Config_File) :
 
 class Call (object) :
     """
+    A note on the account (account-code in asterisk) parameter: This
+    asumes that we generate a unique account code using the RANDOMID
+    feature of Call_Manager.
     >>> class Manager :
     ...     def register (*args, **kw) :
     ...         print "register"
@@ -93,7 +96,7 @@ class Call (object) :
     >>> bool (c)
     True
     >>> m = Manager()
-    >>> c = Call (m, '00000007', '1333330442.4619', '', 'linecheck')
+    >>> c = Call (m, '00000007','1333330442.4619','','linecheck','1588267611')
     register
     >>> e1 = Event ({'AccountCode': '', 'Uniqueid': '1333330442.4619'
     ...            , 'ChannelState': '1', 'Exten': '', 'CallerIDNum': ''
@@ -190,6 +193,23 @@ class Call (object) :
     >>> c.append (e4)
     >>> c.append (e5)
     >>> c.append (e6)
+    >>> c.append (e7)
+    >>> c.append (e8)
+    >>> c.append (e9)
+    >>> c.append (eA)
+    >>> c.append (eB)
+    >>> c.append (eC)
+    >>> c.append (eD)
+    >>> bool (c)
+    True
+    >>> c = Call (m, '00000007', '1333330442.4619', '', 'linecheck')
+    register
+    >>> c.append (e1)
+    >>> c.append (e2)
+    >>> c.append (e3)
+    >>> c.append (e4)
+    >>> c.append (e5)
+    >>> c.append (e6)
     >>> c.append (e9)
     >>> c.append (eC)
     >>> c.append (eD)
@@ -204,12 +224,14 @@ class Call (object) :
         , uniqueid  = None
         , caller_id = None
         , context   = None
+        , account   = None
         ) :
         self.manager          = call_manager
         self.actionid         = actionid
         self.uniqueid         = None
         self.caller_id        = caller_id
         self.context          = context
+        self.account          = account
         self.callid           = None
         self.min_seqno        = None
         self.events           = []
@@ -252,6 +274,15 @@ class Call (object) :
             self.context_by_chan [chan] = {}
         self.context_by_chan [chan][self.event.headers ['Context']] = True
     # end def handle_context
+
+    def handle_NewAccountCode (self) :
+        if not self.account :
+            return
+        account = self.event.headers.get ('AccountCode')
+        if account == self.account :
+            self.sure     = True
+            self.uniqueid = self.id
+    # end def handleNewAccountCode
 
     def handle_Hangup (self) :
         del self.uids [self.id]
@@ -315,11 +346,13 @@ class Call (object) :
             return
         if self.seqno_seen :
             if self.seqno == self.seqno_seen :
-                self.sure = True
+                self.sure     = True
+                self.uniqueid = self.id
             else :
                 self.sure = None
         else :
             self.seqno_seen = self.seqno
+            self.uniqueid   = self.id
             self.sure       = True
         self.handle_context ()
     # end def handle_OriginateResponse
@@ -348,7 +381,11 @@ class Call (object) :
     # end def set_id
 
     def __nonzero__ (self) :
-        return bool (not self.uids_seen or self.uids)
+        if not self.uids_seen :
+            return True
+        if self.sure :
+            return self.uniqueid in self.uids
+        return bool (self.uids)
     # end def __nonzero__
 # end class Call
 
@@ -478,6 +515,7 @@ class Call_Manager (object) :
             , uniqueid
             , caller_id = kw.get ('caller_id')
             , context   = kw.get ('context')
+            , account   = [None, kw.get ('account')] [random_account]
             )
         if result.headers.get ('Response') == 'Error' :
             call.causetext = result.headers.get ('Message') or 'Unknown error'

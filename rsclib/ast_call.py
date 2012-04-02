@@ -280,8 +280,9 @@ class Call (object) :
             return
         account = self.event.headers.get ('AccountCode')
         if account == self.account :
-            self.sure     = True
-            self.uniqueid = self.id
+            self.sure       = True
+            self.uniqueid   = self.id
+            self.seqno_seen = self.seqno
     # end def handleNewAccountCode
 
     def handle_Hangup (self) :

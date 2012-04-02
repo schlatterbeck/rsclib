@@ -111,7 +111,8 @@ Changes
 
 Version 0.21: TODO
 
-Fix autosuper: allow to inherit from non-autosuper classes
+Fix autosuper: allow to inherit from non-autosuper classes, some small
+fixes to ast_call and lcr parser.
 
  - Since python2.6 constructor of "object" do not allow parameters, so
    we need to strip these when doing the upcall from autosuper. This
@@ -120,6 +121,10 @@ Fix autosuper: allow to inherit from non-autosuper classes
    in that case dict would get empty parameters. New implementation
    finds out if our upcall is to "object", only in that case strip
    parameters.
+ - ast_call now processes all queued unhandled events when a call is
+   matched.
+ - update regression test for ast_call.Call
+ - lcr parser: fix regex, port can have an empty name.
 
 Version 0.20: Not announced on freshmeat
 

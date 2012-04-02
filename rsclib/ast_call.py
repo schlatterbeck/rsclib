@@ -92,6 +92,109 @@ class Call (object) :
     >>> c.append (e)
     >>> bool (c)
     True
+    >>> m = Manager()
+    >>> c = Call (m, '00000007', '1333330442.4619', '', 'linecheck')
+    register
+    >>> e1 = Event ({'AccountCode': '', 'Uniqueid': '1333330442.4619'
+    ...            , 'ChannelState': '1', 'Exten': '', 'CallerIDNum': ''
+    ...            , 'Context': '', 'CallerIDName': '', 'Privilege': 'call,all'
+    ...            , 'Event': 'Newchannel', 'Channel': 'lcr/4590'
+    ...            , 'ChannelStateDesc': 'Rsrvd'
+    ...            })
+    >>> c.append (e1)
+    >>> e2 = Event ({'AccountCode': '1588267611', 'OldAccountCode': ''
+    ...            , 'Uniqueid': '1333330442.4619', 'Privilege': 'call,all'
+    ...            , 'Event': 'NewAccountCode', 'Channel': 'lcr/4590'
+    ...            })
+    >>> c.append (e2)
+    >>> e3 = Event ({'CallerIDNum': '', 'Uniqueid': '1333330442.4619'
+    ...            , 'CallerIDName': '', 'Privilege': 'call,all'
+    ...            , 'CID-CallingPres': '0 (Presentation Allowed, Not Screened)'
+    ...            , 'Event': 'NewCallerid', 'Channel': 'lcr/4590'
+    ...            })
+    >>> c.append (e3)
+    >>> e4 = Event ({'AccountCode': '', 'Uniqueid': '1333330442.4620'
+    ...            , 'ChannelState': '1', 'Exten': '', 'CallerIDNum': ''
+    ...            , 'Context': '', 'CallerIDName': '', 'Privilege': 'call,all'
+    ...            , 'Event': 'Newchannel', 'Channel': 'lcr/4591'
+    ...            , 'ChannelStateDesc': 'Rsrvd'
+    ...            })
+    >>> c.append (e4)
+    >>> e5 = Event ({'ChannelState': '4', 'CallerIDNum': '0268263976'
+    ...            , 'Uniqueid': '1333330442.4620', 'CallerIDName': ''
+    ...            , 'Privilege': 'call,all', 'Event': 'Newstate'
+    ...            , 'Channel': 'lcr/4591', 'ChannelStateDesc': 'Ring'
+    ...            })
+    >>> c.append (e5)
+    >>> e6 = Event ({'ChannelState': '7', 'CallerIDNum': '0268263976'
+    ...            , 'Uniqueid': '1333330442.4620', 'CallerIDName': ''
+    ...            , 'Privilege': 'call,all', 'Event': 'Newstate'
+    ...            , 'Channel': 'lcr/4591', 'ChannelStateDesc': 'Busy'
+    ...            })
+    >>> c.append (e6)
+    >>> e7 = Event ({'AccountCode': '', 'Uniqueid': '1333330442.4621'
+    ...            , 'ChannelState': '1', 'Exten': '', 'CallerIDNum': ''
+    ...            , 'Context': '', 'CallerIDName': '', 'Privilege': 'call,all'
+    ...            , 'Event': 'Newchannel', 'Channel': 'lcr/4592'
+    ...            , 'ChannelStateDesc': 'Rsrvd'
+    ...            })
+    >>> c.append (e7)
+    >>> e8 = Event ({'ChannelState': '4', 'CallerIDNum': '0332243116'
+    ...            , 'Uniqueid': '1333330442.4621', 'CallerIDName': ''
+    ...            , 'Privilege': 'call,all', 'Event': 'Newstate'
+    ...            , 'Channel': 'lcr/4592', 'ChannelStateDesc': 'Ring'
+    ...            })
+    >>> c.append (e8)
+    >>> e9 = Event ({'Cause-txt': 'Normal Clearing'
+    ...            , 'CallerIDNum': '0268263976', 'Uniqueid': '1333330442.4620'
+    ...            , 'CallerIDName': '<unknown>', 'Privilege': 'call,all'
+    ...            , 'Cause': '16', 'Event': 'Hangup', 'Channel': 'lcr/4591'
+    ...            })
+    >>> c.append (e9)
+    >>> eA = Event ({'ChannelState': '6', 'CallerIDNum': '0332243116'
+    ...            , 'Uniqueid': '1333330442.4621', 'CallerIDName': ''
+    ...            , 'Privilege': 'call,all', 'Event': 'Newstate'
+    ...            , 'Channel': 'lcr/4592', 'ChannelStateDesc': 'Up'
+    ...            })
+    >>> c.append (eA)
+    >>> eB = Event ({'Privilege': 'call,all', 'Event': 'MonitorStart'
+    ...            , 'Channel': 'lcr/4592', 'Uniqueid': '1333330442.4621'
+    ...            })
+    >>> c.append (eB)
+    >>> eC = Event ({'Cause-txt': 'User busy', 'CallerIDNum': '<unknown>'
+    ...            , 'Uniqueid': '1333330442.4619', 'CallerIDName': '<unknown>'
+    ...            , 'Privilege': 'call,all', 'Cause': '17', 'Event': 'Hangup'
+    ...            , 'Channel': 'lcr/4590'
+    ...            })
+    >>> c.append (eC)
+    >>> eD = Event (dict ( Event = 'OriginateResponse', Privilege = 'call,all'
+    ...                  , ActionID = 'ruf1lszsrv-00000007'
+    ...                  , Response = 'Failure'
+    ...                  , Channel = 'LCR/Ext1/0268263976'
+    ...                  , Context = 'linecheck'
+    ...                  , Exten = '1'
+    ...                  , Reason = '1'
+    ...                  , Uniqueid = '<null>'
+    ...                  , CallerIDNum = '<unknown>'
+    ...                  , CallerIDName = '<unknown>'
+    ...                  ))
+    >>> c.append (eD)
+    >>> bool (c)
+    False
+    >>> m = Manager()
+    >>> c = Call (m, '00000007', '1333330442.4619', '', 'linecheck')
+    register
+    >>> c.append (e1)
+    >>> c.append (e2)
+    >>> c.append (e3)
+    >>> c.append (e4)
+    >>> c.append (e5)
+    >>> c.append (e6)
+    >>> c.append (e9)
+    >>> c.append (eC)
+    >>> c.append (eD)
+    >>> bool (c)
+    False
     """
 
     def __init__ \
@@ -129,6 +232,9 @@ class Call (object) :
         assert (self.uniqueid)
         self.event = event
         self.id    = event.headers ['Uniqueid']
+        # ignore bogus Uniqueid
+        if self.id == '<null>' :
+            return
         self.events.append (event)
         # ignore calls in progress with lower seqno
         if self.seqno < self.min_seqno :
@@ -198,7 +304,7 @@ class Call (object) :
         chan = self.event.headers ['Channel']
         if chan not in self.state_by_chan :
             self.state_by_chan [chan] = {}
-        for k in 'State', 'ChannelState' :
+        for k in 'State', 'ChannelStateDesc', 'ChannelState' :
             if k in self.event.headers :
                 self.state_by_chan [chan][self.event.headers [k]] = True
                 break

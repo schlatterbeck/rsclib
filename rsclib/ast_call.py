@@ -120,13 +120,13 @@ class Call (object) :
     ...            , 'ChannelStateDesc': 'Rsrvd'
     ...            })
     >>> c.append (e4)
-    >>> e5 = Event ({'ChannelState': '4', 'CallerIDNum': '0268263976'
+    >>> e5 = Event ({'ChannelState': '4', 'CallerIDNum': '0000000000'
     ...            , 'Uniqueid': '1333330442.4620', 'CallerIDName': ''
     ...            , 'Privilege': 'call,all', 'Event': 'Newstate'
     ...            , 'Channel': 'lcr/4591', 'ChannelStateDesc': 'Ring'
     ...            })
     >>> c.append (e5)
-    >>> e6 = Event ({'ChannelState': '7', 'CallerIDNum': '0268263976'
+    >>> e6 = Event ({'ChannelState': '7', 'CallerIDNum': '0000000000'
     ...            , 'Uniqueid': '1333330442.4620', 'CallerIDName': ''
     ...            , 'Privilege': 'call,all', 'Event': 'Newstate'
     ...            , 'Channel': 'lcr/4591', 'ChannelStateDesc': 'Busy'
@@ -146,7 +146,7 @@ class Call (object) :
     ...            })
     >>> c.append (e8)
     >>> e9 = Event ({'Cause-txt': 'Normal Clearing'
-    ...            , 'CallerIDNum': '0268263976', 'Uniqueid': '1333330442.4620'
+    ...            , 'CallerIDNum': '0000000000', 'Uniqueid': '1333330442.4620'
     ...            , 'CallerIDName': '<unknown>', 'Privilege': 'call,all'
     ...            , 'Cause': '16', 'Event': 'Hangup', 'Channel': 'lcr/4591'
     ...            })
@@ -170,7 +170,7 @@ class Call (object) :
     >>> eD = Event (dict ( Event = 'OriginateResponse', Privilege = 'call,all'
     ...                  , ActionID = 'ruf1lszsrv-00000007'
     ...                  , Response = 'Failure'
-    ...                  , Channel = 'LCR/Ext1/0268263976'
+    ...                  , Channel = 'LCR/Ext1/0000000000'
     ...                  , Context = 'linecheck'
     ...                  , Exten = '1'
     ...                  , Reason = '1'

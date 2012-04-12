@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2008-11 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2008-12 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved

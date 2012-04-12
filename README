@@ -125,6 +125,8 @@ fixes to ast_call and lcr parser.
    matched.
  - update regression test for ast_call.Call
  - lcr parser: fix regex, port can have an empty name.
+ - Optimize call matching in ast_call: mark call as closed once we are
+   sure about the uniqueid. Add matching of Account-Code.
 
 Version 0.20: Not announced on freshmeat
 

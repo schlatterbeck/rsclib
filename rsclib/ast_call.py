@@ -580,7 +580,7 @@ class Call_Manager (object) :
     __del__ = close
 
     def __getattr__ (self, name) :
-        if self.manager and not name.startswith ('__') :
+        if name != 'manager' and self.manager and not name.startswith ('__') :
             result = getattr (self.manager, name)
             setattr (self, name, result)
             return result

@@ -381,6 +381,13 @@ class Call (object) :
         self._set_id (uniqueid)
     # end def set_id
 
+    def unregister (self) :
+        """ Unregister this call from the manager (deleting it there).
+            Save memory for long-running call-setup tasks
+        """
+        self.manager.unregister (self)
+    # end def unregister
+
     def __nonzero__ (self) :
         if not self.uids_seen :
             return True
@@ -448,6 +455,7 @@ class Call_Manager (object) :
             Special account code "RANDOMID" will place a (unique) random
             ID into the account-code for matching a call.
         """
+        self.cleanup ()
         vars = \
             { 'SOUND'      : sound      or self.cfg.SOUND
             , 'CALL_DELAY' : call_delay or self.cfg.CALL_DELAY
@@ -479,6 +487,19 @@ class Call_Manager (object) :
             pass
         return None
     # end def call
+
+    def cleanup (self) :
+        """ Clean up unneeded data structures.
+        """
+        if not self.open_calls :
+            if self.open_by_id :
+                self.open_by_id   = {}
+            if self.open_by_chan :
+                self.open_by_chan = {}
+            if self.open_by_acct :
+                self.open_by_acct = {}
+            self.unhandled = []
+    # end def cleanup
 
     def close (self) :
         if self.manager :
@@ -576,6 +597,11 @@ class Call_Manager (object) :
                 new_unhandled.append (e)
         self.unhandled = new_unhandled
     # end def register
+
+    def unregister (self, call) :
+        if not call :
+            del self.closed_calls [call.actionid]
+    # end def unregister
 
     __del__ = close
 

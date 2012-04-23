@@ -128,7 +128,7 @@ class ETree (autosuper) :
             if with_text and node.text :
                 if len (node) :
                     s.append ('    ' * indent)
-                s.append (node.text)
+                s.append (node.text.encode (self.charset))
                 if len (node) :
                     s.append ('\n')
             for n in node :
@@ -139,7 +139,7 @@ class ETree (autosuper) :
         else :
             s.append ("<%s/>\n" % self.as_string (node))
         if with_text and node.tail :
-            s.append (node.tail)
+            s.append (node.tail.encode (self.charset))
             s.append ('\n')
         return ''.join (s)
     # end def pretty

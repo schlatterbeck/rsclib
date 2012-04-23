@@ -52,7 +52,13 @@ class ETree (autosuper) :
     # end def __init__
 
     def as_string \
-        (self, n = None, indent = 0, with_text = False, with_attr = True) :
+        ( self
+        , n         = None
+        , indent    = 0
+        , with_text = False
+        , with_attr = True
+        , encode    = True
+        ) :
         """ Return given node (default root) as a string """
         s = [u"    " * indent]
         if n is None :
@@ -66,7 +72,9 @@ class ETree (autosuper) :
                 s.append (u" TEXT: %s" % n.text)
             if n.tail :
                 s.append (u" TAIL: %s" % n.tail)
-        return ''.join (s).encode (self.charset)
+        if encode :
+            return ''.join (s).encode (self.charset)
+        return ''.join (s)
     # end def as_string
 
     def as_xml (self) :
@@ -112,24 +120,24 @@ class ETree (autosuper) :
         """ Pretty printed XML, default to start at root node """
         if node is None :
             node = self.etree.getroot ()
-        s = [u'    ' * indent]
+        s = ['    ' * indent]
         if len (node) or with_text and node.text :
-            s.append (u"<%s>" % self.as_string (node))
+            s.append ("<%s>" % self.as_string (node))
             if len (node) :
                 s.append ('\n')
             if with_text and node.text :
                 if len (node) :
-                    s.append (u'    ' * indent)
+                    s.append ('    ' * indent)
                 s.append (node.text)
                 if len (node) :
                     s.append ('\n')
             for n in node :
                 s.append (self.pretty (n, indent + 1, with_text))
             if len (node) :
-                s.append (u'    ' * indent)
-            s.append (u"</%s>\n" % self.as_string (node, with_attr = False))
+                s.append ('    ' * indent)
+            s.append ("</%s>\n" % self.as_string (node, with_attr = False))
         else :
-            s.append (u"<%s/>\n" % self.as_string (node))
+            s.append ("<%s/>\n" % self.as_string (node))
         if with_text and node.tail :
             s.append (node.tail)
             s.append ('\n')

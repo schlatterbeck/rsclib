@@ -112,7 +112,7 @@ Changes
 Version 0.21: TODO
 
 Fix autosuper: allow to inherit from non-autosuper classes, some small
-fixes to ast_call and lcr parser.
+fixes to ast_call and lcr parser. Fix ETree pretty-printing.
 
  - Since python2.6 constructor of "object" do not allow parameters, so
    we need to strip these when doing the upcall from autosuper. This
@@ -127,6 +127,8 @@ fixes to ast_call and lcr parser.
  - lcr parser: fix regex, port can have an empty name.
  - Optimize call matching in ast_call: mark call as closed once we are
    sure about the uniqueid. Add matching of Account-Code.
+ - Fix ETree pretty-printing: don't print unicode strings when arguments
+   are already converted
 
 Version 0.20: Not announced on freshmeat
 

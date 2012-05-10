@@ -8,14 +8,14 @@ mu0  = 4e-7 * pi
 eps0 = 1. / (mu0 * c**2)
 
 def cylindrical (l, r1, r2) :
-    return 2 * pi * eps0 * l / log (r2 / r1)
+    return 2 * pi * eps0 * l / log (r2 / float (r1))
 # end def cylindrical
 
-def parallel_plate (l, A) :
-    return eps0 * A / l
-# end def parallel_plate
+def parallel (d, A) :
+    return eps0 * A / float (d)
+# end def parallel
 
 if __name__ == "__main__" :
     import sys
     print c, mu0, eps0
-    print cylindrical (0.109, 0.085, 0.098)
+    print cylindrical (0.109, 0.085 / 2.0, 0.098 / 2.0)

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2010 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2010-2012 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -32,11 +32,14 @@ from rsclib.autosuper import autosuper
 from rsclib.ETree     import ETree
 
 class Freshmeat (ETree) :
-    url = "http://freshmeat.net/projects/%(project)s/%(objname)s.xml"
+    url = "http://freecode.com/projects/%(project)s/%(objname)s.xml"
 
-    """ Class the get or put freshmeat objects.
-        Example is the list of releases for a specific project, e.g.
+    """ Class to get or put freshmeat.net (aka freecode.com) objects.
+        Example is the list of releases for a specific project, see
+        doctest of __init__
     """
+
+    netrc_hosts = ('freecode.com', 'freshmeat.net')
 
     def __init__ \
         ( self
@@ -53,6 +56,7 @@ class Freshmeat (ETree) :
         release
             approved-at type="datetime"
             changelog
+            created-at type="datetime"
             hidden-from-frontpage type="boolean"
             id type="integer"
             version
@@ -62,6 +66,7 @@ class Freshmeat (ETree) :
         <release>
             <approved-at type="datetime">2008-02-28T04:55:33Z</approved-at>
             <changelog>Small documentation changes.</changelog>
+            <created-at type="datetime">2008-02-28T12:55:33Z</created-at>
             <hidden-from-frontpage type="boolean">false</hidden-from-frontpage>
             <id type="integer">272703</id>
             <version>1.1.4477</version>
@@ -73,6 +78,7 @@ class Freshmeat (ETree) :
         <release>
           <approved-at type="datetime">2008-02-28T04:55:33Z</approved-at>
           <changelog>Small documentation changes.</changelog>
+          <created-at type="datetime">2008-02-28T12:55:33Z</created-at>
           <hidden-from-frontpage type="boolean">false</hidden-from-frontpage>
           <id type="integer">272703</id>
           <version>1.1.4477</version>
@@ -96,7 +102,7 @@ class Freshmeat (ETree) :
             self.__super.__init__ (self._put (put))
         else :
             self.__super.__init__ (self._get ())
-    # end def from_file
+    # end def __init__
 
     def _get (self) :
         r    = Request (self.url + '?auth_code=%s' % self.auth_code)
@@ -118,9 +124,13 @@ class Freshmeat (ETree) :
         return tree.etree
     # end def _put
 
-    def get_auth (self, netrc_file = None, netrc_host = 'freshmeat.net') :
+    def get_auth (self, netrc_file = None, netrc_hosts = None) :
+        netrc_hosts = netrc_hosts or self.netrc_hosts
         n = netrc (netrc_file)
-        return n.authenticators (netrc_host)[2]
+        for h in netrc_hosts :
+            auth = n.authenticators (h)
+            if auth :
+                return auth [2]
     # end def get_auth
 # end class Freshmeat
 

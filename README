@@ -109,10 +109,11 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
-Version 0.21: TODO
+Version 0.21: Minor feature enhancements
 
 Fix autosuper: allow to inherit from non-autosuper classes, some small
-fixes to ast_call and lcr parser. Fix ETree pretty-printing.
+fixes to ast_call and lcr parser. Fix ETree pretty-printing. Update
+Freshmeat to new hostname.
 
  - Since python2.6 constructor of "object" do not allow parameters, so
    we need to strip these when doing the upcall from autosuper. This
@@ -129,6 +130,9 @@ fixes to ast_call and lcr parser. Fix ETree pretty-printing.
    sure about the uniqueid. Add matching of Account-Code.
  - Fix ETree pretty-printing: don't print unicode strings when arguments
    are already converted
+ - freshmeat.net now is freecode.com (and the API redirects there),
+   update Freshmeat.py to new hostname (including .netrc credentials
+   with compatibility for old name).
 
 Version 0.20: Not announced on freshmeat
 

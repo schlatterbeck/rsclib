@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2005-10 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-12 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -21,6 +21,38 @@
 
 from rsclib.autosuper import autosuper
 
+mask_bits = \
+    { 0 : 0, 128 : 1, 192 : 2, 224 : 3, 240 : 4, 248 : 5, 252 : 6, 254 : 7 }
+
+def netmask_from_string (s) :
+    """ Convert a netmask in dotted form to number of mask bits
+    >>> netmask_from_string ('255.255.255.224')
+    27
+    >>> netmask_from_string ('0.0.0.0')
+    0
+    >>> netmask_from_string ('255.255.255.255')
+    32
+    >>> netmask_from_string ('255.255.254.0')
+    23
+    """
+    mask = 0
+    zero = False
+    for n, octet in enumerate (s.split ('.'), 3) :
+        v = int (octet)
+        if zero :
+            if v != 0 :
+                raise ValueError, "Invalid Octet: %s in %s" % (octet, s)
+        elif v == 255 :
+            mask += 8
+        elif v in mask_bits :
+            mask += mask_bits [v]
+            zero = True
+        else :
+            raise ValueError, "Invalid Octet: %s in %s" % (octet, s)
+    return mask
+# end def netmask_from_string
+
+
 class IP4_Address (autosuper) :
     """
         IP version 4 Address with optional subnet mask.
@@ -29,6 +61,11 @@ class IP4_Address (autosuper) :
         174328320L
         >>> str (a)
         '10.100.10.0'
+        >>> aa = IP4_Address ('10.36.48.129', '255.255.255.224')
+        >>> aa.mask
+        27L
+        >>> str (aa)
+        '10.36.48.128/27'
         >>> b = IP4_Address ('10.100.10.5', 24)
         >>> b.ip
         174328320L
@@ -144,6 +181,8 @@ class IP4_Address (autosuper) :
     """
 
     def __init__ (self, address, mask = 32L) :
+        if isinstance (mask, str) :
+            mask = netmask_from_string (mask)
         self.mask = long (mask)
         if isinstance (address, str) :
             self._from_string (address)

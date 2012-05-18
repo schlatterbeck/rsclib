@@ -113,7 +113,7 @@ Version 0.21: Minor feature enhancements
 
 Fix autosuper: allow to inherit from non-autosuper classes, some small
 fixes to ast_call and lcr parser. Fix ETree pretty-printing. Update
-Freshmeat to new hostname.
+Freshmeat to new hostname. Add dotted netmaks parsing to IP4_Address.
 
  - Since python2.6 constructor of "object" do not allow parameters, so
    we need to strip these when doing the upcall from autosuper. This
@@ -133,6 +133,7 @@ Freshmeat to new hostname.
  - freshmeat.net now is freecode.com (and the API redirects there),
    update Freshmeat.py to new hostname (including .netrc credentials
    with compatibility for old name).
+ - explicit mask paramter of IP4_Address can now be a dotted netmask.
 
 Version 0.20: Not announced on freshmeat
 

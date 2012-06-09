@@ -249,6 +249,7 @@ class NMAP (autosuper) :
         , ip_map        = {}
         , thresh_open   = None
         , thresh_closed = None
+        , use_paragraph = None
         ) :
         """ Build TeX table of open/closed ports from all nmap objects.
             Table is compressed if several adjacent hosts have the same
@@ -263,11 +264,20 @@ class NMAP (autosuper) :
             Some ip addresses may be explicitly printed with a name by
             specifying the ip/name pair in ip_map. Those explicitly
             named ips are not affected by no_filtered.
+
+            If use_paragraph is specified, we generate a p{length}
+            element for the list of ports instead of "r". The given
+            length is the use_paragraph parameter.
         """
         ret   = []
         ret.append (r"\begin{table}[htb]")
         ret.append (r"\begin{center}")
-        ret.append (r"{\footnotesize\begin{tabular}{r@{.}r@{.}r@{.}r@{}lrr}")
+        para = "r"
+        if use_paragraph :
+            para = "p{%s}" % use_paragraph
+        ret.append (r"{\footnotesize\begin{tabular}{r@{.}r@{.}r@{.}r@{}l%s%s}"
+                   % (para, para)
+                   )
         ret.append (r"\multicolumn{5}{r}{IP-Adresse} &  Open & Closed \\")
         hosts = []
         for nmap in cls.list :
@@ -496,6 +506,12 @@ def main () :
         , help    = "Threshold for summary info of closed ports"
         , type    = float
         )
+    cmd.add_option \
+        ( "--paragraph"
+        , dest    = "paragraph"
+        , help    = "Use paragraph TeX formatting"
+        , default = ""
+        )
     (opt, args) = cmd.parse_args ()
     p = NMAP_Parser (Matrix, verbose = 0)
     if len (args) == 0 :
@@ -519,6 +535,7 @@ def main () :
             , ip_map        = ip_map
             , thresh_open   = opt.thresh_open
             , thresh_closed = opt.thresh_closed
+            , use_paragraph = opt.paragraph
             )
     else :
         for n in NMAP.list :

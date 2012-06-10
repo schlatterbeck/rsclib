@@ -243,13 +243,14 @@ class NMAP (autosuper) :
     @classmethod
     def as_tex \
         ( cls
-        , caption       = None
-        , label         = None
-        , no_filtered   = False
-        , ip_map        = {}
-        , thresh_open   = None
-        , thresh_closed = None
-        , use_paragraph = None
+        , caption          = None
+        , label            = None
+        , no_filtered      = False
+        , ip_map           = {}
+        , thresh_open      = None
+        , thresh_closed    = None
+        , paragraph_open   = None
+        , paragraph_closed = None
         ) :
         """ Build TeX table of open/closed ports from all nmap objects.
             Table is compressed if several adjacent hosts have the same
@@ -265,18 +266,20 @@ class NMAP (autosuper) :
             specifying the ip/name pair in ip_map. Those explicitly
             named ips are not affected by no_filtered.
 
-            If use_paragraph is specified, we generate a p{length}
+            If paragraph_open/_closed are specified, we generate a p{length}
             element for the list of ports instead of "r". The given
-            length is the use_paragraph parameter.
+            length is the paragraph_open/_closed parameter.
         """
         ret   = []
         ret.append (r"\begin{table}[htb]")
         ret.append (r"\begin{center}")
-        para = "r"
-        if use_paragraph :
-            para = "p{%s}" % use_paragraph
+        para_open = para_closed = "r"
+        if paragraph_open :
+            para_open   = "p{%s}" % paragraph_open
+        if paragraph_closed :
+            para_closed = "p{%s}" % paragraph_closed
         ret.append (r"{\footnotesize\begin{tabular}{r@{.}r@{.}r@{.}r@{}l%s%s}"
-                   % (para, para)
+                   % (para_open, para_closed)
                    )
         ret.append (r"\multicolumn{5}{r}{IP-Adresse} &  Open & Closed \\")
         hosts = []
@@ -507,9 +510,15 @@ def main () :
         , type    = float
         )
     cmd.add_option \
-        ( "--paragraph"
-        , dest    = "paragraph"
-        , help    = "Use paragraph TeX formatting"
+        ( "--paragraph-open"
+        , dest    = "paragraph_open"
+        , help    = "Use paragraph TeX formatting for open ports"
+        , default = ""
+        )
+    cmd.add_option \
+        ( "--paragraph-closed"
+        , dest    = "paragraph_closed"
+        , help    = "Use paragraph TeX formatting for closed ports"
         , default = ""
         )
     (opt, args) = cmd.parse_args ()
@@ -529,13 +538,14 @@ def main () :
         ip_map [k] = v
     if opt.as_tex :
         print NMAP.as_tex \
-            ( no_filtered   = opt.no_filtered
-            , label         = opt.label
-            , caption       = opt.caption
-            , ip_map        = ip_map
-            , thresh_open   = opt.thresh_open
-            , thresh_closed = opt.thresh_closed
-            , use_paragraph = opt.paragraph
+            ( no_filtered      = opt.no_filtered
+            , label            = opt.label
+            , caption          = opt.caption
+            , ip_map           = ip_map
+            , thresh_open      = opt.thresh_open
+            , thresh_closed    = opt.thresh_closed
+            , paragraph_open   = opt.paragraph_open
+            , paragraph_closed = opt.paragraph_closed
             )
     else :
         for n in NMAP.list :

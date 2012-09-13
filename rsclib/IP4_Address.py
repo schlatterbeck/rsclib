@@ -184,7 +184,7 @@ class IP4_Address (autosuper) :
         if isinstance (mask, str) :
             mask = netmask_from_string (mask)
         self.mask = long (mask)
-        if isinstance (address, str) :
+        if isinstance (address, (str, unicode)) :
             self._from_string (address)
         else :
             self.ip = long (address)

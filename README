@@ -109,6 +109,11 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.22: Minor feature enhancements
+Allow unicode ip address input
+
+ - Address given to IP4_Address constructor now may be unicode
+
 Version 0.21: Minor feature enhancements
 
 Fix autosuper: allow to inherit from non-autosuper classes, some small

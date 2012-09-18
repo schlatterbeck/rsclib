@@ -110,9 +110,11 @@ Changes
 -------
 
 Version 0.22: Minor feature enhancements
-Allow unicode ip address input
+
+Allow unicode ip address input, hopefully make rsclib installable via pip.
 
  - Address given to IP4_Address constructor now may be unicode
+ - Add download_url to setup.py to make installable via pip
 
 Version 0.21: Minor feature enhancements
 

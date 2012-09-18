@@ -50,7 +50,8 @@ setup \
     , packages         = ['rsclib']
     , platforms        = 'Any'
     , url              = "http://rsclib.sourceforge.net/"
-    , download_url     = "%(download)s/%(VERSION)s/rsclib-%(VERSION)s.tar.gz"
+    , download_url     = \
+        "%(download)s/%(VERSION)s/rsclib-%(VERSION)s.tar.gz" % locals ()
     , classifiers      = \
         [ 'Development Status :: 5 - Production/Stable'
         , 'License :: OSI Approved :: ' + license

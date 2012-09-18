@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2005 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-12 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -37,6 +37,7 @@ for line in f :
     description.append (line)
 
 license     = 'GNU Library or Lesser General Public License (LGPL)'
+download    = 'http://downloads.sourceforge.net/project/rsclib/rsclib'
 
 setup \
     ( name             = "rsclib"
@@ -49,10 +50,12 @@ setup \
     , packages         = ['rsclib']
     , platforms        = 'Any'
     , url              = "http://rsclib.sourceforge.net/"
+    , download_url     = "%(download)s/%(VERSION)s/rsclib-%(VERSION)s.tar.gz"
     , classifiers      = \
-        [ 'Development Status :: 3 - Alpha'
+        [ 'Development Status :: 5 - Production/Stable'
         , 'License :: OSI Approved :: ' + license
         , 'Operating System :: OS Independent'
         , 'Programming Language :: Python'
+        , 'Intended Audience :: Developers'
         ]
     )

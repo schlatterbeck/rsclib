@@ -61,6 +61,9 @@ class IP4_Address (autosuper) :
         174328320L
         >>> str (a)
         '10.100.10.0'
+        >>> a = IP4_Address (u'10.100.10.0')
+        >>> str (a)
+        '10.100.10.0'
         >>> aa = IP4_Address ('10.36.48.129', '255.255.255.224')
         >>> aa.mask
         27L
@@ -184,7 +187,7 @@ class IP4_Address (autosuper) :
         if isinstance (mask, str) :
             mask = netmask_from_string (mask)
         self.mask = long (mask)
-        if isinstance (address, (str, unicode)) :
+        if isinstance (address, basestring) :
             self._from_string (address)
         else :
             self.ip = long (address)

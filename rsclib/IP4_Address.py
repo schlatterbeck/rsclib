@@ -181,6 +181,17 @@ class IP4_Address (autosuper) :
         [10.100.0.0, 10.100.0.0/16, 10.100.0.0/16, 10.100.0.0/16, 10.100.10.0, 10.100.10.0/24, 10.100.10.2]
         >>> IP4_Address ('108.62.8.0/21').netblk ()
         [108.62.8.0, 108.62.15.255]
+        >>> for i in IP4_Address ('10.23.5.0/30').subnets () :
+        ...     print i
+        10.23.5.0
+        10.23.5.1
+        10.23.5.2
+        10.23.5.3
+        >>> i1 = IP4_Address ('10.23.5.5/24')
+        >>> i2 = IP4_Address ('10.23.5.6/24')
+        >>> d = dict.fromkeys ((i1, i2))
+        >>> d
+        {10.23.5.0/24: None}
     """
 
     def __init__ (self, address, mask = 32L) :
@@ -249,6 +260,11 @@ class IP4_Address (autosuper) :
         return self.__class__ (0xFFFFFFFF & self.bitmask)
     # end def subnet_mask
 
+    def subnets (self) :
+        for i in xrange (self.ip, self.netblk () [1].ip + 1) :
+            yield IP4_Address (i)
+    # end def subnets
+
     netmask = subnet_mask
 
     __contains__ = contains
@@ -265,6 +281,7 @@ class IP4_Address (autosuper) :
         return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
     # end def __cmp__
 
+
     def __repr__ (self) :
         ret = self.dotted ()
         if self.mask != 32 :
@@ -272,7 +289,8 @@ class IP4_Address (autosuper) :
         return ret
     # end def __repr__
 
-    __str__ = __repr__
+    __str__  = __repr__
+    __hash__ = __str__.__hash__
 
     def _from_string (self, address) :
         xadr = address.split ('/', 1)

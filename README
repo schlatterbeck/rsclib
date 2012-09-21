@@ -109,6 +109,15 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.23: Minor feature enhancements
+
+IP4_Address can now be put in a dict, add a subnets iterator for
+IP4_Address.
+
+ - Add __hash__ for IP4_Address
+ - The new subnets iterator for IP4_Address iterates over all IPs in a
+   subnet.
+
 Version 0.22: Minor feature enhancements
 
 Allow unicode ip address input, hopefully make rsclib installable via pip.

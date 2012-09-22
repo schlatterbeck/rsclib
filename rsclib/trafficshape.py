@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-from operator           import or_
-from rsclib.autosuper   import autosuper
-from rsclib.execute     import Exec
-from rsclib.IP4_Address import IP4_Address
+from operator          import or_
+from rsclib.autosuper  import autosuper
+from rsclib.execute    import Exec
+from rsclib.IP_Address import IP4_Address
 
 class Major_Counter (autosuper) :
     def __init__ (self, value = 0) :

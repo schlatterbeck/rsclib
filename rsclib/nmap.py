@@ -3,7 +3,7 @@
 from re                  import compile as rc
 from rsclib.autosuper    import autosuper
 from rsclib.stateparser  import Parser
-from rsclib.IP4_Address  import IP4_Address
+from rsclib.IP_Address   import IP4_Address
 from rsclib.iter_recipes import pairwise, ranges
 
 re_addr  =     r"([a-zA-Z0-9.-]+)( \(([a-zA-Z0-9.-]+)\))?"

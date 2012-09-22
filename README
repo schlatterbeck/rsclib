@@ -46,7 +46,7 @@ The library includes various utility modules used in other projects.
  - inductance: Inductance calculation of air-cored cylindrical
    flat-winded coil according to Robert Weaver
    http://electronbunker.sasktelwebsite.net
- - IP4_Address: IP v4 Addresses with subnet masking
+ - IP_Address: IP v4 and v6 Addresses with subnet masking
  - iter_recipes: magic with iterators
  - lcr: model the status of Linux Call Router ISDN lines.
  - ldap_lib: some routines for common ldap tasks including an iterator
@@ -114,10 +114,11 @@ Version 0.23: Minor feature enhancements
 IP4_Address can now be put in a dict, add a subnets iterator for
 IP4_Address. Factor IP_Address and add IP6_Address
 
- - Add __hash__ for IP4_Address
- - The new subnets iterator for IP4_Address iterates over all IPs in a
-   subnet.
+ - Add __hash__ for IP_Address
+ - The new subnets iterator for IP_Address iterates over all IPs in a
+   subnet. Optionally a netmask can be specified.
  - Support for IPv6 addresses
+ - rename IP4_Address to IP_Address
 
 Version 0.22: Minor feature enhancements
 

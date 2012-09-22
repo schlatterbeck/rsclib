@@ -337,7 +337,7 @@ class IP4_Address (IP_Address) :
     bitlen = 32L
 
     def __init__ (self, address, mask = bitlen) :
-        if isinstance (mask, basestring) :
+        if isinstance (mask, basestring) and len (mask) > 3 :
             mask = netmask_from_string (mask)
         self.__super.__init__ (address, mask)
     # end def __init__

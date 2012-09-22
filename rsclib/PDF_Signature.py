@@ -20,7 +20,7 @@
 # ****************************************************************************
 
 import os
-import sha
+from hashlib               import sha1
 from base64                import b64decode, encodestring
 from itertools             import islice
 from pyPdf                 import PdfFileReader
@@ -93,7 +93,7 @@ class PDF_Signature :
         IS   = TFL.Interval_Set
         NI   = TFL.Numeric_Interval
         iv   = IS (NI (0, len (self.contents) - 1))
-        hash = sha.new ()
+        hash = sha1 ()
         for start, length in grouper (2, sig ['/ByteRange']) :
             iv = iv.difference (IS (NI (start, start + length - 1)))
             hash.update (self.contents [start : start + length])

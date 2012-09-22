@@ -22,7 +22,10 @@
 from os                              import unlink, fdopen, popen
 from urllib                          import urlopen
 from tempfile                        import mkstemp
-from elementtree.ElementTree         import ElementTree
+try :
+    from xml.etree.ElementTree import ElementTree
+except ImportError :
+    from elementtree.ElementTree import ElementTree
 from elementtidy.TidyHTMLTreeBuilder import TidyHTMLTreeBuilder
 from rsclib.HTML_Parse               import Page_Tree
 

@@ -1,5 +1,5 @@
 LASTRELEASE:=$(shell ../svntools/lastrelease -n)
-RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP4_Address.py \
+RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP_Address.py \
     HTML_Parse.py PDF_Parse.py TeX_CSV_Writer.py
 VERSIONPY=rsclib/Version.py
 VERSION=$(VERSIONPY)

@@ -112,11 +112,12 @@ Changes
 Version 0.23: Minor feature enhancements
 
 IP4_Address can now be put in a dict, add a subnets iterator for
-IP4_Address.
+IP4_Address. Factor IP_Address and add IP6_Address
 
  - Add __hash__ for IP4_Address
  - The new subnets iterator for IP4_Address iterates over all IPs in a
    subnet.
+ - Support for IPv6 addresses
 
 Version 0.22: Minor feature enhancements
 

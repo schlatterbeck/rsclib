@@ -52,12 +52,119 @@ def netmask_from_string (s) :
     return mask
 # end def netmask_from_string
 
+class IP_Address (autosuper) :
 
-class IP4_Address (autosuper) :
+    bitlen = None
+
+    def __init__ (self, address, mask = None) :
+        if mask is None :
+            mask = self.bitlen
+        self.mask = long (mask)
+        if isinstance (address, basestring) :
+            xadr = address.split ('/', 1)
+            if len (xadr) > 1 :
+                self.mask = min (self.mask, long (xadr [1]))
+            self._from_string (xadr [0])
+        else :
+            self.ip = long (address)
+        if self.ip >= (1L << self.bitlen) :
+            raise ValueError, "Invalid ip: %s" % address
+        if self.mask > self.bitlen :
+            raise ValueError, "Invalid mask: %s" % self.mask
+        self.bitmask = ((1L << self.mask) - 1L) << (self.bitlen - self.mask)
+        self.invmask = (~self.bitmask) & ((1L << self.bitlen) - 1)
+        self.ip &= self.bitmask
+    # end def __init__
+
+    def contains (self, other) :
+        return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
+    # end def contains
+
+    @property
+    def _broadcast (self) :
+        return self.ip | self.invmask
+    # end def _broadcast
+
+    @property
+    def broadcast_address (self) :
+        return self.__class__ (self._broadcast)
+    # end def broadcast_address
+
+    broadcast = broadcast_address
+
+    @property
+    def net (self) :
+        return self.__class__ (self.ip)
+    # end def net
+    
+    network = net
+
+    @property
+    def netblk (self) :
+        return [self.__class__ (x) for x in (self.ip, self._broadcast)]
+    # end def netblk
+
+    @property
+    def subnet_mask (self) :
+        return self.__class__ (self.bitmask)
+    # end def subnet_mask
+
+    netmask = subnet_mask
+
+    def overlaps (self, other) :
+        return \
+            (  self.ip &  self.bitmask == other.ip &  self.bitmask
+            or self.ip & other.bitmask == other.ip & other.bitmask
+            )
+    # end def overlaps
+
+    def subnets (self, mask = None) :
+        if mask is None :
+            mask = self.bitlen
+        inc = 1 << (self.bitlen - mask)
+        if mask < self.mask :
+            raise StopIteration
+        for i in xrange (self.ip, self._broadcast + 1, inc) :
+            yield self.__class__ (i, mask)
+    # end def subnets
+
+    def __cmp__ (self, other) :
+        return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
+    # end def __cmp__
+
+    __contains__ = contains
+
+    def __eq__ (self, other) :
+        return self.ip == other.ip and self.mask == other.mask
+    # end def __eq__
+
+    def __hash__ (self) :
+        return str (self).__hash__ ()
+    # end def __hash__
+
+    __iter__ = subnets
+
+    def __len__ (self) :
+        return self._broadcast - self.ip + 1
+    # end def __len__
+
+    def __ne__ (self, other) :
+        return not self == other
+    # end def __ne__
+
+    # dangerous, put last to avoid conflict with built-in len
+    # we keep this for compatibility with IPy
+    len = __len__
+
+# end def IP_Address
+
+class IP4_Address (IP_Address) :
     """
         IP version 4 Address with optional subnet mask.
         >>> a = IP4_Address ('10.100.10.0')
         >>> a.ip
+        174328320L
+        >>> a._broadcast
         174328320L
         >>> str (a)
         '10.100.10.0'
@@ -74,13 +181,13 @@ class IP4_Address (autosuper) :
         174328320L
         >>> str (b)
         '10.100.10.0/24'
-        >>> b.subnet_mask ()
+        >>> b.subnet_mask
         255.255.255.0
-        >>> b.netmask ()
+        >>> b.netmask
         255.255.255.0
-        >>> b.broadcast_address ()
+        >>> b.broadcast_address
         10.100.10.255
-        >>> b.broadcast ()
+        >>> b.broadcast
         10.100.10.255
         >>> b
         10.100.10.0/24
@@ -105,13 +212,13 @@ class IP4_Address (autosuper) :
         174325760L
         >>> str (d)
         '10.100.0.0/16'
-        >>> str (d.subnet_mask ())
+        >>> str (d.subnet_mask)
         '255.255.0.0'
-        >>> print d.subnet_mask ()
+        >>> print d.subnet_mask
         255.255.0.0
-        >>> d.broadcast_address ()
+        >>> d.broadcast_address
         10.100.255.255
-        >>> d.net ()
+        >>> d.net
         10.100.0.0
         >>> e = IP4_Address ('10.100.0.0')
         >>> e.ip
@@ -179,14 +286,37 @@ class IP4_Address (autosuper) :
         'u32 (u32 0x0a283800 0xfffffc00 at 0x10)'
         >>> list (sorted ((a, b, c, d, e, f, g)))
         [10.100.0.0, 10.100.0.0/16, 10.100.0.0/16, 10.100.0.0/16, 10.100.10.0, 10.100.10.0/24, 10.100.10.2]
-        >>> IP4_Address ('108.62.8.0/21').netblk ()
+        >>> IP4_Address ('108.62.8.0/21').netblk
         [108.62.8.0, 108.62.15.255]
-        >>> for i in IP4_Address ('10.23.5.0/30').subnets () :
+        >>> i5 = IP4_Address ('10.23.5.0/30')
+        >>> print "0x%X" % i5.bitmask
+        0xFFFFFFFC
+        >>> len (i5)
+        4
+        >>> i5.len ()
+        4L
+        >>> i5._broadcast
+        169280771L
+        >>> i5.netblk
+        [10.23.5.0, 10.23.5.3]
+        >>> for i in i5 :
         ...     print i
         10.23.5.0
         10.23.5.1
         10.23.5.2
         10.23.5.3
+        >>> for i in i5.subnets () :
+        ...     print i
+        10.23.5.0
+        10.23.5.1
+        10.23.5.2
+        10.23.5.3
+        >>> for i in i5.subnets (24) :
+        ...     print i
+        >>> for i in i5.subnets (31) :
+        ...     print i
+        10.23.5.0/31
+        10.23.5.2/31
         >>> i1 = IP4_Address ('10.23.5.5/24')
         >>> i2 = IP4_Address ('10.23.5.6/24')
         >>> d = dict.fromkeys ((i1, i2))
@@ -194,16 +324,12 @@ class IP4_Address (autosuper) :
         {10.23.5.0/24: None}
     """
 
-    def __init__ (self, address, mask = 32L) :
-        if isinstance (mask, str) :
+    bitlen = 32L
+
+    def __init__ (self, address, mask = bitlen) :
+        if isinstance (mask, basestring) :
             mask = netmask_from_string (mask)
-        self.mask = long (mask)
-        if isinstance (address, basestring) :
-            self._from_string (address)
-        else :
-            self.ip = long (address)
-        self.bitmask = ((1L << self.mask) - 1L) << (32L - self.mask)
-        self.ip &= self.bitmask
+        self.__super.__init__ (address, mask)
     # end def __init__
 
     def as_tc_basic_u32 (self, is_dst = False) :
@@ -217,17 +343,6 @@ class IP4_Address (autosuper) :
             )
     # end def as_tc_basic_u32
 
-    def broadcast_address (self) :
-        mask = ~self.bitmask
-        return self.__class__ (self.ip | mask)
-    # end def broadcast_address
-
-    broadcast = broadcast_address
-
-    def contains (self, other) :
-        return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
-    # end def contains
-
     def dotted (self) :
         ip = self.ip
         r = []
@@ -236,74 +351,33 @@ class IP4_Address (autosuper) :
             ip >>= 8
         return '.'.join (str (k) for k in reversed (r))
     # end def dotted
-
-    def net (self) :
-        return self.__class__ (self.ip & self.bitmask)
-    # end def net
-    
-    network = net
-
-    def netblk (self) :
-        x1 = IP4_Address (self.ip)
-        x2 = IP4_Address (self.ip | ~self.bitmask)
-        return [x1, x2]
-    # end def netblk
-
-    def overlaps (self, other) :
-        return \
-            (  self.ip &  self.bitmask == other.ip &  self.bitmask
-            or self.ip & other.bitmask == other.ip & other.bitmask
-            )
-    # end def overlaps
-
-    def subnet_mask (self) :
-        return self.__class__ (0xFFFFFFFF & self.bitmask)
-    # end def subnet_mask
-
-    def subnets (self) :
-        for i in xrange (self.ip, self.netblk () [1].ip + 1) :
-            yield IP4_Address (i)
-    # end def subnets
-
-    netmask = subnet_mask
-
-    __contains__ = contains
-
-    def __eq__ (self, other) :
-        return self.ip == other.ip and self.mask == other.mask
-    # end def __eq__
-
-    def __ne__ (self, other) :
-        return not self == other
-    # end def __ne__
-
-    def __cmp__ (self, other) :
-        return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
-    # end def __cmp__
-
+    _to_str = dotted
 
     def __repr__ (self) :
-        ret = self.dotted ()
-        if self.mask != 32 :
+        ret = self._to_str ()
+        if self.mask != self.bitlen :
             ret += '/%s' % self.mask
         return ret
     # end def __repr__
 
     __str__  = __repr__
-    __hash__ = __str__.__hash__
 
     def _from_string (self, address) :
-        xadr = address.split ('/', 1)
-        if len (xadr) > 1 :
-            self.mask = min (self.mask, long (xadr [1]))
         n = 0L
-        for octet in xadr [0].split ('.') :
+        for octet in address.split ('.') :
             n <<= 8L
             n  |= long (octet)
         self.ip = n
     # end def _from_string
 
 # end class IP4_Address
+
+class IP6_Address (IP_Address) :
+
+    bitlen = 128L
+
+# end class IP6_Address
+
 
 if __name__ == "__main__" :
 

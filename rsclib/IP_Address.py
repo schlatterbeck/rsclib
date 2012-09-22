@@ -124,8 +124,9 @@ class IP_Address (autosuper) :
         inc = 1 << (self.bitlen - mask)
         if mask < self.mask :
             raise StopIteration
-        for i in xrange (self.ip, self._broadcast + 1, inc) :
-            yield self.__class__ (i, mask)
+        # xrange doesn't support long ints :-(
+        for i in xrange (0, self._broadcast - self.ip + 1, inc) :
+            yield self.__class__ (i + self.ip, mask)
     # end def subnets
 
     def __cmp__ (self, other) :
@@ -151,6 +152,15 @@ class IP_Address (autosuper) :
     def __ne__ (self, other) :
         return not self == other
     # end def __ne__
+
+    def __repr__ (self) :
+        ret = self._to_str ()
+        if self.mask != self.bitlen :
+            ret += '/%s' % self.mask
+        return ret
+    # end def __repr__
+
+    __str__  = __repr__
 
     # dangerous, put last to avoid conflict with built-in len
     # we keep this for compatibility with IPy
@@ -353,15 +363,6 @@ class IP4_Address (IP_Address) :
     # end def dotted
     _to_str = dotted
 
-    def __repr__ (self) :
-        ret = self._to_str ()
-        if self.mask != self.bitlen :
-            ret += '/%s' % self.mask
-        return ret
-    # end def __repr__
-
-    __str__  = __repr__
-
     def _from_string (self, address) :
         n = 0L
         for octet in address.split ('.') :
@@ -373,8 +374,214 @@ class IP4_Address (IP_Address) :
 # end class IP4_Address
 
 class IP6_Address (IP_Address) :
+    """
+        IP version 6 Address with optional subnet mask.
+        >>> a = IP6_Address ("::")
+        >>> a.ip
+        0L
+        >>> a._broadcast
+        0L
+        >>> a = IP6_Address ("::1")
+        >>> a.ip
+        1L
+        >>> a = IP6_Address ("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+        >>> print "%X" % a.ip
+        20010DB885A3000000008A2E03707334
+        >>> print "%X" % IP6_Address ("2001:db8:85a3:0:0:8a2e:370:7334").ip
+        20010DB885A3000000008A2E03707334
+        >>> print "%X" % IP6_Address ("2001:db8:85a3::8a2e:370:7334").ip
+        20010DB885A3000000008A2E03707334
+        >>> print "%X" % IP6_Address ("2001:db8:85a3::").ip
+        20010DB885A300000000000000000000
+        >>> print "%X" % IP6_Address ("::8a2e:370:7334").ip
+        8A2E03707334
+        >>> str (a)
+        '2001:db8:85a3::8a2e:370:7334'
+        >>> b = IP6_Address ('2001:db8:85a3::8a2e:370:7334', 64)
+        >>> print "%X" % b.ip
+        20010DB885A300000000000000000000
+        >>> str (IP6_Address (0x20010DB885A300000000000000000000L))
+        '2001:db8:85a3::'
+        >>> str (b)
+        '2001:db8:85a3::/64'
+        >>> b.subnet_mask
+        ffff:ffff:ffff:ffff::
+        >>> b.netmask
+        ffff:ffff:ffff:ffff::
+        >>> b.broadcast_address
+        2001:db8:85a3::ffff:ffff:ffff:ffff
+        >>> b.broadcast
+        2001:db8:85a3::ffff:ffff:ffff:ffff
+        >>> b
+        2001:db8:85a3::/64
+        >>> b.net
+        2001:db8:85a3::
+        >>> b in b
+        True
+        >>> c = IP6_Address ('2001:db8:85a3::', 48)
+        >>> b in c
+        True
+        >>> c in b
+        False
+        >>> print "%X" % c.ip
+        20010DB885A300000000000000000000
+        >>> str (c)
+        '2001:db8:85a3::/48'
+        >>> d = IP6_Address ('2001:db8:0:0:1:1:0:1')
+        >>> str (d)
+        '2001:db8::1:1:0:1'
+        >>> e = IP6_Address ('2001:db8:0:1:1:0:0:1')
+        >>> str (e)
+        '2001:db8:0:1:1::1'
+        >>> adr = IP6_Address ('2001:db8::')
+        >>> adr in IP6_Address ('2001:db8::', 16)
+        True
+        >>> adr in IP6_Address ('2001:db8::', 24)
+        True
+        >>> adr in IP6_Address ('2001:db8:dead:beef::', 16)
+        True
+        >>> adr in IP6_Address ('2001:db8:dead:beef::', 48)
+        False
+        >>> adr.contains (IP6_Address ('2001:db8:dead:beef::', 48))
+        False
+        >>> f = IP6_Address ('2001:db8:dead:beef::', 48)
+        >>> f.overlaps (f)
+        True
+        >>> f.overlaps (IP6_Address (f.ip, 16))
+        True
+        >>> f = IP6_Address (f.ip, 16)
+        >>> f
+        2001::/16
+        >>> f.overlaps (f)
+        True
+        >>> g = IP6_Address ('2001:db8:dead:beef:1234:5678:9abc:def0')
+        >>> f.overlaps (g)
+        True
+        >>> g.overlaps (g)
+        True
+        >>> g.overlaps (IP6_Address (g.ip + (1 << 96), 32))
+        False
+        >>> g.overlaps (IP6_Address (g.ip + (2 << 96), 32))
+        False
+        >>> print "%x" % g.ip
+        20010db8deadbeef123456789abcdef0
+        >>> print "%x" % g.bitmask
+        ffffffffffffffffffffffffffffffff
+        >>> g
+        2001:db8:dead:beef:1234:5678:9abc:def0
+        >>> g == g
+        True
+        >>> g == f
+        False
+        >>> f
+        2001::/16
+        >>> f == IP6_Address ('2001:db8::')
+        False
+        >>> f.contains (IP6_Address ('2001:db8::'))
+        True
+        >>> f == IP6_Address ('2001:db8::', 16)
+        True
+        >>> list (sorted ((a, b, c, d, e, f, g)))
+        [2001::/16, 2001:db8::1:1:0:1, 2001:db8:0:1:1::1, 2001:db8:85a3::/64, 2001:db8:85a3::/48, 2001:db8:85a3::8a2e:370:7334, 2001:db8:dead:beef:1234:5678:9abc:def0]
+        >>> i5 = IP6_Address ('2001:db8::/126')
+        >>> print "0x%X" % i5.bitmask
+        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC
+        >>> len (i5)
+        4
+        >>> i5.len ()
+        4L
+        >>> print "0x%x" % i5._broadcast
+        0x20010db8000000000000000000000003
+        >>> i5.netblk
+        [2001:db8::, 2001:db8::3]
+        >>> for i in i5 :
+        ...     print i
+        2001:db8::
+        2001:db8::1
+        2001:db8::2
+        2001:db8::3
+        >>> for i in i5.subnets () :
+        ...     print i
+        2001:db8::
+        2001:db8::1
+        2001:db8::2
+        2001:db8::3
+        >>> for i in i5.subnets (24) :
+        ...     print i
+        >>> for i in i5.subnets (127) :
+        ...     print i
+        2001:db8::/127
+        2001:db8::2/127
+        >>> i1 = IP6_Address ('2001:db8::/16')
+        >>> i2 = IP6_Address ('2001:db8:dead:beef::/16')
+        >>> d = dict.fromkeys ((i1, i2))
+        >>> d
+        {2001::/16: None}
+    """
 
     bitlen = 128L
+
+    def _to_str (self) :
+        r    = []
+        ip   = self.ip
+        moff = 0
+        mlen = 0
+        off  = 0
+        l    = 0
+        for i in xrange (8) :
+            v = ip & 0xFFFF
+            r.append ("%x" % v)
+            if v :
+                if l > mlen :
+                    moff = off
+                    mlen = l
+                off = i + 1
+                l   = 0
+            else :
+                l += 1
+            ip >>= 16
+        if l > mlen :
+            moff = off
+            mlen = l
+        repl = ''
+        if moff == 0 or moff + mlen == 8 :
+            repl = ':'
+        if mlen :
+            r [moff : moff + mlen] = [repl]
+        r = ':'.join (reversed (r))
+        return r
+    # end def _to_str
+
+    def _from_string (self, adr) :
+        """ Compute numeric ipv6 address from adr without netmask.
+        """
+        lower = ''
+        upper = adr.split ('::', 1)
+        if len (upper) > 1 :
+            upper, lower = upper
+        else :
+            upper = upper [0]
+
+        value = 0L
+        shift = self.bitlen - 16
+
+        if upper :
+            for v in upper.split (':') :
+                assert (v)
+                v = long (v, 16)
+                value |= v << shift
+                shift -= 16
+        if lower :
+            lv = 0L
+            for v in lower.split (':') :
+                if not v :
+                    raise ValueError, "Invalid address: %s" % adr
+                v = long (v, 16)
+                lv <<= 16
+                lv |=  v
+            value |= lv
+        self.ip = value
+    # end def _from_string
 
 # end class IP6_Address
 

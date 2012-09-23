@@ -569,6 +569,110 @@ class IP6_Address (IP_Address) :
         Traceback (most recent call last):
          ...
         ValueError: Only one '::' allowed
+        >>> IP6_Address ('2001:0db8:85a3:0000:0000:8a2e:0370:7334')
+        2001:db8:85a3::8a2e:370:7334
+        >>> IP6_Address ('2001:db8:85a3:0:0:8a2e:370:7335')
+        2001:db8:85a3::8a2e:370:7335
+        >>> IP6_Address ('2001:db8:85a3::8a2e:370:7336')
+        2001:db8:85a3::8a2e:370:7336
+        >>> IP6_Address ('2001:0db8:0000:0000:0000:0000:1428:57ab')
+        2001:db8::1428:57ab
+        >>> IP6_Address ('2001:0db8:0000:0000:0000::1428:57ac')
+        2001:db8::1428:57ac
+        >>> IP6_Address ('2001:0db8:0:0:0:0:1428:57ad')
+        2001:db8::1428:57ad
+        >>> IP6_Address ('2001:0db8:0:0::1428:57ae')
+        2001:db8::1428:57ae
+        >>> IP6_Address ('2001:0db8::1428:57af')
+        2001:db8::1428:57af
+        >>> IP6_Address ('2001:db8::1428:57b0')
+        2001:db8::1428:57b0
+        >>> IP6_Address ('0000:0000:0000:0000:0000:0000:0000:0001')
+        ::1
+        >>> IP6_Address ('::1')
+        ::1
+        >>> IP6_Address ('::ffff:0c22:384e')
+        ::ffff:c22:384e
+        >>> IP6_Address ('2001:0db8:1234:0000:0000:0000:0000:0000')
+        2001:db8:1234::
+        >>> IP6_Address ('2001:0db8:1234:ffff:ffff:ffff:ffff:ffff')
+        2001:db8:1234:ffff:ffff:ffff:ffff:ffff
+        >>> IP6_Address ('2001:db8:a::123')
+        2001:db8:a::123
+        >>> IP6_Address ('fe80::')
+        fe80::
+        >>> IP6_Address ('::ffff:c000:280')
+        ::ffff:c000:280
+        >>> IP6_Address ('::')
+        ::
+        >>> IP6_Address ('::ffff:12.34.56.78')
+        Traceback (most recent call last):
+         ...
+        ValueError: Hex value too long: 12.34.56.78
+        >>> IP6_Address ('::ffff:192.0.2.128')
+        Traceback (most recent call last):
+         ...
+        ValueError: Hex value too long: 192.0.2.128
+        >>> IP6_Address ('123')
+        Traceback (most recent call last):
+         ...
+        ValueError: Not enough hex parts in address: 123
+        >>> IP6_Address ('ldkfj')
+        Traceback (most recent call last):
+         ...
+        ValueError: Hex value too long: ldkfj
+        >>> IP6_Address ('2001::FFD3::57ab')
+        Traceback (most recent call last):
+         ...
+        ValueError: Only one '::' allowed
+        >>> IP6_Address ('2001:db8:85a3::8a2e:37023:7334')
+        Traceback (most recent call last):
+         ...
+        ValueError: Hex value too long: 37023
+        >>> IP6_Address ('2001:db8:85a3::8a2e:370k:7334')
+        Traceback (most recent call last):
+         ...
+        ValueError: invalid literal for long() with base 16: '370k'
+        >>> IP6_Address ('1::2::3')
+        Traceback (most recent call last):
+         ...
+        ValueError: Only one '::' allowed
+        >>> IP6_Address ('1:::3:4:5')
+        Traceback (most recent call last):
+         ...
+        ValueError: Too many ':': 1:::3:4:5
+        >>> IP6_Address ('1:2:3::4:5:6:7:8:9')
+        Traceback (most recent call last):
+         ...
+        ValueError: Too many hex parts in address: 1:2:3::4:5:6:7:8:9
+        >>> IP6_Address ('::ffff:2.3.4')
+        Traceback (most recent call last):
+         ...
+        ValueError: Hex value too long: 2.3.4
+        >>> IP6_Address ('::ffff:257.1.2.3')
+        Traceback (most recent call last):
+         ...
+        ValueError: Hex value too long: 257.1.2.3
+        >>> IP6_Address ('1.2.3.4')
+        Traceback (most recent call last):
+         ...
+        ValueError: Hex value too long: 1.2.3.4
+        >>> IP6_Address (':aa:aa:aa')
+        Traceback (most recent call last):
+         ...
+        ValueError: No single ':' at start allowed
+        >>> IP6_Address ('aa:aa:aa:')
+        Traceback (most recent call last):
+         ...
+        ValueError: No single ':' at end allowed
+        >>> IP6_Address ('1:2:3:4:5:6:7')
+        Traceback (most recent call last):
+         ...
+        ValueError: Not enough hex parts in address: 1:2:3:4:5:6:7
+        >>> IP6_Address (':::')
+        Traceback (most recent call last):
+         ...
+        ValueError: No ':' at start and end
     """
 
     bitlen = 128L
@@ -596,8 +700,10 @@ class IP6_Address (IP_Address) :
             moff = off
             mlen = l
         repl = ''
-        if moff == 0 or moff + mlen == 8 :
-            repl = ':'
+        if moff == 0 :
+            repl = repl + ':'
+        if moff + mlen == 8 :
+            repl = repl + ':'
         if mlen :
             r [moff : moff + mlen] = [repl]
         r = ':'.join (reversed (r))
@@ -621,8 +727,10 @@ class IP6_Address (IP_Address) :
             raise ValueError, "Only one '::' allowed"
         if len (upper) > 1 :
             upper, lower = upper
+            double_colon = True
         else :
             upper = upper [0]
+            double_colon = False
 
         value = 0L
         shift = self.bitlen - 16
@@ -654,6 +762,8 @@ class IP6_Address (IP_Address) :
             value |= lv
         if count > 8 :
             raise ValueError, "Too many hex parts in address: %s" % adr
+        if not double_colon and count < 8 :
+            raise ValueError, "Not enough hex parts in address: %s" % adr
         self.ip = value
     # end def _from_string
 

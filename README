@@ -111,10 +111,15 @@ Changes
 
 Version 0.24: Minor feature enhancements
 
-Better syntax checks and comparison operators for IP_Address.
+Better syntax checks and comparison operators for IP_Address, bug fixes
+for parser and __str__ for IP_Address.IP6_Address
 
  - IP_Address better syntax checks
  - IP_Address __cmp__ and __eq__ improved for comparison with other types
+ - more regression tests for IP6_Address
+ - bug fixes in __str__ and parser of IP6_Address
+ - support for strict checking of netmask (all bits at right of netmask
+   must be zero if strict_mask is True)
 
 Version 0.23: Minor feature enhancements
 

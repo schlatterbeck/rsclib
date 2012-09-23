@@ -130,12 +130,16 @@ class IP_Address (autosuper) :
     # end def subnets
 
     def __cmp__ (self, other) :
+        if not isinstance (other, self.__class__) :
+            return cmp (type (self), type (other))
         return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
     # end def __cmp__
 
     __contains__ = contains
 
     def __eq__ (self, other) :
+        if not isinstance (other, self.__class__) :
+            return False
         return self.ip == other.ip and self.mask == other.mask
     # end def __eq__
 
@@ -364,11 +368,16 @@ class IP4_Address (IP_Address) :
     _to_str = dotted
 
     def _from_string (self, address) :
-        n = 0L
-        for octet in address.split ('.') :
-            n <<= 8L
-            n  |= long (octet)
-        self.ip = n
+        a = 0L
+        for n, octet in enumerate (address.split ('.')) :
+            a <<= 8L
+            v = long (octet)
+            if not (0 <= v <= 255) :
+                raise ValueError, "Invalid octet: %s" % octet
+            a |= long (octet)
+            if n > 3 :
+                raise ValueError, "Too many octets: %s" % address
+        self.ip = a
     # end def _from_string
 
 # end class IP4_Address
@@ -555,8 +564,18 @@ class IP6_Address (IP_Address) :
     def _from_string (self, adr) :
         """ Compute numeric ipv6 address from adr without netmask.
         """
+        if adr.startswith (':') :
+            if not adr.startswith ('::') :
+                raise ValueError, "No single ':' at start allowed"
+            if adr != '::' and adr.endswith (':') :
+                raise ValueError, "No ':' at start and end"
+        elif adr.endswith (':') :
+            if not adr.endswith ('::') :
+                raise ValueError, "No single ':' at end allowed"
         lower = ''
-        upper = adr.split ('::', 1)
+        upper = adr.split ('::')
+        if len (upper) > 2 :
+            raise ValueError, "Only one '::' allowed"
         if len (upper) > 1 :
             upper, lower = upper
         else :
@@ -565,21 +584,29 @@ class IP6_Address (IP_Address) :
         value = 0L
         shift = self.bitlen - 16
 
+        count = 0
         if upper :
             for v in upper.split (':') :
                 assert (v)
+                if len (v) > 4 :
+                    raise ValueError, "Hex value too long"
                 v = long (v, 16)
                 value |= v << shift
                 shift -= 16
+                count += 1
         if lower :
             lv = 0L
             for v in lower.split (':') :
-                if not v :
-                    raise ValueError, "Invalid address: %s" % adr
+                assert (v)
+                if len (v) > 4 :
+                    raise ValueError, "Hex value too long"
                 v = long (v, 16)
                 lv <<= 16
                 lv |=  v
+                count += 1
             value |= lv
+        if count > 8 :
+            raise ValueError, "Too many hex parts in address"
         self.ip = value
     # end def _from_string
 

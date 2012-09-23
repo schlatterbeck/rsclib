@@ -109,6 +109,13 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.24: Minor feature enhancements
+
+Better syntax checks and comparison operators for IP_Address.
+
+ - IP_Address better syntax checks
+ - IP_Address __cmp__ and __eq__ improved for comparison with other types
+
 Version 0.23: Minor feature enhancements
 
 IP4_Address can now be put in a dict, add a subnets iterator for

@@ -60,17 +60,20 @@ class IP_Address (autosuper) :
         if mask is None :
             mask = self.bitlen
         self.mask = long (mask)
+        if self.mask < 0 or self.mask > self.bitlen :
+            raise ValueError, "Invalid netmask: %s" % self.mask
         if isinstance (address, basestring) :
             xadr = address.split ('/', 1)
             if len (xadr) > 1 :
-                self.mask = min (self.mask, long (xadr [1]))
+                m = long (xadr [1])
+                if m < 0 or m > self.bitlen :
+                    raise ValueError, "Invalid netmask: %s" % m
+                self.mask = min (self.mask, m)
             self._from_string (xadr [0])
         else :
             self.ip = long (address)
         if self.ip >= (1L << self.bitlen) :
             raise ValueError, "Invalid ip: %s" % address
-        if self.mask > self.bitlen :
-            raise ValueError, "Invalid mask: %s" % self.mask
         self.bitmask = ((1L << self.mask) - 1L) << (self.bitlen - self.mask)
         self.invmask = (~self.bitmask) & ((1L << self.bitlen) - 1)
         self.ip &= self.bitmask
@@ -336,6 +339,18 @@ class IP4_Address (IP_Address) :
         >>> d = dict.fromkeys ((i1, i2))
         >>> d
         {10.23.5.0/24: None}
+        >>> IP4_Address ('1.2.3.4/33')
+        Traceback (most recent call last):
+         ...
+        ValueError: Invalid netmask: 33
+        >>> IP4_Address ('256.2.3.4')
+        Traceback (most recent call last):
+         ...
+        ValueError: Invalid octet: 256
+        >>> IP4_Address ('1.2.3.4.5')
+        Traceback (most recent call last):
+         ...
+        ValueError: Too many octets: 1.2.3.4.5
     """
 
     bitlen = 32L
@@ -526,6 +541,34 @@ class IP6_Address (IP_Address) :
         >>> d = dict.fromkeys ((i1, i2))
         >>> d
         {2001::/16: None}
+        >>> IP6_Address ('2001:db8::/129')
+        Traceback (most recent call last):
+         ...
+        ValueError: Invalid netmask: 129
+        >>> IP6_Address ('20001:db8::')
+        Traceback (most recent call last):
+         ...
+        ValueError: Hex value too long: 20001
+        >>> IP6_Address ('1:2:3:4:5:6:7:8:9')
+        Traceback (most recent call last):
+         ...
+        ValueError: Too many hex parts in address: 1:2:3:4:5:6:7:8:9
+        >>> IP6_Address (':1:2:3:4:5:6:7:8')
+        Traceback (most recent call last):
+         ...
+        ValueError: No single ':' at start allowed
+        >>> IP6_Address ('1:2:3:4:5:6:7:8:')
+        Traceback (most recent call last):
+         ...
+        ValueError: No single ':' at end allowed
+        >>> IP6_Address ('1:2:3:4:::6:7:8')
+        Traceback (most recent call last):
+         ...
+        ValueError: Too many ':': 1:2:3:4:::6:7:8
+        >>> IP6_Address ('1:2:4::6::7:8')
+        Traceback (most recent call last):
+         ...
+        ValueError: Only one '::' allowed
     """
 
     bitlen = 128L
@@ -587,26 +630,30 @@ class IP6_Address (IP_Address) :
         count = 0
         if upper :
             for v in upper.split (':') :
-                assert (v)
+                if not v :
+                    raise ValueError, "Too many ':': %s" % adr
                 if len (v) > 4 :
-                    raise ValueError, "Hex value too long"
+                    raise ValueError, "Hex value too long: %s" % v
                 v = long (v, 16)
+                if shift < 0 :
+                    raise ValueError, "Too many hex parts in address: %s" % adr
                 value |= v << shift
                 shift -= 16
                 count += 1
         if lower :
             lv = 0L
             for v in lower.split (':') :
-                assert (v)
+                if not v :
+                    raise ValueError, "Too many ':': %s" % adr
                 if len (v) > 4 :
-                    raise ValueError, "Hex value too long"
+                    raise ValueError, "Hex value too long: %s" % v
                 v = long (v, 16)
                 lv <<= 16
                 lv |=  v
                 count += 1
             value |= lv
         if count > 8 :
-            raise ValueError, "Too many hex parts in address"
+            raise ValueError, "Too many hex parts in address: %s" % adr
         self.ip = value
     # end def _from_string
 

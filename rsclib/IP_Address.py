@@ -56,7 +56,7 @@ class IP_Address (autosuper) :
 
     bitlen = None
 
-    def __init__ (self, address, mask = None) :
+    def __init__ (self, address, mask = None, strict_mask = False) :
         if mask is None :
             mask = self.bitlen
         self.mask = long (mask)
@@ -76,6 +76,8 @@ class IP_Address (autosuper) :
             raise ValueError, "Invalid ip: %s" % address
         self.bitmask = ((1L << self.mask) - 1L) << (self.bitlen - self.mask)
         self.invmask = (~self.bitmask) & ((1L << self.bitlen) - 1)
+        if strict_mask and (self.ip & self.bitmask) != self.ip :
+            raise ValueError, "Bits to right of netmask not zero"
         self.ip &= self.bitmask
     # end def __init__
 
@@ -351,14 +353,18 @@ class IP4_Address (IP_Address) :
         Traceback (most recent call last):
          ...
         ValueError: Too many octets: 1.2.3.4.5
+        >>> IP4_Address ('1.2.4.3/22', strict_mask = True)
+        Traceback (most recent call last):
+         ...
+        ValueError: Bits to right of netmask not zero
     """
 
     bitlen = 32L
 
-    def __init__ (self, address, mask = bitlen) :
+    def __init__ (self, address, mask = bitlen, **kw) :
         if isinstance (mask, basestring) and len (mask) > 3 :
             mask = netmask_from_string (mask)
-        self.__super.__init__ (address, mask)
+        self.__super.__init__ (address, mask, **kw)
     # end def __init__
 
     def as_tc_basic_u32 (self, is_dst = False) :
@@ -673,6 +679,10 @@ class IP6_Address (IP_Address) :
         Traceback (most recent call last):
          ...
         ValueError: No ':' at start and end
+        >>> IP6_Address ('1::2/126', strict_mask = True)
+        Traceback (most recent call last):
+         ...
+        ValueError: Bits to right of netmask not zero
     """
 
     bitlen = 128L

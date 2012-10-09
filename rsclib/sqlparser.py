@@ -93,7 +93,10 @@ class SQL_character (autosuper) :
             return None
         if self.charset == 'utf-8' and self.fix_double_encode :
             if self.re_double.search (s) :
-                return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
+                try :
+                    return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
+                except UnicodeEncodeError :
+                    pass
         return s.decode (self.charset)
     # end def __call__
 
@@ -208,9 +211,10 @@ class SQL_Parser (Parser) :
         , ["table", None,      "table", "table_entry"]
         ]
 
-    def __init__ (self, *args, **kw) :
-        self.contents = {}
-        self.tables   = {}
+    def __init__ (self, fix_double_encode = False, *args, **kw) :
+        self.contents          = {}
+        self.tables            = {}
+        self.fix_double_encode = fix_double_encode
         # remember column names in creation order, should really use an
         # OrderedDict in self.tables but this means at least python2.7
         self.columns  = {}
@@ -260,10 +264,11 @@ class SQL_Parser (Parser) :
             But the dump is in utf-8 anyway (!)
         """
         m = self.re_charset.search (self.line)
-        if 0 :
-            if m :
-                for k in self.table.keys () :
-                    setattr (self.table [k], 'charset', m.group (1))
+        for v in self.table.itervalues () :
+            if 0 and m :
+                v.charset = m.group (1)
+            if self.fix_double_encode :
+                v.fix_double_encode = True
         self.table = None
     # end def table_end
 

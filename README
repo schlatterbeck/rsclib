@@ -67,6 +67,7 @@ The library includes various utility modules used in other projects.
    missing and associated arithmetics.
  - Rational: Implementation of Rational numbers
  - stateparser: Simple state-machine parser class
+ - sqlparser: Parse SQL dumps from postgreSQL and mysql
  - timeout: A simple timeout mechanism using SIGALRM
  - Tex_CSV_Writer: Write CVS files in a syntax that can be parsed by
    TeX. Implements same interface as the csv module. Only implements
@@ -108,6 +109,12 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.25: Minor feature enhancements
+
+Add sqlparser for parsing SQL dumps of PostgreSQL and mysql
+
+ - sqlparser added
 
 Version 0.24: Minor feature enhancements
 

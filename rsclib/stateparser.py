@@ -106,7 +106,7 @@ class State (Debug) :
 
     def append (self, transition) :
         self.transitions.append (transition)
-    # end def add_transition
+    # end def append
 
     def match (self) :
         for t in self.transitions :

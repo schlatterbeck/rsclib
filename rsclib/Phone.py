@@ -39,28 +39,46 @@ class Phone (autosuper) :
     """
 
     area_austria = dict.fromkeys \
-        (('2243', '2245', '2168', '2230', '2572', '2287', '2165', '2256'))
-    nan          = dict.fromkeys (('--', 'n/a', 'keine'))
+        (( '2243'
+         , '2245'
+         , '2168'
+         , '2230'
+         , '2572'
+         , '2287'
+         , '2165'
+         , '2256'
+         , '3137'
+         , '316'
+         , '3456'
+        ))
+    nan          = dict.fromkeys (('--', 'n/a', 'keine', '007'))
     number_types = \
         { '720' : 'Ortsunabhängig'.decode ('latin1')
         , '780' : 'Kovergenter Dienst'.decode ('latin1')
+        , '900' : 'Mehrwertdienst'.decode ('latin1')
         }
     special      = dict.fromkeys \
-        (('650', '660', '664', '676', '680', '681', '688', '699', '720', '780'))
+        (('650', '660', '664', '676', '680', '681', '688', '699'))
+    for k in number_types :
+        special [k] = True
 
     def __init__ (self, number, city = 'Wien', type = 'Festnetz') :
         self.is_valid = False
         self.country_code = self.area_code = self.number = self.desc = None
         if not number :
-            self.is_valid = False
             return
         if number in self.nan :
-            self.is_valid = False
             return
         num = number.replace (' ', '')
+        if num [0] != '0' and num [3] == '-' :
+            num = '0' + num
         num = num.replace ('/', '')
         num = num.replace ('-', '')
+        num = num.replace ('.', '')
         num = num.replace ('(0)', '')
+        num = num.replace ('++', '+')
+        num = num.replace ('(', '')
+        num = num.replace (')', '')
         if num.startswith ('00') :
             cc = self.country_code = num [2:4]
             if cc == '41' and num [4:6] == '76' :
@@ -90,18 +108,24 @@ class Phone (autosuper) :
             self.area_code    = '650' # mobile number for netherlands, really
             self.number       = num [6:]
             self.desc         = 'Mobil'
+            self.is_valid     = True
             return
         elif len (num) == 7 and city.lower ().startswith ('wien') :
             cc   = '43'
             rest = '1' + num
             if type != 'Fax' :
                 type = 'Festnetz'
-        elif num.startswith ('650') and type == 'Mobil' :
+        elif len (num) == 6 and city.lower ().startswith ('graz') :
             cc   = '43'
-            rest = num
+            rest = '316' + num
+            if type != 'Fax' :
+                type = 'Festnetz'
         elif num.startswith ('43') and num [2:5] in self.special :
             cc   = '43'
             rest = num [2:]
+        elif num [0:3] in self.special :
+            cc   = '43'
+            rest = num
         elif '@' in num :
             raise ValueError, "WARN: Email in phone field? %s" % number
         else :
@@ -119,12 +143,18 @@ class Phone (autosuper) :
             if type != 'Fax' :
                 type = 'Festnetz'
             num = rest [4:]
+        elif rest [0:3] in self.area_austria :
+            area   = rest [0:3]
+            if type != 'Fax' :
+                type = 'Festnetz'
+            num = rest [3:]
         else :
             raise ValueError, "Unknown area code: %s" % number
         self.country_code = cc
         self.area_code    = area
         self.number       = num
         self.desc         = type
+        self.is_valid     = True
     # end def __init__
 
     def __str__ (self) :
@@ -137,5 +167,9 @@ class Phone (autosuper) :
         yield self.area_code
         yield self.number
     # end def __iter__
+
+    def __nonzero__ (self) :
+        return self.is_valid
+    # end def __nonzero__
 
 # end class Phone

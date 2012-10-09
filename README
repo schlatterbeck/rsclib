@@ -63,6 +63,7 @@ The library includes various utility modules used in other projects.
  - PDF_Parse for opening and parsing PDFs, needs pdftotext installed
  - PDF_Signature: experimental code for checking signatures on adobe PDF
    documents
+ - Phone: Parse phone numbers (Austria-specific)
  - PM_Value: Possibly missing value, encapsulate a number which may be
    missing and associated arithmetics.
  - Rational: Implementation of Rational numbers
@@ -112,9 +113,11 @@ Changes
 
 Version 0.25: Minor feature enhancements
 
-Add sqlparser for parsing SQL dumps of PostgreSQL and mysql
+Add sqlparser for parsing SQL dumps of PostgreSQL and mysql, add Phone
+to parse phone numbers.
 
  - sqlparser added
+ - Phone added for parsing phone numbers
 
 Version 0.24: Minor feature enhancements
 

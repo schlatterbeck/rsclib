@@ -177,6 +177,7 @@ class SQL_Parser (Parser) :
     re_charset = re.compile (r'CHARSET=([-a-zA-Z0-9]+)')
     re_copy    = re.compile (r'^COPY\s+(\S+)\s\(([^)]+)\) FROM stdin;$')
     re_endtbl  = re.compile (r'^\).*;$')
+    re_func    = re.compile (r'^CREATE FUNCTION ([a-zA-Z0-9]+)\s*\(')
     re_insert  = re.compile \
         (r'INSERT INTO ["`]?([a-z0-9]+)["`]? VALUES \((.*)\);')
     re_table   = re.compile (r'^CREATE TABLE (\S+) \(')
@@ -184,12 +185,16 @@ class SQL_Parser (Parser) :
     matrix = \
         [ ["init",  re_copy,   "copy",  "copy_start"]
         , ["init",  re_insert, "init",  "insert"]
+        , ["init",  re_func,   "func",  None]
         , ["init",  re_table,  "table", "table_start"]
         , ["init",  None,      "init",  None]
-        , ["table", re_endtbl, "init",  "table_end"]
-        , ["table", None,      "table", "table_entry"]
         , ["copy",  '\\.',     "init",  None]
         , ["copy",  None,      "copy",  "copy_entry"]
+        , ["func",  "END;",    "init",  None]
+        , ["func",  "END;$$",  "init",  None]
+        , ["func",  None,      "func",  None]
+        , ["table", re_endtbl, "init",  "table_end"]
+        , ["table", None,      "table", "table_entry"]
         ]
 
     def __init__ (self, *args, **kw) :

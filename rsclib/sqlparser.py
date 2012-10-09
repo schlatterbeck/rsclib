@@ -76,13 +76,24 @@ class SQL_character (autosuper) :
     >>> sq.charset = 'latin1'
     >>> sq ('\xd6ffnungswinkel')
     u'\\xd6ffnungswinkel'
+    >>> sq.charset = 'utf-8'
+    >>> sq.fix_double_encode = True
+    >>> sq ('\xc3\x83\xc2\xa4\xc3\x83\xc2\xb6\xc3\x83\xc2\xbc\xc3\x83'
+    ...     '\xc2\x84\xc3\x83\xc2\x96\xc3\x83\xc2\x9c\xc3\x83\xc2\x9f'
+    ...    )
+    u'\\xe4\\xf6\\xfc\\xc4\\xd6\\xdc\\xdf'
     """
 
     charset = 'utf-8'
+    fix_double_encode = False # enabling this makes sense only for utf-8
+    re_double = re.compile (r'\xc3\x83|\x82\xc2')
 
     def __call__ (self, s) :
         if s == '\\N' or s == 'NULL' :
             return None
+        if self.charset == 'utf-8' and self.fix_double_encode :
+            if self.re_double.search (s) :
+                return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
         return s.decode (self.charset)
     # end def __call__
 

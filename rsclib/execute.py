@@ -45,7 +45,7 @@ class Log (_Named) :
         arguments for setting log_level and log_prefix.
         Use as self.log.debug (msg), self.log.info (msg) etc.
     """
-    logprefix = 'ast-'
+    logprefix = ''
     def __init__ (self, log_level = None, log_prefix = None, *args, **kw) :
         log_prefix = log_prefix or '%s%s' % (self.logprefix, self.clsname)
         self.log_prefix = log_prefix
@@ -100,7 +100,8 @@ class Exec (Log) :
             arg = args [0]
             if shell :
                 arg = args
-            msg = "Nonzero exitcode %s from %s" % (p.returncode, arg)
+            err = ' '.join (stderr.rstrip ().split ('\n'))
+            msg = "Nonzero exitcode %s from %s: %s" % (p.returncode, arg, err)
             self.error (msg)
             for e in stderr.rstrip ().split ('\n') :
                 self.error (e)

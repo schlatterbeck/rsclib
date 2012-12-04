@@ -84,7 +84,7 @@ class Exec (Log) :
     # end def error
 
     def exec_pipe \
-        (self, args, stdin = None, ignore_err = False, shell = False) :
+        ( self, args, stdin = None, ignore_err = False, shell = False) :
         popen_stdin = None
         if stdin is not None :
             popen_stdin = PIPE
@@ -96,11 +96,11 @@ class Exec (Log) :
             , shell  = shell
             )
         stdout, stderr = p.communicate (stdin)
+        self.stderr = err = ' '.join (stderr.rstrip ().split ('\n'))
         if p.returncode != 0 :
             arg = args [0]
             if shell :
                 arg = args
-            err = ' '.join (stderr.rstrip ().split ('\n'))
             msg = "Nonzero exitcode %s from %s: %s" % (p.returncode, arg, err)
             self.error (msg)
             for e in stderr.rstrip ().split ('\n') :

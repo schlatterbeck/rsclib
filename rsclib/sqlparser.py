@@ -82,21 +82,31 @@ class SQL_character (autosuper) :
     ...     '\xc2\x84\xc3\x83\xc2\x96\xc3\x83\xc2\x9c\xc3\x83\xc2\x9f'
     ...    )
     u'\\xe4\\xf6\\xfc\\xc4\\xd6\\xdc\\xdf'
+    >>> sq ('Conrad von H\xc3\x83\xc2\xb6tzendorf Stra\xc3\x83\xc5\xb8e')
+    u'Conrad von H\\xf6tzendorf Stra\\xdfe'
     """
 
     charset = 'utf-8'
     fix_double_encode = False # enabling this makes sense only for utf-8
-    re_double = re.compile (r'\xc3\x83|\x82\xc2')
+    re_double = re.compile (r'\xc3\x83|\x82\xc2|xc5')
 
     def __call__ (self, s) :
         if s == '\\N' or s == 'NULL' :
             return None
         if self.charset == 'utf-8' and self.fix_double_encode :
             if self.re_double.search (s) :
+                # Don't know how these happen -- seen in the wild
+                s = s.replace ('\xc3\x83\xc5\xb8', '\xc3\x83\xc2\x9f')     # ß
+                s = s.replace ('\xc3\x83\xc5\x93', '\xc3\x83\xc2\x9c')     # Ü
+                s = s.replace ('\xc3\x83\xe2\x80\x93', '\xc3\x83\xc2\x96') # Ö
+                s = s.replace \
+                    ( '\xc3\xa2\xe2\x82\xac\xe2\x80\x9c'
+                    , '\xc3\xa2\xc2\x80\xc2\x93'
+                    ) # probably an N-Dash
                 try :
                     return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
                 except UnicodeEncodeError :
-                    pass
+                    print "OOPS: %r" % s
         return s.decode (self.charset)
     # end def __call__
 

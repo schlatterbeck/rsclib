@@ -94,6 +94,8 @@ class SQL_character (autosuper) :
     u'Wei\\xdfgerberl\\xe4nde'
     >>> sq ('M\xc4\x82\xc4\x23ller')
     u'M\\xfcller'
+    >>> sq ('\xc4\x82\xe2\x80\x93')
+    u'\\xd6'
     """
 
     charset = 'utf-8'
@@ -109,6 +111,7 @@ class SQL_character (autosuper) :
                 s = s.replace ('\xc3\x83\xc5\xb8', '\xc3\x83\xc2\x9f')     # ß
                 s = s.replace ('\xc3\x83\xc5\x93', '\xc3\x83\xc2\x9c')     # Ü
                 s = s.replace ('\xc3\x83\xe2\x80\x93', '\xc3\x83\xc2\x96') # Ö
+                s = s.replace ('\xc4\x82\xe2\x80\x93', '\xc3\x83\xc2\x96') # Ö
                 s = s.replace ('\xc4\x82\xc2\xb6', '\xc3\x83\xc2\xb6')     # ö
                 s = s.replace ('\xc4\x82\xc5\xba', '\xc3\x83\xc2\x9f')     # ß
                 s = s.replace ('\xc4\x82\xc2\xa4', '\xc3\x83\xc2\xa4')     # ä

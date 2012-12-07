@@ -92,10 +92,26 @@ class SQL_character (autosuper) :
     u'Sch\\xf6nburgstra\\xdfe'
     >>> sq ('Wei\xc3\x83\xc2\x9fgerberl\xc4\x82\xc2\xa4nde')
     u'Wei\\xdfgerberl\\xe4nde'
-    >>> sq ('M\xc4\x82\xc4\x23ller')
+    >>> sq ('M\xc4\x82\xc4\xbdller')
     u'M\\xfcller'
     >>> sq ('\xc4\x82\xe2\x80\x93')
     u'\\xd6'
+    >>> sq ('M\xc4\x8f\xc5\xbc\xcb\x9dller')
+    u'M\\xfcller'
+    >>> sq ('M\xc4\x8f\xc5\xbc\xcb\x9dller')
+    u'M\\xfcller'
+    >>> sq ('Thaliastra\xc4\x8f\xc5\xbc\xcb\x9de')
+    u'Thaliastra\\xdfe'
+    >>> sq ('F\xc4\x8f\xc5\xbc\xcb\x9dnfhaus')
+    u'F\\xfcnfhaus'
+    >>> sq ('Putzingerstra\xc4\x8f\xc5\xbc\xcb\x9de')
+    u'Putzingerstra\\xdfe'
+    >>> sq ('H\xc4\x8f\xc5\xbc\xcb\x9dtteldorf')
+    u'H\\xfctteldorf'
+    >>> sq ('Hollandstra\xc4\x8f\xc5\xbc\xcb\x9de')
+    u'Hollandstra\\xdfe'
+    >>> sq ('Margareteng\xc4\x8f\xc5\xbc\xcb\x9drtel')
+    u'Margareteng\\xfcrtel'
     """
 
     charset = 'utf-8'
@@ -115,17 +131,34 @@ class SQL_character (autosuper) :
                 s = s.replace ('\xc4\x82\xc2\xb6', '\xc3\x83\xc2\xb6')     # ö
                 s = s.replace ('\xc4\x82\xc5\xba', '\xc3\x83\xc2\x9f')     # ß
                 s = s.replace ('\xc4\x82\xc2\xa4', '\xc3\x83\xc2\xa4')     # ä
-                s = s.replace ('\xc4\x82\xc4\x23', '\xc3\x83\xc2\xbc')     # ü
+                s = s.replace ('\xc4\x82\xc4\xbd', '\xc3\x83\xc2\xbc')     # ü
+                # mangled beyond repair, use context:
+                s = s.replace \
+                    ( 'stra\xc4\x8f\xc5\xbc\xcb\x9de'
+                    , 'stra\xc3\x83\xc2\x9fe'
+                    ) # straße
+                s = s.replace \
+                    ( 'g\xc4\x8f\xc5\xbc\xcb\x9drtel'
+                    , 'g\xc3\x83\xc2\xbcrtel'
+                    ) # gürtel
+                s = s.replace \
+                    ( 'F\xc4\x8f\xc5\xbc\xcb\x9dnfhaus'
+                    , 'F\xc3\x83\xc2\xbcnfhaus'
+                    ) # Fünfhaus
+                s = s.replace \
+                    ( 'M\xc4\x8f\xc5\xbc\xcb\x9dller'
+                    , 'M\xc3\x83\xc2\xbcller'
+                    ) # Müller
+                s = s.replace \
+                    ( 'H\xc4\x8f\xc5\xbc\xcb\x9dttel'
+                    , 'H\xc3\x83\xc2\xbcttel'
+                    ) # Hüttel
                 s = s.replace \
                     ( '\xc3\xa2\xe2\x82\xac\xe2\x80\x9c'
                     , '\xc3\xa2\xc2\x80\xc2\x93'
                     ) # probably an N-Dash
                 try :
                     return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
-                except UnicodeEncodeError :
-                    pass
-                try :
-                    return s.decode ('utf-8').encode ('latin2').decode ('utf-8')
                 except UnicodeEncodeError :
                     print "OOPS: %r" % s
         return s.decode (self.charset)

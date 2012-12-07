@@ -92,11 +92,13 @@ class SQL_character (autosuper) :
     u'Sch\\xf6nburgstra\\xdfe'
     >>> sq ('Wei\xc3\x83\xc2\x9fgerberl\xc4\x82\xc2\xa4nde')
     u'Wei\\xdfgerberl\\xe4nde'
+    >>> sq ('M\xc4\x82\xc4\x23ller')
+    u'M\\xfcller'
     """
 
     charset = 'utf-8'
     fix_double_encode = False # enabling this makes sense only for utf-8
-    re_double = re.compile (r'\xc3\x83|\x82\xc2|xc5')
+    re_double = re.compile (r'\xc3\x83|\x82\xc2|\xc5|\xc4\x82')
 
     def __call__ (self, s) :
         if s == '\\N' or s == 'NULL' :
@@ -110,6 +112,7 @@ class SQL_character (autosuper) :
                 s = s.replace ('\xc4\x82\xc2\xb6', '\xc3\x83\xc2\xb6')     # ö
                 s = s.replace ('\xc4\x82\xc5\xba', '\xc3\x83\xc2\x9f')     # ß
                 s = s.replace ('\xc4\x82\xc2\xa4', '\xc3\x83\xc2\xa4')     # ä
+                s = s.replace ('\xc4\x82\xc4\x23', '\xc3\x83\xc2\xbc')     # ü
                 s = s.replace \
                     ( '\xc3\xa2\xe2\x82\xac\xe2\x80\x9c'
                     , '\xc3\xa2\xc2\x80\xc2\x93'

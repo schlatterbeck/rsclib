@@ -84,6 +84,14 @@ class SQL_character (autosuper) :
     u'\\xe4\\xf6\\xfc\\xc4\\xd6\\xdc\\xdf'
     >>> sq ('Conrad von H\xc3\x83\xc2\xb6tzendorf Stra\xc3\x83\xc5\xb8e')
     u'Conrad von H\\xf6tzendorf Stra\\xdfe'
+    >>> sq ('Josefst\xc4\x82\xc2\xa4dter Stra\xc4\x82\xc5\xbae')
+    u'Josefst\\xe4dter Stra\\xdfe'
+    >>> sq ('Josefst\xc4\x82\xc2\xa4dter Stra\xc3\x83\xc2\x9fe')
+    u'Josefst\\xe4dter Stra\\xdfe'
+    >>> sq ('Sch\xc4\x82\xc2\xb6nburgstra\xc4\x82\xc5\xbae')
+    u'Sch\\xf6nburgstra\\xdfe'
+    >>> sq ('Wei\xc3\x83\xc2\x9fgerberl\xc4\x82\xc2\xa4nde')
+    u'Wei\\xdfgerberl\\xe4nde'
     """
 
     charset = 'utf-8'
@@ -99,12 +107,19 @@ class SQL_character (autosuper) :
                 s = s.replace ('\xc3\x83\xc5\xb8', '\xc3\x83\xc2\x9f')     # ß
                 s = s.replace ('\xc3\x83\xc5\x93', '\xc3\x83\xc2\x9c')     # Ü
                 s = s.replace ('\xc3\x83\xe2\x80\x93', '\xc3\x83\xc2\x96') # Ö
+                s = s.replace ('\xc4\x82\xc2\xb6', '\xc3\x83\xc2\xb6')     # ö
+                s = s.replace ('\xc4\x82\xc5\xba', '\xc3\x83\xc2\x9f')     # ß
+                s = s.replace ('\xc4\x82\xc2\xa4', '\xc3\x83\xc2\xa4')     # ä
                 s = s.replace \
                     ( '\xc3\xa2\xe2\x82\xac\xe2\x80\x9c'
                     , '\xc3\xa2\xc2\x80\xc2\x93'
                     ) # probably an N-Dash
                 try :
                     return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
+                except UnicodeEncodeError :
+                    pass
+                try :
+                    return s.decode ('utf-8').encode ('latin2').decode ('utf-8')
                 except UnicodeEncodeError :
                     print "OOPS: %r" % s
         return s.decode (self.charset)

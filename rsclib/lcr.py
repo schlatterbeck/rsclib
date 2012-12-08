@@ -177,3 +177,5 @@ Int:
 """
     lcr_init (parsestring = output)
     print LCR_Port.by_portnumber
+    for p, v in LCR_Port.by_portnumber.iteritems () :
+        print p, v

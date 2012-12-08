@@ -111,6 +111,15 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.26: Minor feature enhancements
+
+Fix double-utf-8-encoding option for sqlparser. Enhance stderr handling
+for exec_pipe.
+
+ - More detected broken encodings for fix_double_encode option
+ - execute.py: add error message from executed command to message raised
+   by exec_pipe, make stderr output available in non-failing case.
+
 Version 0.25: Minor feature enhancements
 
 Add sqlparser for parsing SQL dumps of PostgreSQL and mysql, add Phone

@@ -111,6 +111,13 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.27: Minor feature enhancements
+
+Add pageurl and pageinfo attributes to HTML_Parser.Page_Tree.
+
+ - Add pageurl and pageinfo attributes to HTML_Parser.Page_Tree storing
+   information retrieved via geturl and info calls from urllib2.
+
 Version 0.26: Minor feature enhancements
 
 Fix double-utf-8-encoding option for sqlparser. Enhance stderr handling

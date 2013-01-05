@@ -147,6 +147,8 @@ class Page_Tree (autosuper) :
         while not f and self.retry < self.retries :
             try :
                 f = op.open (rq) # urlopen
+                self.pageurl  = f.geturl ()
+                self.pageinfo = f.info ()
             except (AttributeError, urllib2.URLError, BadStatusLine) :
                 self.retry += 1
                 continue

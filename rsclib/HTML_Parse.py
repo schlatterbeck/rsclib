@@ -164,7 +164,7 @@ class Page_Tree (autosuper) :
                 self.retry += 1
                 continue
         if self.retry >= self.retries :
-            raise Retries_Exceeded, self.retries
+            raise Retries_Exceeded, (self.retries, self.url)
     # end def __init__
 
     def as_string (self, n = None, indent = 0, with_text = False) :

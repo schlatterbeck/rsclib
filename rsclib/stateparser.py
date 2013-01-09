@@ -24,7 +24,7 @@ import re
 import sys
 from rsclib.autosuper import autosuper
 
-class Parse_Error (StandardError) : pass
+class Parse_Error (ValueError) : pass
 
 class Debug (autosuper) :
     def debug (self, level, * msg) :

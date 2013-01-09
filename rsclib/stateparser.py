@@ -160,7 +160,7 @@ class Parser (Debug) :
             try :
                 self.state  = self.state.match ()
             except StandardError, cause :
-                print >> sys.stderr, "Exception in line %s:" % self.lineno
+                raise Parse_Error, (self.lineno, cause)
                 raise
     # end def parse
 

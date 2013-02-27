@@ -95,6 +95,7 @@ class Page_Tree (autosuper) :
         , password     = None
         , cookies      = None
         , translate    = None
+        , timeout      = None
         , ** kw
         ) :
         if site :
@@ -105,6 +106,7 @@ class Page_Tree (autosuper) :
         self.charset = charset
         self.verbose = verbose
         self.retry   = 0
+        self.timeout = timeout
         self.headers = self.headers # copy from class
         if html_charset :
             self.html_charset = html_charset
@@ -146,7 +148,7 @@ class Page_Tree (autosuper) :
         f  = None
         while not f and self.retry < self.retries :
             try :
-                f = op.open (rq) # urlopen
+                f = op.open (rq, timeout = self.timeout) # urlopen
                 self.pageurl  = f.geturl ()
                 self.pageinfo = f.info ()
             except (AttributeError, urllib2.URLError, BadStatusLine) :

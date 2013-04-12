@@ -135,17 +135,21 @@ class IP_Address (autosuper) :
     # end def subnets
 
     def __cmp__ (self, other) :
-        if not isinstance (other, self.__class__) :
-            return cmp (type (self), type (other))
-        return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
+        if  (  isinstance (other, self.__class__)
+            or isinstance (self, other.__class__)
+            ) :
+            return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
+        return cmp (type (self), type (other))
     # end def __cmp__
 
     __contains__ = contains
 
     def __eq__ (self, other) :
-        if not isinstance (other, self.__class__) :
-            return False
-        return self.ip == other.ip and self.mask == other.mask
+        if  (  isinstance (other, self.__class__)
+            or isinstance (self, other.__class__)
+            ) :
+            return self.ip == other.ip and self.mask == other.mask
+        return False
     # end def __eq__
 
     def __hash__ (self) :

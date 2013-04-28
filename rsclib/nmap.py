@@ -6,44 +6,6 @@ from rsclib.stateparser  import Parser
 from rsclib.IP_Address   import IP4_Address
 from rsclib.iter_recipes import pairwise, ranges
 
-re_addr  =     r"([a-zA-Z0-9.-]+)( \(([a-zA-Z0-9.-]+)\))?"
-re_port  = rc (r"([0-9]+)/(\S+)\s+(\S+)\s+(\S+)")
-re_nmap  = rc (r"Starting Nmap ([0-9.]+) [(][^)]+[)] at (.*)$")
-re_done  = rc (r"Nmap (done|finished): (\d+) IP address[es]* "
-               r"[(](\d+) hosts? ([a-z]+)[)] scanned in ([0-9.]+) seconds"
-              )
-re_intr  = rc (r"Interesting ports on %(re_addr)s:" % locals ())
-re_or    =     r"( \((\d+)\) or ([a-z]+) \((\d+)\))?"
-re_show  = rc (r"Not shown: (\d+) ([a-z]+) ports")
-re_all   = rc ( r"All (\d+) scanned ports on %(re_addr)s are ([a-z]+)%(re_or)s$"
-              % locals ()
-              )
-re_md    =     r"[A-F0-9]{2}"
-re_mac   = rc ( r"MAC Address:\s+((%s:){5}%s)(\s+[(]([^)]+)[)])?"
-              % (re_md, re_md)
-              )
-re_warn  = rc (r"^Warning:(.*)$")
-re_plist = rc (r"PORT +STATE +SERVICE")
-re_empty = rc (r"^$")
-
-#State                  Pattern                new State          Action
-Matrix = \
-[ ["init",            re_nmap,                  "started",     "start"]
-, ["init",            "",                       "init",        None]
-, ["started",         re_intr,                  "interest",    "interest"]
-, ["started",         re_all,                   "mac",         "do_all"]
-, ["started",         re_empty,                 "started",     None]
-, ["started",         re_warn,                  "started",     "warning"]
-, ["started",         re_done,                  "init",        "end"]
-, ["interest",        re_show,                  "interest",    "notshown"]
-, ["interest",        re_plist,                 "portlist",    None]
-, ["mac",             re_mac,                   "started",     "mac"]
-, ["mac",             None,                     "started",     None]
-, ["portlist",        re_port,                  "portlist",    "port"]
-, ["portlist",        re_empty,                 "started",     "pop"]
-, ["portlist",        re_mac,                   "started",     "mac"]
-]
-
 class Port (autosuper) :
     """ A Nmapped port with the protocol, port number, the scanned state
         and the service.
@@ -388,6 +350,45 @@ class NMAP (autosuper) :
 
 class NMAP_Parser (Parser) :
     """ Parses an nmap log (several scans) into a list of NMAP objects """
+    re_addr  =     r"([a-zA-Z0-9.-]+)( \(([a-zA-Z0-9.-]+)\))?"
+    re_port  = rc (r"([0-9]+)/(\S+)\s+(\S+)\s+(\S+)")
+    re_nmap  = rc (r"Starting Nmap ([0-9.]+) [(][^)]+[)] at (.*)$")
+    re_done  = rc (r"Nmap (done|finished): (\d+) IP address[es]* "
+                   r"[(](\d+) hosts? ([a-z]+)[)] scanned in ([0-9.]+) seconds"
+                  )
+    re_intr  = rc (r"Interesting ports on %(re_addr)s:" % locals ())
+    re_or    =     r"( \((\d+)\) or ([a-z]+) \((\d+)\))?"
+    re_show  = rc (r"Not shown: (\d+) ([a-z]+) ports")
+    re_all   = rc ( r"All (\d+) scanned ports on %(re_addr)s "
+                    r"are ([a-z]+)%(re_or)s$"
+                  % locals ()
+                  )
+    re_md    =     r"[A-F0-9]{2}"
+    re_mac   = rc ( r"MAC Address:\s+((%s:){5}%s)(\s+[(]([^)]+)[)])?"
+                  % (re_md, re_md)
+                  )
+    re_warn  = rc (r"^Warning:(.*)$")
+    re_plist = rc (r"PORT +STATE +SERVICE")
+    re_empty = rc (r"^$")
+
+    #State                  Pattern                new State          Action
+    matrix = \
+    [ ["init",            re_nmap,                  "started",     "start"]
+    , ["init",            "",                       "init",        None]
+    , ["started",         re_intr,                  "interest",    "interest"]
+    , ["started",         re_all,                   "mac",         "do_all"]
+    , ["started",         re_empty,                 "started",     None]
+    , ["started",         re_warn,                  "started",     "warning"]
+    , ["started",         re_done,                  "init",        "end"]
+    , ["interest",        re_show,                  "interest",    "notshown"]
+    , ["interest",        re_plist,                 "portlist",    None]
+    , ["mac",             re_mac,                   "started",     "mac"]
+    , ["mac",             None,                     "started",     None]
+    , ["portlist",        re_port,                  "portlist",    "port"]
+    , ["portlist",        re_empty,                 "started",     "pop"]
+    , ["portlist",        re_mac,                   "started",     "mac"]
+    ]
+
 
     def __init__ (self, *args, **kw) :
         self.warnings = []
@@ -522,7 +523,7 @@ def main () :
         , default = ""
         )
     (opt, args) = cmd.parse_args ()
-    p = NMAP_Parser (Matrix, verbose = 0)
+    p = NMAP_Parser (verbose = 0)
     if len (args) == 0 :
         p.parse (sys.stdin)
     else :

@@ -217,4 +217,12 @@ class Page_Tree (autosuper) :
         self.set_header ('User-Agent', ua)
     # end def set_useragent
 
+    def __getstate__ (self) :
+        exc = dict (tree = None, pageinfo = None, cookies = None)
+        d   = dict ()
+        for n, (k, v) in enumerate (self.__dict__.iteritems ()) :
+            d [k] = exc.get (k, v)
+        return d
+    # end def __getstate__
+
 # end class Page_Tree

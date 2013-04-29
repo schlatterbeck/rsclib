@@ -102,7 +102,10 @@ class Page_Tree (autosuper) :
             self.site = site
         if url :
             self.url  = url
-        self.url     = '/'.join ((self.site, self.url))
+        if self.url :
+            self.url = '/'.join ((self.site, self.url))
+        else :
+            self.url = self.site
         self.charset = charset
         self.verbose = verbose
         self.retry   = 0

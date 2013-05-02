@@ -27,9 +27,9 @@ dist: all
 	python setup.py sdist --formats=gztar,zip
 
 clean:
-	rm -f MANIFEST rsclib/Version.py notes changes default.css \
+	rm -f MANIFEST rsclib/Version.py notes changes default.css    \
 	      README.html README.aux README.dvi README.log README.out \
-	      README.tex
+	      README.tex announce_pypi
 	rm -rf dist build upload upload_homepage ReleaseNotes.txt
 
 include ../make/Makefile-sf

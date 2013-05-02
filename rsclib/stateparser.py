@@ -22,7 +22,8 @@
 
 import re
 import sys
-from rsclib.autosuper import autosuper
+from rsclib.autosuper    import autosuper
+from rsclib.base_pickler import base_pickler
 
 class Parse_Error (ValueError) : pass
 
@@ -119,11 +120,14 @@ class State (Debug) :
 
 # end class State
 
-class Parser (Debug) :
+class Parser (Debug, base_pickler) :
     """ Simple state-machine parser.
         To use, define a subclass with the necessary actions. An action
         method gets the line matched and an optional match object.
     """
+
+    pickle_exceptions = dict.fromkeys (('stack', 'state', 'states'))
+
     def __init__ (self, matrix = None, **kw) :
         self.verbose = kw.get ('verbose')
         self.state   = None

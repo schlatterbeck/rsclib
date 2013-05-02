@@ -27,7 +27,7 @@ try :
     from xml.etree.ElementTree import ElementTree
 except ImportError :
     from elementtree.ElementTree import ElementTree
-from   rsclib.autosuper                import autosuper
+from   rsclib.base_pickler             import base_pickler
 from   rsclib.Version                  import VERSION
 from   rsclib.multipart_form           import Multipart_Form
 from   rsclib.ETree                    import ETree
@@ -57,7 +57,7 @@ def default_translate (x) :
     return x.translate (translation, '\0\015')
 # end def default_translate
 
-class Page_Tree (autosuper) :
+class Page_Tree (base_pickler) :
     """ Parse given URL into an Elementtree (using ElementTidy).
 
         - site is the first part of an uri, e.g. http://example.com.
@@ -80,6 +80,7 @@ class Page_Tree (autosuper) :
     delay   = 1
     retries = 10
     headers = {}
+    pickle_exceptions = dict.fromkeys (('tree', 'pageinfo', 'cookies'))
 
     def __init__ \
         ( self
@@ -216,13 +217,5 @@ class Page_Tree (autosuper) :
     def set_useragent (self, ua) :
         self.set_header ('User-Agent', ua)
     # end def set_useragent
-
-    def __getstate__ (self) :
-        exc = dict (tree = None, pageinfo = None, cookies = None)
-        d   = dict ()
-        for n, (k, v) in enumerate (self.__dict__.iteritems ()) :
-            d [k] = exc.get (k, v)
-        return d
-    # end def __getstate__
 
 # end class Page_Tree

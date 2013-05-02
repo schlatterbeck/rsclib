@@ -21,6 +21,10 @@ The library includes various utility modules used in other projects.
    its parents (that the parent is not hardcoded in the upcall),
    achieved by adding a the __super attribute. Use as, e.g.,
    self.__super.method for calling method in the parent.
+ - base_pickler: Allow to specify a dictionary of pickle exceptions, if
+   the value in the dictionary is in __dict__ when pickle is called, the
+   value in __dict__ is replaced with the value in the exception
+   dictionary.
  - bero: A configurator for the `bero*fos`_ failover switch. See my
    `blogpost`_ why I wrote that (short summary: to work around bugs in
    the firmware of the device which are not addressed by the
@@ -42,7 +46,10 @@ The library includes various utility modules used in other projects.
    for announcing new releases for my projects.
  - grepmime: search for pattern in email attachments (even if these are
    encoded)
- - HTML_Parse for opening and parsing URLs
+ - HTML_Parse for opening and parsing URLs. The class can be used to
+   write a parser to extract info from a web page. After extraction the
+   result can be pickled but we lose the ability to continue parsing
+   after reading from the pickled result.
  - inductance: Inductance calculation of air-cored cylindrical
    flat-winded coil according to Robert Weaver
    http://electronbunker.sasktelwebsite.net
@@ -67,7 +74,11 @@ The library includes various utility modules used in other projects.
  - PM_Value: Possibly missing value, encapsulate a number which may be
    missing and associated arithmetics.
  - Rational: Implementation of Rational numbers
- - stateparser: Simple state-machine parser class
+ - stateparser: Simple state-machine parser class, this is used for
+   writing line-based parsers using a state machine. For an example
+   usage see nmap. After parsing the result can be pickled but we lose
+   the ability to continue parsing after reading from the pickled
+   result.
  - sqlparser: Parse SQL dumps from postgreSQL and mysql
  - timeout: A simple timeout mechanism using SIGALRM
  - Tex_CSV_Writer: Write CVS files in a syntax that can be parsed by
@@ -113,10 +124,26 @@ Changes
 
 Version 0.27: Minor feature enhancements
 
-Add pageurl and pageinfo attributes to HTML_Parser.Page_Tree.
+Add pageurl and pageinfo attributes to HTML_Parser.Page_Tree, other
+enhancements to HTML_Parser. Add pickle support to parser classes.
+Fix comparison of IP_Address classes.
 
  - Add pageurl and pageinfo attributes to HTML_Parser.Page_Tree storing
    information retrieved via geturl and info calls from urllib2.
+ - Parser classes in stateparser.py and HTML_Parse.py where not
+   pickleable, fixed by removing parser-specific attributes when calling
+   pickle. Note that the parsing cannot be continued after reading class
+   from a pickle.
+ - Add base_pickler module to allow pickle exceptions
+ - HTML_Parse: Make Parse_Error a ValueError
+ - HTML_Parse: Raise line number with exception
+ - HTML_Parse: Add a timeout
+ - HTML_Parse: raise Retries_Exceeded with url
+ - HTML_Parse: url parameter may now be None, not joined with site
+   parameter
+ - Add pageurl and pageinfo to HTML_Parse
+ - IP_Address: Fix comparison
+ - Slight refactoring of NMAP_Parser class
 
 Version 0.26: Minor feature enhancements
 

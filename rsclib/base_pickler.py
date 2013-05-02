@@ -21,7 +21,7 @@
 
 from   rsclib.autosuper                import autosuper
 
-class base_pickler (autosuper) :
+class Base_Pickler (autosuper) :
     """ Generic __getstate__ method to allow defining pickle exceptions
     """
 
@@ -34,4 +34,4 @@ class base_pickler (autosuper) :
         return d
     # end def __getstate__
 
-# end class base_pickler
+# end class Base_Pickler

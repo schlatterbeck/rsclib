@@ -27,7 +27,7 @@ try :
     from xml.etree.ElementTree import ElementTree
 except ImportError :
     from elementtree.ElementTree import ElementTree
-from   rsclib.base_pickler             import base_pickler
+from   rsclib.base_pickler             import Base_Pickler
 from   rsclib.Version                  import VERSION
 from   rsclib.multipart_form           import Multipart_Form
 from   rsclib.ETree                    import ETree
@@ -57,7 +57,7 @@ def default_translate (x) :
     return x.translate (translation, '\0\015')
 # end def default_translate
 
-class Page_Tree (base_pickler) :
+class Page_Tree (Base_Pickler) :
     """ Parse given URL into an Elementtree (using ElementTidy).
 
         - site is the first part of an uri, e.g. http://example.com.

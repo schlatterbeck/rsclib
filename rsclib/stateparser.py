@@ -23,7 +23,7 @@
 import re
 import sys
 from rsclib.autosuper    import autosuper
-from rsclib.base_pickler import base_pickler
+from rsclib.base_pickler import Base_Pickler
 
 class Parse_Error (ValueError) : pass
 
@@ -120,7 +120,7 @@ class State (Debug) :
 
 # end class State
 
-class Parser (Debug, base_pickler) :
+class Parser (Debug, Base_Pickler) :
     """ Simple state-machine parser.
         To use, define a subclass with the necessary actions. An action
         method gets the line matched and an optional match object.

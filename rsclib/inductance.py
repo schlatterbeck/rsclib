@@ -22,43 +22,46 @@ def L_s (l, d, n) :
         No. 12, December 1982, pp. 1449-1450.
         This is according to an optimized version of Wheelers formula
         by Robert Weaver in "Numerical Methods for Inductance Calculation"
-        http://electronbunker.sasktelwebsite.net/CalcMethods3b.html
+        http://electronbunker.ca/CalcMethods3b.html (formula 35)
         where he used a solver to optimize the formula for low errors.
         Note: This is a current sheet formula, and will require round
         wire corrections for best accuracy.
     >>> print "%2.2f" % L_s ( 0.8,   2,  10)
-    2.38
+    2.33
     >>> print "%2.2f" % L_s ( 1.6,   2,  20)
-    6.41
+    6.30
     >>> print "%2.2f" % L_s ( 4.0,   2,  50)
-    20.42
+    20.19
     >>> print "%2.2f" % L_s ( 8.0,   2, 100)
-    44.78
+    44.49
     >>> print "%2.2f" % L_s ( 2.0,   2,  10)
-    1.38
+    1.36
     >>> print "%2.2f" % L_s ( 4.0,   2,  20)
-    3.27
+    3.23
     >>> print "%2.2f" % L_s (10.0,   2,  50)
-    9.13
+    9.08
     >>> print "%2.2f" % L_s (20.0,   2, 100)
-    18.97
+    18.93
     >>> print "%2.2f" % L_s ( 0.8,  10,   10)
-    21.84
+    21.46
     >>> print "%2.2f" % L_s ( 8.0,  10,  100)
-    801.34
+    787.20
     >>> print "%2.2f" % L_s ( 0.8, 200,   10)
-    813.80
+    805.22
     >>> print "%2.2f" % L_s ( 8.0, 200,  100)
-    52416.06
+    51598.29
     """
-    u = float (l) / float (d)
-    return 0.002 * pi * d * n**2 * \
-        ( log (1.0 + (pi * d) / (2.0 * l))
+    # original formula output in H, input in m
+    # so we need to adjust for µH and cm (1e4 below)
+    mu0 = 4e-7 * pi
+    u   = float (d) / float (l)
+    return mu0 / 2.0 * 1e4 * d * n**2 * \
+        ( log (1.0 + (pi / 2.0) * u)
         + 1.0
           / ( (1. / (log (8. / pi) - 0.5))
-            + 3.437  * u
-            + (24. / (3. * pi**2 - 16)) * (u ** 2)
-            - 0.47 * ((0.755 + u) ** 1.44)
+            + 3.437 / u
+            + (24. / (3. * pi**2 - 16)) / (u ** 2)
+            - 0.47 / ((0.755 + u) ** 1.44)
             )
         )
 # end def L_s
@@ -89,7 +92,7 @@ def delta_roundwire (r, n, pitch, diameter) :
         Weaver, Weaver, Robert; Investigation of E.B. Rosa's Round Wire
         Mutual Inductance Correction Formula, July 2008.
         Documentation taken from
-        http://electronbunker.sasktelwebsite.net/CalcMethods2a.html
+        http://electronbunker.ca/CalcMethods2a.html
         n is the number of turns, r is the coil radius.
         The winding pitch and conductor diameter are in cm.
     >>> print "%2.5f" % delta_roundwire (1,  10, 0.080, 0.05)
@@ -123,31 +126,31 @@ def delta_roundwire (r, n, pitch, diameter) :
 def induction (d, n, diameter, l = 0, pitch = 0) :
     """ induction with round-wire correction
     >>> print "%2.2f" % induction (  2,  10, 0.05, l =  0.8)
-    2.33
+    2.28
     >>> print "%2.2f" % induction (  2,  20, 0.05, l =  1.6)
-    6.31
+    6.20
     >>> print "%2.2f" % induction (  2,  50, 0.05, l =  4.0)
-    20.17
+    19.93
     >>> print "%2.2f" % induction (  2, 100, 0.05, l =  8.0)
-    44.26
+    43.97
     >>> print "%2.2f" % induction (  2,  10, 0.05, l =  2.0)
-    1.45
+    1.43
     >>> print "%2.2f" % induction (  2,  20, 0.05, l =  4.0)
-    3.40
+    3.36
     >>> print "%2.2f" % induction (  2,  50, 0.05, l = 10.0)
-    9.45
+    9.40
     >>> print "%2.2f" % induction (  2, 100, 0.05, l = 20.0)
-    19.60
+    19.56
     >>> print "%2.2f" % induction ( 10,  10, 0.05, l =  0.8)
-    21.62
+    21.24
     >>> print "%2.2f" % induction ( 10, 100, 0.05, l =  8.0)
-    798.74
+    784.60
     >>> print "%2.2f" % induction (200,  10, 0.05, l =  0.8)
-    809.36
+    800.78
     >>> print "%2.2f" % induction (200, 100, 0.05, l =  8.0)
-    52364.07
+    51546.30
     >>> print "%2.2f" % induction (  2,  10, 0.05, pitch = 0.08)
-    2.33
+    2.28
     """
     if l :
         pitch = float (l) / float (n)

@@ -52,7 +52,7 @@ The library includes various utility modules used in other projects.
    after reading from the pickled result.
  - inductance: Inductance calculation of air-cored cylindrical
    flat-winded coil according to Robert Weaver
-   http://electronbunker.sasktelwebsite.net
+   http://electronbunker.ca/CalcMethods3b.html
  - IP_Address: IP v4 and v6 Addresses with subnet masking
  - iter_recipes: magic with iterators
  - lcr: model the status of Linux Call Router ISDN lines.
@@ -121,6 +121,20 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.28: Minor feature enhancements
+
+Fix inductance formula of Robert Weaver, thanks Robert for pointing me
+to the correction he did on his new site! For most doctests in the
+inductance module the error was in the lower percentage points.
+Add an xxrange iterator to the iter_recipes that can replace pythons
+native xrange iterator but works with long integers. Needed for some
+operations on IPv6 addresses in the IP_Address module.
+
+ - Fix inductance calculation according to patch from Robert Weaver
+ - Add xxrange iterator to iter_recipes
+ - Use new xxrange instead of xrange in IP_Address module, add a test
+   that failed with large numbers for IPv6
 
 Version 0.27: Minor feature enhancements
 

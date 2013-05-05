@@ -86,30 +86,64 @@ def ranges (iterable, key = None, condition = None) :
             yield (last, last)
 # end def ranges
 
-def xxrange (lower, upper = None, step = 1) :
+def xxrange (start, stop = None, step = 1) :
     """ Reimplementation of xrange that works for x-large numbers,
-        native xrange doesn't work with long integers.
+        native xrange doesn't work with long integers. Note that we
+        enforce the same restriction as native xrange, we don't allow
+        float.
         >>> list (xrange (8))
         [0, 1, 2, 3, 4, 5, 6, 7]
         >>> list (xxrange (8))
-        [0, 1, 2, 3, 4, 5, 6, 7]
+        [0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L]
         >>> list (xrange (6, 8))
         [6, 7]
         >>> list (xxrange (6, 8))
-        [6, 7]
+        [6L, 7L]
         >>> list (xrange (2, 8, 2))
         [2, 4, 6]
         >>> list (xxrange (2, 8, 2))
-        [2, 4, 6]
+        [2L, 4L, 6L]
+        >>> 0x800000000000
+        140737488355328L
+        >>> 0x800000000000 + 0x400000000000
+        211106232532992L
         >>> list (xxrange (0x800000000000, 0x1000000000000, 0x400000000000))
         [140737488355328L, 211106232532992L]
+        >>> list (xrange(8, 6, -1))
+        [8, 7]
+        >>> list (xxrange(8, 6, -1))
+        [8L, 7L]
+        >>> list (xrange(8, 9, -1))
+        []
+        >>> list (xxrange(8, 9, -1))
+        []
+        >>> list (xxrange(8, 9, 0))
+        Traceback (most recent call last):
+          ...
+        ValueError: xxrange arg 3 must not be zero
+        >>> list (xxrange(8, 9, 0.25))
+        Traceback (most recent call last):
+          ...
+        ValueError: xxrange arg 3 must not be zero
+        >>> list (xxrange (8.5, 9.5, 1))
+        [8L]
     """
-    if upper is None :
-        upper = lower
-        lower = 0
-    while lower < upper :
-        yield lower
-        lower += step
+    if stop is None :
+        stop  = start
+        start = 0
+    step  = long (step)
+    start = long (start)
+    stop  = long (stop)
+    if step == 0 :
+        raise ValueError ("xxrange arg 3 must not be zero")
+    if step > 0 :
+        while start < stop :
+            yield start
+            start += step
+    else :
+        while start > stop :
+            yield start
+            start += step
 # end def xxrange
 
 try :

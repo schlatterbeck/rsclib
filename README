@@ -125,7 +125,7 @@ Changes
 Version 0.28: Minor feature enhancements
 
 Fix inductance formula of Robert Weaver, thanks Robert for pointing me
-to the correction he did on his new site! For most doctests in the
+to the correction you did on your new site! For most doctests in the
 inductance module the error was in the lower percentage points.
 Add an xxrange iterator to the iter_recipes that can replace pythons
 native xrange iterator but works with long integers. Needed for some

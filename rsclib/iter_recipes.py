@@ -86,6 +86,32 @@ def ranges (iterable, key = None, condition = None) :
             yield (last, last)
 # end def ranges
 
+def xxrange (lower, upper = None, step = 1) :
+    """ Reimplementation of xrange that works for x-large numbers,
+        native xrange doesn't work with long integers.
+        >>> list (xrange (8))
+        [0, 1, 2, 3, 4, 5, 6, 7]
+        >>> list (xxrange (8))
+        [0, 1, 2, 3, 4, 5, 6, 7]
+        >>> list (xrange (6, 8))
+        [6, 7]
+        >>> list (xxrange (6, 8))
+        [6, 7]
+        >>> list (xrange (2, 8, 2))
+        [2, 4, 6]
+        >>> list (xxrange (2, 8, 2))
+        [2, 4, 6]
+        >>> list (xxrange (0x800000000000, 0x1000000000000, 0x400000000000))
+        [140737488355328L, 211106232532992L]
+    """
+    if upper is None :
+        upper = lower
+        lower = 0
+    while lower < upper :
+        yield lower
+        lower += step
+# end def xxrange
+
 try :
     from itertools import combinations
 except ImportError :

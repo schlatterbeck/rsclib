@@ -19,7 +19,8 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-from rsclib.autosuper import autosuper
+from rsclib.autosuper    import autosuper
+from rsclib.iter_recipes import xxrange as xrange
 
 mask_bits = \
     { 0 : 0, 128 : 1, 192 : 2, 224 : 3, 240 : 4, 248 : 5, 252 : 6, 254 : 7 }
@@ -546,6 +547,11 @@ class IP6_Address (IP_Address) :
         ...     print i
         2001:db8::/127
         2001:db8::2/127
+        >>> i32 = IP6_Address ('2001:db8::/32')
+        >>> for i in i32.subnets (33) :
+        ...     print i
+        2001:db8::/33
+        2001:db8:8000::/33
         >>> i1 = IP6_Address ('2001:db8::/16')
         >>> i2 = IP6_Address ('2001:db8:dead:beef::/16')
         >>> d = dict.fromkeys ((i1, i2))

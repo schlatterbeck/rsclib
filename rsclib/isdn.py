@@ -247,7 +247,8 @@ class DAHDI_Ports (Parser, Exec) :
         assert name != 'mode' and name != 'status'
         if name == 'port' :
             num, type = value.split (',')
-            ISDN_Port (int (num), self.iface, num)
+            p = ISDN_Port (int (num), self.iface, num)
+            p.subtype = type
         else :
             setattr (self.iface, name, value)
         if name == 'alarms' :

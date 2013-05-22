@@ -46,6 +46,7 @@ class ISDN_Interface (autosuper) :
 
     def __init__ (self, name, architecture) :
         self.name         = name
+        self.span         = name # default
         self.architecture = architecture
         self.ports        = {}
         self.status       = 'unknown'
@@ -149,6 +150,7 @@ class ISDN_Port (autosuper) :
     # required keys for printing
     keys = dict.fromkeys \
         (( 'chantype'
+         , 'ifname'
          , 'interface'
          , 'l1'
          , 'l2'
@@ -198,8 +200,14 @@ class ISDN_Port (autosuper) :
 
     @property
     def interface (self) :
-        return self.iface.name
+        """ Interface span number as string. """
+        return str (self.iface.span)
     # end def interface
+
+    @property
+    def ifname (self) :
+        return self.iface.name
+    # end def ifname
 
     def __getattr__ (self, name) :
         if not hasattr (self, 'iface') :
@@ -275,7 +283,7 @@ class LCR_Ports (Parser, Exec) :
         name = self.attrs.get (name, name)
         if name == 'port' :
             m = self.re_port.match (value)
-            number, name     = m.groups ()
+            number, name = m.groups ()
             number = int (number)
             self.port = ISDN_Port (number, self.iface, name)
         elif name == 'usage' :
@@ -325,9 +333,9 @@ class DAHDI_Ports (Parser, Exec) :
         if self.iface :
             self.iface.register_ports ()
         self.iface = ISDN_Interface (name, 'dahdi')
-        self.iface.number = number
+        self.iface.span = number
         self.push (state, new_state, match)
-    # end def port_start
+    # end def iface_start
 
     def iface_set (self, state, new_state, match) :
         name, value = match.groups ()

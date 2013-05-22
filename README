@@ -55,7 +55,10 @@ The library includes various utility modules used in other projects.
    http://electronbunker.ca/CalcMethods3b.html
  - IP_Address: IP v4 and v6 Addresses with subnet masking
  - iter_recipes: magic with iterators
- - lcr: model the status of Linux Call Router ISDN lines.
+ - isdn: model the status of Asterisk ISDN lines, either Linux Call
+   Router (LCR) ISDN lines or lines managed by DAHDI. Special case for
+   Xorcom modules which provide more information using Xorcom-specific
+   commands than native DAHDI modules.
  - ldap_lib: some routines for common ldap tasks including an iterator
    for LDAP implementations that use paged search (notably active
    directory).
@@ -121,6 +124,11 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.29: Minor feature enhancements
+
+The lcr module is now named isdn. It can now handle isdn interfaces
+managed by Asterisk DAHDI in addition to Linux Call Router (LCR).
 
 Version 0.28: Minor feature enhancements
 

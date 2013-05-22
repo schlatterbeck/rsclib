@@ -24,7 +24,7 @@ import re
 from asterisk.manager   import Manager
 from rsclib.autosuper   import autosuper
 from rsclib.stateparser import Parser
-from rsclib.execute     import Exec, Exec_Error
+from rsclib.execute     import Exec, Exec_Error, Log
 from rsclib.Config_File import Config_File
 
 class Config (Config_File) :
@@ -55,20 +55,86 @@ class ISDN_Interface (autosuper) :
         self.type         = architecture # default
     # end def __init__
 
+    @property
+    def bc (self) :
+        if hasattr (self, 'basechan') :
+            return int (self.basechan)
+        return self._bc
+    # end def bc
+
+    @property
+    def tc (self) :
+        if hasattr (self, 'totchans') :
+            return int (self.totchans)
+        return self._tc
+    # end def tc
+
     def register (self, port) :
         self.ports [port.number] = port
+        if not hasattr (self, 'basechan') :
+            ports = list (sorted (self.ports.iterkeys ()))
+            self._tc = ports [-1] - ports [0]
+            self._bc = ports [0]
     # end def register
 
     def register_ports (self) :
+        if self.type == 'digital-BRI' :
+            xi = self.x_iface = Xorcom_Interface (self.name)
+            if xi.l1 :
+                self.l1 = xi.l1
+            if xi.l2 :
+                self.l2 = xi.l2
+        # only for dahdi ports (only those have property basechan)
         if getattr (self, 'basechan', None) :
-            bc = int (self.basechan)
-            tc = int (self.totchans)
-            for port in xrange (bc, bc + tc) :
+            for port in xrange (self.bc, self.bc + self.tc) :
                 if port not in self.ports :
                     ISDN_Port (port, self)
     # end def register_ports
 
 # end def ISDN_Interface
+
+class Xorcom_Interface (Parser) :
+    """ Get additional information about a Xorcom BRI Basic Rate
+        Interface via /proc/xpp/XBUS-NN/XPD-MM/bri_info (if existing).
+        In particular the Alarm Info of Xorcom Interfaces (used to get
+        layer 1 and layer 2 status of DAHDI ISDN Interfaces) isn't
+        correct for Xorcom, they always display "OK" even if layer 1 is
+        down.
+    """
+
+    re_layer = re.compile (r"^[0-9]+\s+Layer 1:\s+([A-Z]+)")
+    re_dchan = re.compile (r"^D-Channel:.*[(]([a-z]+)\s?.*[)]$")
+
+    #       State   Pattern   new State Action
+    matrix = \
+        [ [ "init", re_layer, "init",   "layer1"]
+        , [ "init", re_dchan, "init",   "layer2"]
+        , [ "init", None,     "init",   None    ]
+        ]
+
+    def __init__ (self, name, ** kw) :
+        self.__super.__init__ (** kw)
+        self.l1 = None
+        self.l2 = None
+        try :
+            f = open ("/proc/xpp/%s/bri_info" % name, "r")
+        except IOError :
+            return
+        self.parse (f)
+        f.close ()
+    # end def __init__
+
+    def layer1 (self, state, new_state, match) :
+        self.l1 = match.group (1).lower ()
+    # end def layer1
+
+    def layer2 (self, state, new_state, match) :
+        self.l2 = 'down'
+        if match.group (1) == 'alive' :
+            self.l2 = 'up'
+    # end def layer2
+
+# end class Xorcom_Interface
 
 class ISDN_Port (autosuper) :
     """ Represent an ISDN Port of one of several possible ISDN interface
@@ -82,7 +148,16 @@ class ISDN_Port (autosuper) :
 
     # required keys for printing
     keys = dict.fromkeys \
-        (('number', 'name', 'interface', 'type', 'status', 'mode', 'l1', 'l2'))
+        (( 'chantype'
+         , 'interface'
+         , 'l1'
+         , 'l2'
+         , 'mode'
+         , 'name'
+         , 'number'
+         , 'status'
+         , 'type'
+         ))
     # ignore these for printing
     ignore = dict.fromkeys (('iface',))
 
@@ -108,6 +183,18 @@ class ISDN_Port (autosuper) :
             return 'LCR/%s' % self.interface
         return 'dahdi/%s' % self.number
     # end def channel
+
+    @property
+    def chantype (self) :
+        if self.iface.type.startswith ('digital-') or self.iface.type == 'LCR' :
+            if  (   self.iface.tc == 3
+                and self.number == self.iface.bc + self.iface.tc - 1
+                ) :
+                return 'D'
+            else :
+                return 'B'
+        return None
+    # end def chantype
 
     @property
     def interface (self) :
@@ -165,8 +252,8 @@ class LCR_Ports (Parser, Exec) :
         , 'l2 link'   : 'l2'
         }
 
-    def __init__ (self, parsestring = None, **kw) :
-        self.__super.__init__ (**kw)
+    def __init__ (self, parsestring = None, ** kw) :
+        self.__super.__init__ (** kw)
         self.iface = None
         self.port  = None
         if parsestring :
@@ -219,8 +306,8 @@ class DAHDI_Ports (Parser, Exec) :
 
     attrs = {}
 
-    def __init__ (self, parsestring = None, **kw) :
-        self.__super.__init__ (**kw)
+    def __init__ (self, parsestring = None, ** kw) :
+        self.__super.__init__ (** kw)
         self.iface = None
         self.port  = None
         if parsestring :
@@ -228,6 +315,8 @@ class DAHDI_Ports (Parser, Exec) :
         else :
             parsestring = self.exec_pipe (("dahdi_scan",))
         self.parse (parsestring)
+        if self.iface :
+            self.iface.register_ports ()
     # end def __init__
 
     def iface_start (self, state, new_state, match) :
@@ -263,21 +352,28 @@ class DAHDI_Ports (Parser, Exec) :
                 self.iface.mode = 'NT-mode'
             if value == 'digital-TE' :
                 self.iface.mode = 'TE-mode'
+        if name == 'description' and value.startswith ('Xorcom') :
+            t = value.split (':') [-1].strip ()
+            if t == 'BRI_TE' :
+                self.iface.mode = 'TE-mode'
+            if t == 'BRI_NT' :
+                self.iface.mode = 'NT-mode'
     # end def iface_set
 
 # end class DAHDI_Ports
 
-def lcr_init (**kw) :
+def lcr_init (** kw) :
     """ Parse once """
     try :
-        LCR_Ports (**kw)
+        LCR_Ports (** kw)
     except Exec_Error :
         pass
 # end def lcr_init
 
-class ISDN_Ports (autosuper) :
+class ISDN_Ports (Log) :
 
-    def __init__ (self, config = 'ast_isdn', cfgpath = '/etc/ast_isdn') :
+    def __init__ (self, config = 'ast_isdn', cfgpath = '/etc/ast_isdn', ** kw) :
+        self.__super.__init__ (** kw)
         self.cfg     = cfg = Config (config = config, path = cfgpath)
         self.manager = mgr = Manager ()
         mgr.connect (cfg.ASTERISK_HOST)
@@ -298,9 +394,9 @@ class ISDN_Ports (autosuper) :
             d [k] = v
         mgr.close ()
         if 'lcr_config' in d :
-            lcr_init ()
+            lcr_init (** kw)
         if 'DAHDIScan' in d :
-            DAHDI_Ports ()
+            DAHDI_Ports (** kw)
     # end def __init__
 
     def __iter__ (self) :

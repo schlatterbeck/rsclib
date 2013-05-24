@@ -403,7 +403,7 @@ class ISDN_Ports (Log) :
         mgr.close ()
         if 'lcr_config' in d :
             lcr_init (** kw)
-        if 'DAHDIScan' in d :
+        if 'DAHDISendKeypadFacility' in d :
             DAHDI_Ports (** kw)
     # end def __init__
 

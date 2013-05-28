@@ -4,7 +4,7 @@ RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP_Address.py \
     ast_call.py ast_cdr.py autosuper.py base_pickler.py bero.py          \
     capacitance.py Config_File.py ETree.py execute.py Firstname.py       \
     Freshmeat.py grepmime.py hexdump.py HTML_Parse.py inductance.py      \
-    IP_Address.py iter_recipes.py lcr.py ldap_lib.py Math.py             \
+    IP_Address.py iter_recipes.py isdn.py ldap_lib.py Math.py            \
     multipart_form.py nmap.py ocf.py PDF_Parse.py PDF_Signature.py       \
     Phone.py PM_Value.py Rational.py sqlparser.py stateparser.py         \
     TeX_CSV_Writer.py timeout.py trafficshape.py

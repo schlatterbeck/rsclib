@@ -58,7 +58,7 @@ The library includes various utility modules used in other projects.
  - isdn: model the status of Asterisk ISDN lines, either Linux Call
    Router (LCR) ISDN lines or lines managed by DAHDI. Special case for
    Xorcom modules which provide more information using Xorcom-specific
-   commands than native DAHDI modules.
+   files in /proc than native DAHDI modules.
  - ldap_lib: some routines for common ldap tasks including an iterator
    for LDAP implementations that use paged search (notably active
    directory).

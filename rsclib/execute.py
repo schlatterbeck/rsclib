@@ -229,7 +229,7 @@ class Tee (Process) :
     """ A tee in a pipe (like the unix command tee but copies to several
         sub-processes)
     """
-    def __init__ (self, children, stdout, bufsize = 4094, **kw) :
+    def __init__ (self, children, stdout, bufsize = 4096, **kw) :
         self.stdouts  = {}
         self.bufsize  = bufsize
         self.__super.__init__ (**kw)
@@ -358,3 +358,13 @@ class Exec_Process (Method_Process) :
     # end def method
 
 # end class Exec_Process
+
+def run_process (cmd, ** kw) :
+    """ Convenience function that sets up a single Exec_Process, calls
+        it, and returns a suitable error message if any.
+    """
+    cmd = Exec_Process (cmd, ** kw)
+    cmd.run  ()
+    cmd.wait ()
+    return exitstatus (cmd.name, cmd.status)
+# end def run_process

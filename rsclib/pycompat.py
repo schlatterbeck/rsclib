@@ -26,9 +26,6 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-from __future__ import unicode_literals
-
-from rsclib.autosuper import autosuper
 
 import sys
 PY2 = sys.version_info [0] == 2
@@ -42,10 +39,21 @@ else :
     unichr       = chr
 
 if PY2 :
-    class ustr (unicode, autosuper) :
+    class ustr (unicode) :
         def __repr__ (self) :
             return self.__super.__repr__ ().lstrip ('u')
         # end def __repr__
     # end class ustr
 else :
     ustr = text_type
+
+def with_metaclass (meta, *bases) :
+    class metaclass (meta) :
+        __call__ = type.__call__
+        __init__ = type.__init__
+        def __new__ (cls, name, this_bases, d) :
+            if this_bases is None :
+                return type.__new__ (cls, name, (), d)
+            return meta (name, bases, d)
+    return metaclass ('temporary_class', None, {})
+

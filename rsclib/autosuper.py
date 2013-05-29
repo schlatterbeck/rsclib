@@ -3,6 +3,8 @@
 # Python 2.2" metaclass example.
 # http://www.python.org/download/releases/2.2/descrintro/
 
+from rsclib.pycompat import with_metaclass
+
 class _autosuper (type) :
     def __init__ (cls, name, bases, dict) :
         super   (_autosuper, cls).__init__ (name, bases, dict)
@@ -10,7 +12,7 @@ class _autosuper (type) :
     # end def __init__
 # end class _autosuper
 
-class autosuper (object) :
+class autosuper (with_metaclass (_autosuper)) :
     """ Test new autsuper magic
     >>> from autosuper import autosuper
     >>> class X (autosuper, dict) :
@@ -26,8 +28,6 @@ class autosuper (object) :
     >>> Y((x,1) for x in range(23))
     class Y
     """
-
-    __metaclass__ = _autosuper
 
     def __init__ (self, *args, **kw) :
         if self.__super.__init__.__objclass__ is object :

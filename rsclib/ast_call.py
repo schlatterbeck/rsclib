@@ -19,6 +19,8 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__ import print_function
+
 import asterisk.manager
 from Queue              import Queue, Empty
 from time               import sleep
@@ -68,7 +70,7 @@ class Call (object) :
     feature of Call_Manager.
     >>> class Manager :
     ...     def register (*args, **kw) :
-    ...         print "register"
+    ...         print ("register")
     >>>
     >>> class Event :
     ...     def __init__ (self, d) :
@@ -528,7 +530,7 @@ class Call_Manager (object) :
             random_account = True
 
         result = self.manager.originate (*args, **kw)
-        #print "Originate:", result.__dict__
+        #print ("Originate:", result.__dict__)
         actionid = result.headers ['ActionID']
         uniqueid = result.headers.get ('Uniqueid')
         call = Call \
@@ -558,7 +560,7 @@ class Call_Manager (object) :
                 event = self.queue.get (timeout = timeout)
             except Empty :
                 return
-            #print "Received event: %s" % event.name, event.headers
+            #print ("Received event: %s" % event.name, event.headers)
             assert ('Uniqueid' in event.headers)
             uniqueid = event.headers ['Uniqueid']
             # ignore bogus uniqueid in asterisk 1.4 and 1.6
@@ -610,14 +612,14 @@ class Call_Manager (object) :
             result = getattr (self.manager, name)
             setattr (self, name, result)
             return result
-        raise AttributeError, name
+        raise AttributeError (name)
     # end def __getattr__
 
     def _handle_queued_event (self, event) :
         """ Try handling the event. Returns True on success False
             otherwise.
         """
-        #print "Handling event: %s" % event.name, event.headers
+        #print ("Handling event: %s" % event.name, event.headers)
         uniqueid = event.headers ['Uniqueid']
         callid   = call_id (uniqueid)
         if callid in self.open_by_id :
@@ -642,9 +644,9 @@ if __name__ == "__main__" :
     cm = Call_Manager ()
     cm.call (number)
     for k, v in cm.closed_calls.iteritems () :
-        print "Call: %s: %s (%s)" % (k, v.causetext, v.dialstatus)
+        print ("Call: %s: %s (%s)" % (k, v.causetext, v.dialstatus))
         for event in v.events :
-            print "  Event: %s" % event.name
+            print ("  Event: %s" % event.name)
             for ek, ev in event.headers.iteritems () :
-                print "    %s: %s" % (ek, ev)
+                print ("    %s: %s" % (ek, ev))
     cm.close ()

@@ -46,7 +46,7 @@ class CDR (autosuper) :
         elif name in self.dict :
             value = self.dict [name]
         else :
-            raise AttributeError, name
+            raise AttributeError (name)
         setattr (self, name, value)
         return value
     # end def __getattr__
@@ -55,7 +55,7 @@ class CDR (autosuper) :
         try :
             return getattr (self, name)
         except AttributeError :
-            raise KeyError, name
+            raise KeyError (name)
     # end def __getitem__
 
     def __repr__ (self) :
@@ -97,7 +97,7 @@ class CDR_Parser (autosuper) :
     """ Parse Asterisk CDR records, see CDR_Parser.fields for an
         explanation of asterisk CDR fields.
 
-        >>> from StringIO import StringIO
+        >>> from io import StringIO
         >>> line = ('"","3","11","attendo","3","lcr/439","IAX2/pbx-14597",'
         ...         '"Read","dtmf||20|noanswer||3","2009-04-23 15:16:52",'
         ...         '"2009-04-23 15:16:52","2009-04-23 15:17:37",45,45,'
@@ -107,9 +107,9 @@ class CDR_Parser (autosuper) :
         >>> line = line + '\\n' + line + '\\n'
         >>> p = CDR_Parser (StringIO (line))
         >>> for cdr in p.iter () :
-        ...     print cdr.amaflags, cdr.disposition, cdr ['channel'], cdr.dst
-        ...     print cdr.uniqueid, cdr.userfield
-        ...     print "TEST"
+        ...     print (cdr.amaflags, cdr.disposition, cdr ['channel'], cdr.dst)
+        ...     print (cdr.uniqueid, cdr.userfield)
+        ...     print ("TEST")
         DOCUMENTATION ANSWERED lcr/439 11
         asterisk-1240499812.774 102441/54
         TEST
@@ -118,10 +118,10 @@ class CDR_Parser (autosuper) :
         TEST
         >>> p = CDR_Parser (StringIO (line))
         >>> for cdr in p.iter () :
-        ...     print cdr.db_dst
-        ...     print list (cdr.db_fields ()) [-1]
-        ...     print list (cdr.db_props  ()) [-1]
-        ...     print cdr.db_dict ['amaflags']
+        ...     print (cdr.db_dst)
+        ...     print (list (cdr.db_fields ()) [-1])
+        ...     print (list (cdr.db_props  ()) [-1])
+        ...     print (cdr.db_dict ['amaflags'])
         11
         calldate
         2009-04-23 15:16:52

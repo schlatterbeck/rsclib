@@ -159,24 +159,32 @@ class Process (_Named) :
 
     def __init__ \
         (self
-        , name   = None
-        , stdin  = None
-        , stdout = None
-        , stderr = None
+        , name         = None
+        , stdin        = None
+        , stdout       = None
+        , stderr       = None
+        , bufsize      = 4096
+        , close_stdin  = False
+        , close_stdout = False
+        , close_stderr = False
         , **kw
         ) :
         self.__super.__init__ (**kw)
-        self.stdin     = stdin
-        self.stdout    = stdout
-        self.stderr    = stderr
-        self.status    = None
-        self.name      = name
+        self.stdin        = stdin
+        self.stdout       = stdout
+        self.stderr       = stderr
+        self.close_stdin  = close_stdin
+        self.close_stdout = close_stdout
+        self.close_stderr = close_stderr
+        self.bufsize      = bufsize
+        self.status       = None
+        self.name         = name
         if not self.name :
-            self.name  = self.clsname
-        self.children  = []
-        self.tee       = None
-        self.pid       = None
-        self.toclose   = []
+            self.name     = self.clsname
+        self.children     = []
+        self.tee          = None
+        self.pid          = None
+        self.toclose      = []
     # end def __init__
 
     def fork (self) :
@@ -185,12 +193,12 @@ class Process (_Named) :
             self.pid = pid
             #print "PID:", self.name, self.pid
             self.by_pid [pid] = self
-            if self.stdout :
+            if self.stdout and self.close_stdout :
                 #print "main closing:", self.stdout.fileno ()
                 self.stdout.close ()
-            if self.stderr :
+            if self.stderr and self.close_stderr :
                 self.stderr.close ()
-            if self.stdin :
+            if self.stdin and self.close_stdin :
                 #print "main closing:", self.stdin.fileno ()
                 self.stdin.close ()
             if hasattr (self, 'stdouts') :
@@ -223,15 +231,30 @@ class Process (_Named) :
                 cls.by_pid [pid].status = status
             del cls.by_pid [pid]
     # end def wait
+
+    def __repr__ (self) :
+        r = []
+        r.append ('%s:' % self.name)
+        if self.stdin :
+            r.append ('  stdin set')
+        if self.stdout :
+            r.append ('  stdout set')
+        if self.stderr :
+            r.append ('  stderr set')
+        if self.bufsize :
+            r.append ('  bufsize = %s' % self.bufsize)
+        return '\n'.join (r)
+    # end def __repr__
+    __str__ = __repr__
+
 # end class Process
 
 class Tee (Process) :
     """ A tee in a pipe (like the unix command tee but copies to several
         sub-processes)
     """
-    def __init__ (self, children, stdout, bufsize = 4096, **kw) :
+    def __init__ (self, children, stdout, **kw) :
         self.stdouts  = {}
-        self.bufsize  = bufsize
         self.__super.__init__ (**kw)
         self.children = children
         for c in self.children :
@@ -308,12 +331,15 @@ class Method_Process (Process) :
     def redirect (self) :
         if self.stdin :
             os.dup2 (self.stdin.fileno (), sys.stdin.fileno ())
-            self.stdin.close ()
         if self.stdout :
             os.dup2 (self.stdout.fileno (), sys.stdout.fileno ())
-            self.stdout.close ()
         if self.stderr :
             os.dup2 (self.stderr.fileno (), sys.stderr.fileno ())
+        if self.stdin :
+            self.stdin.close ()
+        if self.stdout :
+            self.stdout.close ()
+        if self.stderr :
             self.stderr.close ()
     # end def redirect
 
@@ -325,7 +351,13 @@ class Method_Process (Process) :
             self.stdout = os.fdopen (pipe [1], 'w')
             if len (self.children) > 1 :
                 self.tee = Tee \
-                    (self.children, stdin = stdin, stdout = self.stdout)
+                    ( self.children
+                    , stdin        = stdin
+                    , stdout       = self.stdout
+                    , bufsize      = self.bufsize
+                    , close_stdin  = True
+                    , close_stdout = True
+                    )
             elif len (self.children) :
                 child = self.children [0]
                 child.stdin = stdin
@@ -356,6 +388,15 @@ class Exec_Process (Method_Process) :
         self.redirect ()
         os.execv (self.cmd, self.args)
     # end def method
+
+    def __repr__ (self) :
+        r = [self.__super.__repr__ ()]
+        r.append ('  cmd = %s' % self.cmd)
+        r.append ('  args =')
+        for a in self.args :
+            r.append ('    %s' % a)
+        return '\n'.join (r)
+    # end def __repr__
 
 # end class Exec_Process
 

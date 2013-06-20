@@ -186,6 +186,8 @@ class Call (object) :
     >>> c.append (eD)
     >>> bool (c)
     False
+    >>> c.reason
+    'unknown'
     >>> m = Manager()
     >>> c = Call (m, '00000007', '1333330442.4619', '', 'linecheck')
     register
@@ -217,6 +219,29 @@ class Call (object) :
     >>> c.append (eD)
     >>> bool (c)
     False
+    >>> c = Call ( m, 'asterisk04-7950-00000002'
+    ...          , 'a.2', context = 'active_linecheck')
+    register
+    >>> e = Event ({'Event': 'OriginateResponse'
+    ...           , 'Privilege': 'call,all'
+    ...           , 'ActionID': 'asterisk04-7950-00000002'
+    ...           , 'Channel': 'lcr/12284'
+    ...           , 'Response': 'Failure'
+    ...           , 'Channel': 'dahdi/7/0732731469'
+    ...           , 'Context': 'active_linecheck'
+    ...           , 'Exten': '1'
+    ...           , 'Reason': '5'
+    ...           , 'Uniqueid': '<null>'
+    ...           , 'CallerIDNum': '<unknown>'
+    ...           , 'CallerIDName': '<unknown>'
+    ...           })
+    >>> c.append (e)
+    >>> c.sure
+    True
+    >>> bool (c)
+    True
+    >>> c.reason
+    '5'
     """
 
     def __init__ \
@@ -244,6 +269,7 @@ class Call (object) :
         self.callerid_by_chan = {}
         self.causecode        = 0
         self.causetext        = ''
+        self.reason           = 'unknown'
         self.seqno_seen       = None
         # If we're sure about our whole uniqueid (OriginateResponse seen)
         self.sure             = False
@@ -255,10 +281,14 @@ class Call (object) :
     def append (self, event) :
         assert (self.uniqueid)
         self.event = event
-        self.id    = event.headers ['Uniqueid']
+        id         = event.headers ['Uniqueid']
+        #print (id, self.actionid, self.event.headers)
         # ignore bogus Uniqueid
-        if self.id == '<null>' :
-            return
+        if id == '<null>' :
+            if self.actionid != self.event.headers.get ('ActionID') :
+                return
+        else :
+            self.id = id
         self.events.append (event)
         # ignore calls in progress with lower seqno
         if self.seqno < self.min_seqno :
@@ -347,6 +377,7 @@ class Call (object) :
     def handle_OriginateResponse (self) :
         if self.actionid != self.event.headers ['ActionID'] :
             return
+        self.reason = self.event.headers.get ('Reason', 'unknown')
         if self.seqno_seen :
             if self.seqno == self.seqno_seen :
                 self.sure     = True

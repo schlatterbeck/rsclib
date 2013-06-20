@@ -125,6 +125,14 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.30: Minor feature enhancements
+
+Fix how dahdi vs. mISDN interpret what is called an interface and what
+is called a port. In mISDN we can combine several ports (physical lines)
+to an interface. In dahdi both are the same (a port is a span in dahdi).
+
+ - Remove parsing of B- and C- channels from dahdi isdn parser
+
 Version 0.29: Minor feature enhancements
 
 The lcr module is now named isdn. It can now handle isdn interfaces

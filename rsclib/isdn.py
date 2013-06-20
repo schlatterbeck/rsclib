@@ -78,19 +78,16 @@ class ISDN_Interface (autosuper) :
             self._bc = ports [0]
     # end def register
 
-    def register_ports (self) :
+    def update_layerinfo (self) :
+        """ Update l1 and l2 info for xorcom interfaces.
+        """
         if self.type == 'digital-BRI' :
             xi = self.x_iface = Xorcom_Interface (self.name)
             if xi.l1 :
                 self.l1 = xi.l1
             if xi.l2 :
                 self.l2 = xi.l2
-        # only for dahdi ports (only those have property basechan)
-        if getattr (self, 'basechan', None) :
-            for port in xrange (self.bc, self.bc + self.tc) :
-                if port not in self.ports :
-                    ISDN_Port (port, self)
-    # end def register_ports
+    # end def update_layerinfo
 
 # end def ISDN_Interface
 
@@ -142,6 +139,9 @@ class ISDN_Port (autosuper) :
         of Asterisk: Linux Call Router using chan_lcr, native DAHDI
         channels, and Xorcom modules (they also use the DAHDI stack but
         can provide more information using Xorcom-specific commands).
+        Note that a port in this terminology is what dahdi calls a span.
+        In mISDN an interface can group several physical interfaces
+        called ports.
     """
 
     # legacy: was indexed by portnumber, now use architecture, too
@@ -149,8 +149,7 @@ class ISDN_Port (autosuper) :
 
     # required keys for printing
     keys = dict.fromkeys \
-        (( 'chantype'
-         , 'ifname'
+        (( 'ifname'
          , 'interface'
          , 'l1'
          , 'l2'
@@ -176,7 +175,8 @@ class ISDN_Port (autosuper) :
         self.usage     = kw.get ('usage')
         # register:
         self.iface.register (self)
-        self.by_portnumber ["%s/%s" % (self.architecture, number)] = self
+        key = "%s/%s" % (self.architecture, number)
+        self.by_portnumber [key] = self
     # end def __init__
 
     @property
@@ -185,18 +185,6 @@ class ISDN_Port (autosuper) :
             return 'LCR/%s' % self.interface
         return 'dahdi/%s' % self.number
     # end def channel
-
-    @property
-    def chantype (self) :
-        if self.iface.type.startswith ('digital-') or self.iface.type == 'LCR' :
-            if  (   self.iface.tc == 3
-                and self.number == self.iface.bc + self.iface.tc - 1
-                ) :
-                return 'D'
-            else :
-                return 'B'
-        return None
-    # end def chantype
 
     @property
     def interface (self) :
@@ -324,15 +312,16 @@ class DAHDI_Ports (Parser, Exec) :
             parsestring = self.exec_pipe (("dahdi_scan",))
         self.parse (parsestring)
         if self.iface :
-            self.iface.register_ports ()
+            self.iface.update_layerinfo ()
     # end def __init__
 
     def iface_start (self, state, new_state, match) :
         name       = match.group (1)
         number     = int (name)
         if self.iface :
-            self.iface.register_ports ()
+            self.iface.update_layerinfo ()
         self.iface = ISDN_Interface (name, 'dahdi')
+        p = ISDN_Port (number, self.iface)
         self.iface.span = number
         self.push (state, new_state, match)
     # end def iface_start
@@ -344,8 +333,8 @@ class DAHDI_Ports (Parser, Exec) :
         assert name != 'mode' and name != 'status'
         if name == 'port' :
             num, type = value.split (',')
-            p = ISDN_Port (int (num), self.iface, num)
-            p.subtype = type
+            #p = ISDN_Port (int (num), self.iface, num)
+            #p.subtype = type
         else :
             setattr (self.iface, name, value)
         if name == 'alarms' :

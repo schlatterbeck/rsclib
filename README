@@ -125,6 +125,12 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.31: Minor feature enhancements
+
+Fix ast_call for immediately failing calls.
+
+ - Fix OriginateResponse handling in ast_call
+
 Version 0.30: Minor feature enhancements
 
 Fix how dahdi vs. mISDN interpret what is called an interface and what

@@ -127,9 +127,12 @@ Changes
 
 Version 0.31: Minor feature enhancements
 
-Fix ast_call for immediately failing calls.
+Fix ast_call for immediately failing calls. Fix dahdi channel
+computation in isdn.py.
 
  - Fix OriginateResponse handling in ast_call
+ - Fix dahdi channel computation, can't directly use the span, use the
+   basechan attribute
 
 Version 0.30: Minor feature enhancements
 

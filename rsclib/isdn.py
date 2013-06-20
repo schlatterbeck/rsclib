@@ -181,9 +181,21 @@ class ISDN_Port (autosuper) :
 
     @property
     def channel (self) :
+        return self.channel_with_offset ()
+    # end def channel
+
+    def channel_with_offset (self, offset = 0, force_dchan = False) :
         if self.architecture == 'LCR' :
             return 'LCR/%s' % self.interface
-        return 'dahdi/%s' % self.number
+        if offset > self.iface.tc :
+            raise ValueError ("Offset: %s > %s" % (offset, self.iface.tc))
+        if  (   self.iface.type.startswith ('digital-')
+            and self.iface.tc == 3
+            and offset == self.iface.bc + self.iface.tc - 1
+            and not force_dchan
+            ) :
+            raise ValueError ("D-Channel: %s" % (self.iface.bc + offset))
+        return 'dahdi/%s' % (self.iface.bc + offset)
     # end def channel
 
     @property
@@ -712,8 +724,9 @@ framing=CCS
     if len (sys.argv) == 2 and sys.argv [1] == 'test' :
         lcr_init (parsestring = lcr_output)
         DAHDI_Ports (parsestring = dahdi_output)
-        for p, v in sorted (ISDN_Port.by_portnumber.iteritems ()) :
-            print p, v
+        for n, p in sorted (ISDN_Port.by_portnumber.iteritems ()) :
+            print n, p
+            print p.channel
     else :
         p = ISDN_Ports ()
         for port in p :

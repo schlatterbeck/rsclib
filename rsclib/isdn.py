@@ -168,10 +168,10 @@ class ISDN_Port (autosuper) :
         self.name      = name
         if not self.name :
             self.name  = "%s" % self.number
-        self.status    = kw.get ('status') or iface.status
-        self.mode      = kw.get ('mode')   or iface.mode
-        self.l1        = kw.get ('l1')     or iface.l1
-        self.l2        = kw.get ('l2')     or iface.l2
+        self._status   = kw.get ('status', None)
+        self._mode     = kw.get ('mode',   None)
+        self._l1       = kw.get ('l1',     None)
+        self._l2       = kw.get ('l2',     None)
         self.usage     = kw.get ('usage')
         # register:
         self.iface.register (self)
@@ -196,6 +196,26 @@ class ISDN_Port (autosuper) :
     def ifname (self) :
         return self.iface.name
     # end def ifname
+
+    @property
+    def mode (self) :
+        return self._mode or self.iface.mode
+    # end def mode
+
+    @property
+    def l1 (self) :
+        return self._l1 or self.iface.l1
+    # end def l1
+
+    @property
+    def l2 (self) :
+        return self._l2 or self.iface.l2
+    # end def l2
+
+    @property
+    def status (self) :
+        return self._status or self.iface.status
+    # end def status
 
     def __getattr__ (self, name) :
         if not hasattr (self, 'iface') :
@@ -277,7 +297,10 @@ class LCR_Ports (Parser, Exec) :
         elif name == 'usage' :
             self.port.usage = int (value)
         elif name :
-            setattr (self.port, name, value)
+            if name in ('status', 'l1', 'l2', 'mode') :
+                setattr (self.port, '_%s' % name, value)
+            else :
+                setattr (self.port, name, value)
     # end def port_set
 # end class LCR_Ports
 

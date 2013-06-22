@@ -1,0 +1,121 @@
+Response: Success
+ActionID: olm-7309-00000002
+Message: Originate successfully queued
+
+Event: FullyBooted
+Privilege: system,all
+Status: Fully Booted
+
+Event: Newchannel
+Privilege: call,all
+Channel: DAHDI/i1/1-2
+ChannelState: 1
+ChannelStateDesc: Rsrvd
+CallerIDNum: 
+CallerIDName: 
+AccountCode: 
+Exten: 
+Context: extern
+Uniqueid: 1371930198.2
+
+Event: DAHDIChannel
+Privilege: call,all
+Channel: DAHDI/i1/1-2
+Uniqueid: 1371930198.2
+DAHDISpan: 1
+DAHDIChannel: 1
+
+Event: NewAccountCode
+Privilege: call,all
+Channel: DAHDI/i1/1-2
+Uniqueid: 1371930198.2
+AccountCode: 2070625609
+OldAccountCode: 
+
+Event: NewCallerid
+Privilege: call,all
+Channel: DAHDI/i1/1-2
+CallerIDNum: 231705
+CallerIDName: 
+Uniqueid: 1371930198.2
+CID-CallingPres: 0 (Presentation Allowed, Not Screened)
+
+Event: Newstate
+Privilege: call,all
+Channel: DAHDI/i1/1-2
+ChannelState: 3
+ChannelStateDesc: Dialing
+CallerIDNum: 231705
+CallerIDName: 
+ConnectedLineNum: 231705
+ConnectedLineName: 
+Uniqueid: 1371930198.2
+
+Event: Newchannel
+Privilege: call,all
+Channel: DAHDI/i3/0231705-2
+ChannelState: 1
+ChannelStateDesc: Rsrvd
+CallerIDNum: 0231705
+CallerIDName: 
+AccountCode: 
+Exten: 1
+Context: extern
+Uniqueid: 1371930198.3
+
+Event: DAHDIChannel
+Privilege: call,all
+Channel: DAHDI/i3/0231705-2
+Uniqueid: 1371930198.3
+DAHDISpan: 3
+DAHDIChannel: 7
+
+Event: Newstate
+Privilege: call,all
+Channel: DAHDI/i3/0231705-2
+ChannelState: 4
+ChannelStateDesc: Ring
+CallerIDNum: 0231705
+CallerIDName: 
+ConnectedLineNum: 
+ConnectedLineName: 
+Uniqueid: 1371930198.3
+
+Event: Newstate
+Privilege: call,all
+Channel: DAHDI/i3/0231705-2
+ChannelState: 6
+ChannelStateDesc: Up
+CallerIDNum: 0231705
+CallerIDName: 
+ConnectedLineNum: 
+ConnectedLineName: 
+Uniqueid: 1371930198.3
+
+Event: MonitorStart
+Privilege: call,all
+Channel: DAHDI/i3/0231705-2
+Uniqueid: 1371930198.3
+
+Event: Newstate
+Privilege: call,all
+Channel: DAHDI/i1/1-2
+ChannelState: 6
+ChannelStateDesc: Up
+CallerIDNum: 231705
+CallerIDName: 
+ConnectedLineNum: 231705
+ConnectedLineName: 
+Uniqueid: 1371930198.2
+
+Event: OriginateResponse
+Privilege: call,all
+ActionID: olm-7309-00000002
+Response: Success
+Channel: DAHDI/i1/1-2
+Context: active_linecheck
+Exten: 1
+Reason: 4
+Uniqueid: 1371930198.2
+CallerIDNum: 231705
+CallerIDName: <unknown>

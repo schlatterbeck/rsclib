@@ -27,6 +27,7 @@ from Queue              import Queue, Empty
 from time               import sleep
 from random             import randint
 from rsclib.Config_File import Config_File
+from asterisk.astemu    import Event
 
 def call_id (uniqid) :
     """ Strip the last component off a Uniqueid, this apparently
@@ -82,7 +83,7 @@ class Call (object) :
     ...     def register (*args, **kw) :
     ...         print ("register")
     >>>
-    >>> from asterisk.astemu import Event, AsteriskEmu
+    >>> from asterisk.astemu import AsteriskEmu
     >>>
     >>> m = Mock_Manager ()
     >>> c = Call (m, '4711', 'asterisk-2633-1243166465.17142')
@@ -337,6 +338,24 @@ class Call (object) :
     >>> d = dict (AsteriskEmu.default_events)
     >>> d.update (Originate = (r, h, e))
     >>> a = AsteriskEmu (d)
+    >>> ctx = 'active_linecheck'
+    >>> m = Call_Manager (host = 'localhost', port = a.port)
+    >>> c = m.call ('4711', 1, channel_type = 'dahdi/1', call_context = ctx)
+    >>> bool (c)
+    False
+    >>> c.causetext
+    'Unknown'
+    >>> c.causecode
+    87
+    >>> c.reason
+    4
+    >>> m.close ()
+    >>> a.close ()
+
+    >>> events = parse_events ('fail.log')
+    >>> d = dict (AsteriskEmu.default_events)
+    >>> d.update (Originate = events)
+    >>> a = AsteriskEmu (d, port=11111)
     >>> ctx = 'active_linecheck'
     >>> m = Call_Manager (host = 'localhost', port = a.port)
     >>> c = m.call ('4711', 1, channel_type = 'dahdi/1', call_context = ctx)
@@ -807,6 +826,26 @@ class Call_Manager (object) :
     # end def _handle_queued_event
 
 # end class Call_Manager
+
+def parse_events (filename) :
+    """ Parse events from the given event dump file.
+        Mainly used for testing.
+    """
+    f = open (filename, 'r')
+    events = []
+    lines  = []
+    for line in f :
+        line = line.strip ('\n')
+        line = line.strip ('\r')
+        if line :
+            lines.append (line)
+        elif lines :
+            events.append (Event (l.split (': ') for l in lines))
+            lines = []
+    if lines :
+        events.append (Event (l.split (': ') for l in lines))
+    return events
+# end def parse_events
 
 if __name__ == "__main__" :
     import sys

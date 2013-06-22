@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2008-12 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2008-13 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -22,6 +22,7 @@
 from __future__ import print_function
 
 import asterisk.manager
+from sys                import stderr
 from Queue              import Queue, Empty
 from time               import sleep
 from random             import randint
@@ -37,8 +38,16 @@ def call_id (uniqid) :
         'asterisk-1236970792'
         >>> call_id ('asterisk-1236970792.47')
         'asterisk-1236970792'
+        >>> call_id ('1371796712.69')
+        '1371796712'
+        >>> call_id ('<null>')
+        ''
     """
+    if uniqid == '<null>' :
+        return ''
     l = '.'.join (uniqid.split ('.') [:-1]).split ('-')
+    if len (l) == 1 :
+        return l [0]
     return '-'.join ((l [0], l [-1]))
 # end def call_id
 
@@ -50,6 +59,7 @@ class Config (Config_File) :
             , ASTERISK_HOST         = 'localhost'
             , ASTERISK_MGR_ACCOUNT  = 'user'
             , ASTERISK_MGR_PASSWORD = 'secret'
+            , ASTERISK_PORT         = 5038
             , CALL_DELAY            = '1'
             , SOUND                 = 'abandon-all-hope'
             , CALLER_ID             = '16'
@@ -68,16 +78,13 @@ class Call (object) :
     A note on the account (account-code in asterisk) parameter: This
     asumes that we generate a unique account code using the RANDOMID
     feature of Call_Manager.
-    >>> class Manager :
+    >>> class Mock_Manager :
     ...     def register (*args, **kw) :
     ...         print ("register")
     >>>
-    >>> class Event :
-    ...     def __init__ (self, d) :
-    ...         self.name = d ['Event']
-    ...         self.headers = d
+    >>> from asterisk.astemu import Event, AsteriskEmu
     >>>
-    >>> m = Manager()
+    >>> m = Mock_Manager ()
     >>> c = Call (m, '4711', 'asterisk-2633-1243166465.17142')
     register
     >>> e = Event ({'Uniqueid': 'asterisk-1243166465.17141'
@@ -97,7 +104,7 @@ class Call (object) :
     >>> c.append (e)
     >>> bool (c)
     True
-    >>> m = Manager()
+    >>> m = Mock_Manager ()
     >>> c = Call (m, '00000007','1333330442.4619','','linecheck','1588267611')
     register
     >>> e1 = Event ({'AccountCode': '', 'Uniqueid': '1333330442.4619'
@@ -187,8 +194,8 @@ class Call (object) :
     >>> bool (c)
     False
     >>> c.reason
-    'unknown'
-    >>> m = Manager()
+    -1
+    >>> m = Mock_Manager ()
     >>> c = Call (m, '00000007', '1333330442.4619', '', 'linecheck')
     register
     >>> c.append (e1)
@@ -225,7 +232,6 @@ class Call (object) :
     >>> e = Event ({'Event': 'OriginateResponse'
     ...           , 'Privilege': 'call,all'
     ...           , 'ActionID': 'asterisk04-7950-00000002'
-    ...           , 'Channel': 'lcr/12284'
     ...           , 'Response': 'Failure'
     ...           , 'Channel': 'dahdi/7/0732731469'
     ...           , 'Context': 'active_linecheck'
@@ -237,11 +243,113 @@ class Call (object) :
     ...           })
     >>> c.append (e)
     >>> c.sure
+    False
+    >>> bool (c)
+    False
+    >>> c.reason
+    5
+    >>> c.causecode
+    17
+    >>> c.causetext
+    'Originate failed: local line busy'
+
+    >>> queued = 'Originate successfully queued'
+    >>> r = Event (Response = ('Success',), Message = (queued,))
+    >>> d = dict (AsteriskEmu.default_events)
+    >>> d.update (Originate = (r, e))
+    >>> a = AsteriskEmu (d)
+    >>> m = Call_Manager (host = 'localhost', port = a.port)
+    >>> c = m.call ('4711', timeout = 1, channel_type = 'dahdi/1')
+    >>> bool (c)
+    False
+    >>> c.causetext
+    'Originate failed: local line busy'
+    >>> c.causecode
+    17
+    >>> c.reason
+    5
+    >>> m.close ()
+    >>> a.close ()
+
+    >>> m = Mock_Manager ()
+    >>> c = Call ( m, 'asterisk05-11626-00000002'
+    ...          , 'a.2', context = 'active_linecheck')
+    register
+    >>> e = Event ({'Event': 'OriginateResponse'
+    ...           , 'Privilege': 'call,all'
+    ...           , 'ActionID': 'asterisk05-11626-00000002'
+    ...           , 'Response': 'Success'
+    ...           , 'Channel': 'DAHDI/i3/0732731469-2a'
+    ...           , 'Context': 'active_linecheck'
+    ...           , 'Exten': '1'
+    ...           , 'Reason': '4'
+    ...           , 'Uniqueid': '1371796712.69'
+    ...           , 'CallerIDNum': '<unknown>'
+    ...           , 'CallerIDName': '<unknown>'
+    ...           })
+    >>> c.append (e)
+    >>> c.sure
     True
     >>> bool (c)
     True
     >>> c.reason
-    '5'
+    4
+    >>> h = Event ({'Event': 'Hangup'
+    ...           , 'Privilege': 'call,all'
+    ...           , 'Channel': 'DAHDI/i3/0732731469-2a'
+    ...           , 'Uniqueid': '1371796712.69'
+    ...           , 'CallerIDNum': '<unknown>'
+    ...           , 'CallerIDName': '<unknown>'
+    ...           , 'ConnectedLineNum': '<unknown>'
+    ...           , 'ConnectedLineName': '<unknown>'
+    ...           , 'Cause': '87'
+    ...           , 'Cause-txt': 'Unknown'
+    ...           })
+    >>> c.append (h)
+    >>> c.causecode
+    87
+    >>> c.causetext
+    'Unknown'
+    >>> bool (c)
+    False
+    >>> c.reason
+    4
+
+    # hangup after originate response
+    >>> d = dict (AsteriskEmu.default_events)
+    >>> d.update (Originate = (r, e, h))
+    >>> a = AsteriskEmu (d)
+    >>> ctx = 'active_linecheck'
+    >>> m = Call_Manager (host = 'localhost', port = a.port)
+    >>> c = m.call ('4711', 1, channel_type = 'dahdi/1', call_context = ctx)
+    >>> bool (c)
+    False
+    >>> c.causetext
+    'Unknown'
+    >>> c.causecode
+    87
+    >>> c.reason
+    4
+    >>> m.close ()
+    >>> a.close ()
+
+    # hangup before originate response
+    >>> d = dict (AsteriskEmu.default_events)
+    >>> d.update (Originate = (r, h, e))
+    >>> a = AsteriskEmu (d)
+    >>> ctx = 'active_linecheck'
+    >>> m = Call_Manager (host = 'localhost', port = a.port)
+    >>> c = m.call ('4711', 1, channel_type = 'dahdi/1', call_context = ctx)
+    >>> bool (c)
+    False
+    >>> c.causetext
+    'Unknown'
+    >>> c.causecode
+    87
+    >>> c.reason
+    4
+    >>> m.close ()
+    >>> a.close ()
     """
 
     def __init__ \
@@ -269,32 +377,29 @@ class Call (object) :
         self.callerid_by_chan = {}
         self.causecode        = 0
         self.causetext        = ''
-        self.reason           = 'unknown'
+        self.reason           = -1
         self.seqno_seen       = None
         # If we're sure about our whole uniqueid (OriginateResponse seen)
         self.sure             = False
+        self.fail             = False # for OriginateResponse Failure
         self.dialstatus       = ''
         if uniqueid is not None :
             self._set_id (uniqueid)
     # end def __init__
 
     def append (self, event) :
-        assert (self.uniqueid)
         self.event = event
-        id         = event.headers ['Uniqueid']
-        #print (id, self.actionid, self.event.headers)
-        # ignore bogus Uniqueid
-        if id == '<null>' :
+        self.id    = event.headers ['Uniqueid']
+        if self.id == '<null>' :
             if self.actionid != self.event.headers.get ('ActionID') :
                 return
-        else :
-            self.id = id
         self.events.append (event)
         # ignore calls in progress with lower seqno
-        if self.seqno < self.min_seqno :
+        if self.seqno and self.seqno < self.min_seqno :
             return
-        self.uids [self.id] = True
-        self.uids_seen      = True
+        if self.id != '<null>' :
+            self.uids [self.id] = True
+            self.uids_seen      = True
         handler = getattr (self, 'handle_%s' % event.name, None)
         if handler :
             handler ()
@@ -377,7 +482,7 @@ class Call (object) :
     def handle_OriginateResponse (self) :
         if self.actionid != self.event.headers ['ActionID'] :
             return
-        self.reason = self.event.headers.get ('Reason', 'unknown')
+        self.reason = int (self.event.headers.get ('Reason', -1))
         if self.seqno_seen :
             if self.seqno == self.seqno_seen :
                 self.sure     = True
@@ -385,20 +490,34 @@ class Call (object) :
             else :
                 self.sure = None
         else :
-            self.seqno_seen = self.seqno
-            self.uniqueid   = self.id
-            self.sure       = True
+            if self.seqno :
+                self.seqno_seen = self.seqno
+                self.uniqueid   = self.id
+                self.sure       = True
+            # If we see a fail response, make sure we don't look for
+            # further events for this call
+            if self.event.headers.get ('Response') == 'Failure' :
+                self.fail = True
+                if self.reason == 5 :
+                    self.causetext = 'Originate failed: local line busy'
+                    self.causecode = 17
+                else :
+                    self.causetext = 'Originate failed: %s' % self.reason
+                    self.causecode = -1
         self.handle_context ()
     # end def handle_OriginateResponse
 
     @property
     def seqno (self) :
+        if self.id == '<null>' :
+            return None
         return int (self.id.rsplit ('.', 1) [1])
     # end def seqno
 
     def _set_id (self, uniqueid) :
         self.uniqueid = self.id = uniqueid
         callid = call_id (self.uniqueid)
+        assert (callid)
         if self.callid :
             assert (callid == self.callid)
         if self.min_seqno is None :
@@ -422,6 +541,10 @@ class Call (object) :
     # end def unregister
 
     def __nonzero__ (self) :
+        """ Returns False when call finished or failed.
+        """
+        if self.fail :
+            return False
         if not self.uids_seen :
             return True
         if self.sure :
@@ -446,7 +569,13 @@ class Call_Manager (object) :
         dialplan.
     """
 
-    def __init__ (self, config = 'autocaller', cfgpath = '/etc/autocaller') :
+    def __init__ \
+        ( self
+        , config  = 'autocaller'
+        , cfgpath = '/etc/autocaller'
+        , host    = None
+        , port    = 5038
+        ) :
         self.cfg            = cfg = Config (config = config, path = cfgpath)
         self.manager        = mgr = asterisk.manager.Manager ()
         self.open_calls     = {} # by actionid
@@ -457,7 +586,7 @@ class Call_Manager (object) :
         self.queue          = Queue ()
         self.call_by_number = {}
         self.unhandled      = []
-        mgr.connect (cfg.ASTERISK_HOST)
+        mgr.connect (host or cfg.ASTERISK_HOST, port = port)
         mgr.login   (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
         mgr.register_event ('*', self.handler)
     # end def __init__
@@ -561,7 +690,7 @@ class Call_Manager (object) :
             random_account = True
 
         result = self.manager.originate (*args, **kw)
-        #print ("Originate:", result.__dict__)
+        #print ("Originate:", result.__dict__, file = stderr)
         actionid = result.headers ['ActionID']
         uniqueid = result.headers.get ('Uniqueid')
         call = Call \
@@ -594,11 +723,11 @@ class Call_Manager (object) :
             #print ("Received event: %s" % event.name, event.headers)
             assert ('Uniqueid' in event.headers)
             uniqueid = event.headers ['Uniqueid']
-            # ignore bogus uniqueid in asterisk 1.4 and 1.6
-            if uniqueid == '<null>' :
-                continue
             callid   = call_id (uniqueid)
             channel  = event.headers.get ('Channel')
+            actionid = event.headers.get ('ActionID')
+            # test: probably not working as it strips running counter
+            # at least for asterisk 1.8
             if channel :
                 channel = '-'.join (channel.split ('-') [:-1])
             if channel in self.open_by_chan :
@@ -610,14 +739,17 @@ class Call_Manager (object) :
                 call = self.open_by_acct [account]
                 del self.open_by_acct [account]
                 call.set_id (event)
-            if callid in self.open_by_id :
+            if callid in self.open_by_id or actionid in self.open_calls :
+                # Handle event with actionid first, otherwise this
+                # event might never get handled as the call may already
+                # be finished -- might result in reason not getting set
+                # from OriginateResponse.
                 self._handle_queued_event (event)
-            else :
-                self.unhandled.append (event)
-                actionid = event.headers.get ('ActionID')
-                if actionid and actionid in self.open_calls :
+                if actionid in self.open_calls and callid :
                     call = self.open_calls [actionid]
                     call.set_id (event)
+            else :
+                self.unhandled.append (event)
     # end def queue_handler
 
     def register (self, call) :
@@ -653,6 +785,7 @@ class Call_Manager (object) :
         #print ("Handling event: %s" % event.name, event.headers)
         uniqueid = event.headers ['Uniqueid']
         callid   = call_id (uniqueid)
+        actionid = event.headers.get ('ActionID')
         if callid in self.open_by_id :
             call = self.open_by_id [callid]
             call.append (event)
@@ -662,8 +795,14 @@ class Call_Manager (object) :
                 del self.open_calls [actionid]
                 del self.open_by_id [callid]
             return True
-        elif uniqueid != '<null>' :
-            pass
+        elif actionid :
+            call = self.open_calls.get (actionid)
+            if call is not None :
+                call.append (event)
+                if not call :
+                    self.closed_calls [actionid] = call
+                    del self.open_calls [actionid]
+                return True
         return False
     # end def _handle_queued_event
 

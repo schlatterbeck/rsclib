@@ -125,6 +125,15 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.32: Minor feature enhancements
+
+More fixes for ast_call.
+
+ - Regression test with pyst asterisk emulator
+ - Fix case where OriginateResponse immediately returns Failure
+ - Tests for cases where Hangup comes before or after the
+   OriginateResponse
+
 Version 0.31: Minor feature enhancements
 
 Fix ast_call for immediately failing calls. Fix dahdi channel

@@ -23,7 +23,7 @@
 from __future__       import absolute_import
 from __future__       import print_function
 from __future__       import unicode_literals
-from pycompat         import ustr, string_types
+from rsclib.pycompat  import ustr, string_types
 try :
     from xml.etree.ElementTree   import ElementTree, Element, SubElement
 except ImportError :

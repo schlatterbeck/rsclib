@@ -27,7 +27,6 @@ from Queue              import Queue, Empty
 from time               import sleep
 from random             import randint
 from rsclib.Config_File import Config_File
-from asterisk.astemu    import Event
 
 def call_id (uniqid) :
     """ Strip the last component off a Uniqueid, this apparently
@@ -83,7 +82,7 @@ class Call (object) :
     ...     def register (*args, **kw) :
     ...         print ("register")
     >>>
-    >>> from asterisk.astemu import AsteriskEmu
+    >>> from asterisk.astemu import AsteriskEmu, Event
     >>>
     >>> m = Mock_Manager ()
     >>> c = Call (m, '4711', 'asterisk-2633-1243166465.17142')
@@ -836,6 +835,8 @@ def parse_events (filename) :
     """ Parse events from the given event dump file.
         Mainly used for testing.
     """
+    # avoid needing newer version of pyst
+    from asterisk.astemu import Event
     f = open (filename, 'r')
     events = []
     lines  = []

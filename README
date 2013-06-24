@@ -125,6 +125,15 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.33: Minor feature enhancements
+
+More fixes for ast_call.
+
+ - Add parser for events from asterisk wireshark trace
+ - Add fail.log for 'real' test
+ - Don't double-register call with Call_Manager
+ - Allow explicit matching by account-code
+
 Version 0.32: Minor feature enhancements
 
 More fixes for ast_call.

@@ -541,16 +541,18 @@ class Call (object) :
         assert (callid)
         if self.callid :
             assert (callid == self.callid)
+        self.callid = callid
+        # Only register once
         if self.min_seqno is None :
             self.min_seqno = self.seqno
-        self.callid = callid
-        self.manager.register (self)
+            self.manager.register (self)
     # end def _set_id
 
     def set_id (self, event) :
         actionid = event.headers.get ('ActionID')
         assert (not actionid or actionid == self.actionid)
         uniqueid = event.headers ['Uniqueid']
+        assert (uniqueid != '<null>')
         self._set_id (uniqueid)
     # end def set_id
 

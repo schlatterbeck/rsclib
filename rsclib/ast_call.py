@@ -356,9 +356,9 @@ class Call (object) :
     >>> d.update (Originate = events)
     >>> a = AsteriskEmu (d)
     >>> ctx = 'active_linecheck'
-    >>> m = Call_Manager (host = 'localhost', port = a.port)
+    >>> m = Call_Manager (host = 'localhost', port = a.port, match_account = 1)
     >>> par = dict (channel_type = 'dahdi/1', call_context = ctx)
-    >>> par ['account'] = None
+    >>> par ['account'] = '2070625609'
     >>> c = m.call ('4711', 1, ** par)
     >>> bool (c)
     False
@@ -592,13 +592,15 @@ class Call_Manager (object) :
 
     def __init__ \
         ( self
-        , config  = 'autocaller'
-        , cfgpath = '/etc/autocaller'
-        , host    = None
-        , port    = 5038
+        , config        = 'autocaller'
+        , cfgpath       = '/etc/autocaller'
+        , host          = None
+        , port          = 5038
+        , match_account = False
         ) :
         self.cfg            = cfg = Config (config = config, path = cfgpath)
         self.manager        = mgr = asterisk.manager.Manager ()
+        self.match_account  = match_account
         self.open_calls     = {} # by actionid
         self.open_by_id     = {} # by callid (part of uniqueid)
         self.open_by_chan   = {} # by channel
@@ -710,6 +712,8 @@ class Call_Manager (object) :
             del kw ['account']
         if kw.get ('account') == 'RANDOMID' :
             kw ['account'] = str (randint (0, 2 ** 32 - 1))
+            random_account = True
+        if 'account' in kw and self.match_account :
             random_account = True
 
         result = self.manager.originate (*args, **kw)

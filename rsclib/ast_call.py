@@ -355,16 +355,16 @@ class Call (object) :
     >>> events = parse_events ('fail.log')
     >>> d = dict (AsteriskEmu.default_events)
     >>> d.update (Originate = events)
-    >>> a = AsteriskEmu (d, port=11111)
+    >>> a = AsteriskEmu (d)
     >>> ctx = 'active_linecheck'
     >>> m = Call_Manager (host = 'localhost', port = a.port)
     >>> c = m.call ('4711', 1, channel_type = 'dahdi/1', call_context = ctx)
     >>> bool (c)
     False
     >>> c.causetext
-    'Unknown'
+    'User busy'
     >>> c.causecode
-    87
+    17
     >>> c.reason
     4
     >>> m.close ()
@@ -499,6 +499,7 @@ class Call (object) :
     # end def handle_Newstate
 
     def handle_OriginateResponse (self) :
+        #print ("OriginateResponse", file = stderr)
         if self.actionid != self.event.headers ['ActionID'] :
             return
         self.reason = int (self.event.headers.get ('Reason', -1))
@@ -801,7 +802,7 @@ class Call_Manager (object) :
         """ Try handling the event. Returns True on success False
             otherwise.
         """
-        #print ("Handling event: %s" % event.name, event.headers)
+        #print ("Handling event: %s" % event.name, event.headers, file = stderr)
         uniqueid = event.headers ['Uniqueid']
         callid   = call_id (uniqueid)
         actionid = event.headers.get ('ActionID')

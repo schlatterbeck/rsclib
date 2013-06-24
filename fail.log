@@ -119,3 +119,13 @@ Reason: 4
 Uniqueid: 1371930198.2
 CallerIDNum: 231705
 CallerIDName: <unknown>
+
+Event: Hangup
+Privilege: call,all
+Channel: DAHDI/i1/1-2
+CallerIDNum: 231705
+CallerIDName: 
+Uniqueid: 1371930198.2
+Cause: 17
+Cause-txt: User busy
+

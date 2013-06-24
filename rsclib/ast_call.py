@@ -358,7 +358,9 @@ class Call (object) :
     >>> a = AsteriskEmu (d)
     >>> ctx = 'active_linecheck'
     >>> m = Call_Manager (host = 'localhost', port = a.port)
-    >>> c = m.call ('4711', 1, channel_type = 'dahdi/1', call_context = ctx)
+    >>> par = dict (channel_type = 'dahdi/1', call_context = ctx)
+    >>> par ['account'] = None
+    >>> c = m.call ('4711', 1, ** par)
     >>> bool (c)
     False
     >>> c.causetext
@@ -623,7 +625,7 @@ class Call_Manager (object) :
         , call_context   = None
         , call_priority  = None
         , caller_id      = None
-        , account        = None
+        , account        = '' # use cfg.ACCOUNT_CODE
         ) :
         """ Originate a call using parameters from configuration.
             Parameter override is possible via call parameters.
@@ -648,6 +650,8 @@ class Call_Manager (object) :
         suffix  = channel_suffix
         if suffix is None :
             suffix = self.cfg.CHANNEL_SUFFIX
+        if account == '' :
+            account = self.cfg.ACCOUNT_CODE
         actionid  = self.originate \
             ( self.cfg.MATCH_CHANNEL
             , channel   = '%s/%s%s' % (type, number, suffix)
@@ -655,7 +659,7 @@ class Call_Manager (object) :
             , context   = call_context   or self.cfg.CALL_CONTEXT
             , priority  = call_priority  or self.cfg.CALL_PRIORITY
             , caller_id = caller_id      or self.cfg.CALLER_ID
-            , account   = account        or self.cfg.ACCOUNT_CODE
+            , account   = account
             , async     = True
             , variables = vars
             )

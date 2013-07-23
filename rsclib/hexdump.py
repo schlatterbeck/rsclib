@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2011 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2011-13 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -25,12 +25,13 @@ def ascii (s) :
     return s
 # end def ascii
 
-def hexdump (s) :
+def hexdump (s, start = 0) :
     r = []
     for x in xrange (len (s) / 16 + 1) :
+        adr  = '%08x'  % (start + x * 16)
         hex  = '%-48s' % ' '.join ("%02x" % ord (k) for k in s [x*16:(x+1)*16])
         char = '%-16s' % ''.join (ascii (k) for k in s [x*16:(x+1)*16])
-        r.append ('  '.join ((hex, char)))
+        r.append ('  '.join ((adr, hex, char)))
     return '\n'.join (r)
 # end def hexdump
 

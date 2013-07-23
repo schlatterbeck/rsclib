@@ -40,3 +40,4 @@
 -A PREROUTING -s 10.40.57.205/32 -i eth0 -p tcp -m tcp ! --dport 21 -c 2498 120724 -j MARK --set-xmark 0x1/0xf
 -A PREROUTING ! -s 10.40.57.205/32 -i eth0 -p tcp -m tcp --dport 21 -c 2498 120724 -j MARK --set-xmark 0x1/0xf
 -A PREROUTING -p udp -m udp --dport 33434:34000 -c 13248 3072171 -j MARK --set-xmark 0x1/0xf
+-A PREROUTING -p udp -m udp --dport 33434:34000 -c 13248 3072171 -j CONNMARK --save-mark --nfmask 0xffffffff --ctmask 0xffffffff

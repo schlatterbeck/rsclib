@@ -351,6 +351,7 @@ class IPTables_Mangle_Rule (autosuper) :
         , '--mark'         : (1, ('str',   'mark'))
         , '--nfmask'       : (1, ('str',   'nfmask'))
         , '--restore-mark' : (0, ('bool',  'restore'))
+        , '--save-mark'    : (0, ('bool',  'save'))
         , '--set-xmark'    : (1, ('str',   'xmark'))
         , '--sport'        : (1, ('port',  'sports'))
         , '--sports'       : (1, ('port',  'sports'))
@@ -383,6 +384,7 @@ class IPTables_Mangle_Rule (autosuper) :
         self.pkgcount       = 0
         self.bytecount      = 0
         self.restore        = False
+        self.save           = False
         self.negate_option  = False
         self.negated        = {}
         self.action         = None
@@ -513,6 +515,9 @@ class IPTables_Mangle_Rule (autosuper) :
             ret.append ('-j %s' % self.action)
         if self.restore :
             ret.append ('--restore-mark')
+        if self.save :
+            ret.append ('--save-mark')
+        if self.save or self.restore :
             ret.append ('--nfmask %s' % self.nfmask)
             ret.append ('--ctmask %s' % self.ctmask)
         if self.xmark :

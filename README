@@ -99,12 +99,13 @@ The library includes various utility modules used in other projects.
    the PREROUTING chain. This means packets are not yet marked. So we
    provide a parser to translate mangle rules in the PREROUTING chain to
    appropriate tc commands. For implementing this we mark packets (using
-   the tc action ipt for iptables marking) in the original device and
+   the tc action xt (formerly known as ipt used for iptables marking, a
+   backward-compatibility option can be used) in the original device and
    then use the marked information in the ifb device to send the traffic
    to appropriate qdiscs. This supports a two-level approach: Rules in
    iptables that match on a packet mark (using --mark) are translated to
    tc commands in the ifb device (they depend on the mark already
-   present). All other rules are translated to a tc action ipt (using -j
+   present). All other rules are translated to a tc action xt (using -j
    MARK) and a tc action mirred redirect (for sending the traffic to the
    ifb device) for the *original* device (e.g. eth0 redirecting to
    ifb0). The PREROUTING commands by default are directly taken from the
@@ -124,6 +125,18 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.34: Minor feature enhancements
+
+Fix trafficshape to use new tc syntax. Add label to hexdump.
+
+ - The tc command has renamed the ``ipt`` action to ``xt`` (Linux
+   introduced xtables as a refactoring of iptables), the old ``ipt`` is
+   still available in ``iproute2`` but we make ``xt`` the default now.
+   A backward-compatibility parameter can be used to get the old
+   behavior.
+ - Add save-mark to iptables action parser.
+ - The hexdump class now can generate labels.
 
 Version 0.33: Minor feature enhancements
 

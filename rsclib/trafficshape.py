@@ -380,7 +380,7 @@ class IPTables_Mangle_Rule (autosuper) :
         , 'FIN' : 0x01
         }
 
-    def __init__ (self, line) :
+    def __init__ (self, line, use_ipt = False) :
         self.pkgcount       = 0
         self.bytecount      = 0
         self.restore        = False
@@ -405,6 +405,7 @@ class IPTables_Mangle_Rule (autosuper) :
         self.xmark          = None
         self.tcp_flags_comp = None
         self.tcp_flags_mask = None
+        self.use_ipt        = use_ipt
         self.parse (line)
         self.rules.append (self)
         self._prio          = len (self.rules) # for filter rules
@@ -528,12 +529,16 @@ class IPTables_Mangle_Rule (autosuper) :
     def as_tc_filter \
         (self, dev, parent, prio = None, action = None, replace = None) :
         """ Output rules as tc filter commands using the basic classifier
-            and the ipt action. In addition optionally add another
-            action.
+            and the xt (xtables, former ipt) action. In addition
+            optionally add another action. If use_ipt is True we use the
+            old-style 'ipt' action instead of the newer 'xt'.
             Default action is to mark the packet. This can be overridden
             with replace. In addition an additional action may be
             specified with action.
         """
+        act = 'xt'
+        if self.use_ipt :
+            act = 'ipt'
         if prio is None :
             prio = self.prio
         if not self.xmark :
@@ -639,7 +644,7 @@ class IPTables_Mangle_Rule (autosuper) :
         if replace :
             ret.append (replace)
         else :
-            ret.append ("action ipt -j MARK --set-xmark %s" % self.xmark)
+            ret.append ("action %s -j MARK --set-xmark %s" % (act, self.xmark))
         if action :
             ret.append (action)
         return ' '.join (ret)
@@ -716,7 +721,7 @@ class IPTables_Mangle_Rule (autosuper) :
     # end def maxprio
 
     @classmethod
-    def parse_prerouting_rules (cls, file = None) :
+    def parse_prerouting_rules (cls, file = None, use_ipt = False) :
         """ Parse prerouting rules from file or iptables pipe.
         """
         if file is None :
@@ -725,7 +730,7 @@ class IPTables_Mangle_Rule (autosuper) :
         else :
             lines = file.readlines ()
         for line in lines :
-            cls (line)
+            cls (line, use_ipt)
     # end def parse_prerouting_rules
 
     def tcp_flags (self, flags) :
@@ -743,6 +748,9 @@ class Shaper (Weighted_Bandwidth) :
     def __init__ (self, tc_cmd = '/sbin/tc', *classes, **kw) :
         self.tc_cmd = tc_cmd
         self.__super.__init__ (**kw)
+        self.use_ipt = False
+        if 'use_ipt' in kw :
+            self.use_ipt = kw ['use_ipt']
         for c in classes :
             assert (not c.parent)
             self.register (c)
@@ -768,7 +776,8 @@ class Shaper (Weighted_Bandwidth) :
         rdev = None
         if '=' in dev :
             dev, rdev = dev.split ('=', 1)
-            IPTables_Mangle_Rule.parse_prerouting_rules (rulefile)
+            IPTables_Mangle_Rule.parse_prerouting_rules \
+                (rulefile, use_ipt = self.use_ipt)
         default = ''
         for c in self.children :
             default = c.get_default_name ()

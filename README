@@ -126,6 +126,13 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.35: Minor feature enhancements
+
+Add 'mask_len' as an alias of 'mask' to IP_Address.
+
+ - Need the network mask length (aka prefix length) sometimes as
+   mask_len (e.g. for FFM on github).
+
 Version 0.34: Minor feature enhancements
 
 Fix trafficshape to use new tc syntax. Add label to hexdump.

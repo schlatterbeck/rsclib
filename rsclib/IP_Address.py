@@ -59,24 +59,24 @@ class IP_Address (autosuper) :
 
     def __init__ (self, address, mask = None, strict_mask = False) :
         if mask is None :
-            mask = self.bitlen
-        self.mask = long (mask)
+            mask  = self.bitlen
+        self.mask = self.mask_len = int (mask)
         if self.mask < 0 or self.mask > self.bitlen :
             raise ValueError, "Invalid netmask: %s" % self.mask
         if isinstance (address, basestring) :
             xadr = address.split ('/', 1)
             if len (xadr) > 1 :
-                m = long (xadr [1])
+                m = int (xadr [1])
                 if m < 0 or m > self.bitlen :
                     raise ValueError, "Invalid netmask: %s" % m
-                self.mask = min (self.mask, m)
+                self.mask = self.mask_len = min (self.mask, m)
             self._from_string (xadr [0])
         else :
             self.ip = long (address)
         if self.ip >= (1L << self.bitlen) :
             raise ValueError, "Invalid ip: %s" % address
         self.bitmask = ((1L << self.mask) - 1L) << (self.bitlen - self.mask)
-        self.invmask = (~self.bitmask) & ((1L << self.bitlen) - 1)
+        self.invmask = (~long (self.bitmask)) & ((1L << self.bitlen) - 1)
         if strict_mask and (self.ip & self.bitmask) != self.ip :
             raise ValueError, "Bits to right of netmask not zero"
         self.ip &= self.bitmask
@@ -186,6 +186,8 @@ class IP4_Address (IP_Address) :
     """
         IP version 4 Address with optional subnet mask.
         >>> a = IP4_Address ('10.100.10.0')
+        >>> a.mask
+        32
         >>> a.ip
         174328320L
         >>> a._broadcast
@@ -197,7 +199,9 @@ class IP4_Address (IP_Address) :
         '10.100.10.0'
         >>> aa = IP4_Address ('10.36.48.129', '255.255.255.224')
         >>> aa.mask
-        27L
+        27
+        >>> aa.mask_len
+        27
         >>> str (aa)
         '10.36.48.128/27'
         >>> b = IP4_Address ('10.100.10.5', 24)
@@ -364,7 +368,7 @@ class IP4_Address (IP_Address) :
         ValueError: Bits to right of netmask not zero
     """
 
-    bitlen = 32L
+    bitlen = 32
 
     def __init__ (self, address, mask = bitlen, **kw) :
         if isinstance (mask, basestring) and len (mask) > 3 :
@@ -412,6 +416,8 @@ class IP6_Address (IP_Address) :
     """
         IP version 6 Address with optional subnet mask.
         >>> a = IP6_Address ("::")
+        >>> a.mask
+        128
         >>> a.ip
         0L
         >>> a._broadcast
@@ -454,6 +460,10 @@ class IP6_Address (IP_Address) :
         >>> b in b
         True
         >>> c = IP6_Address ('2001:db8:85a3::', 48)
+        >>> c.mask
+        48
+        >>> c.mask_len
+        48
         >>> b in c
         True
         >>> c in b
@@ -519,6 +529,10 @@ class IP6_Address (IP_Address) :
         >>> list (sorted ((a, b, c, d, e, f, g)))
         [2001::/16, 2001:db8::1:1:0:1, 2001:db8:0:1:1::1, 2001:db8:85a3::/64, 2001:db8:85a3::/48, 2001:db8:85a3::8a2e:370:7334, 2001:db8:dead:beef:1234:5678:9abc:def0]
         >>> i5 = IP6_Address ('2001:db8::/126')
+        >>> i5.mask
+        126
+        >>> i5.mask_len
+        126
         >>> print "0x%X" % i5.bitmask
         0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC
         >>> len (i5)
@@ -695,7 +709,7 @@ class IP6_Address (IP_Address) :
         ValueError: Bits to right of netmask not zero
     """
 
-    bitlen = 128L
+    bitlen = 128
 
     def _to_str (self) :
         r    = []

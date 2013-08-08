@@ -83,6 +83,9 @@ class IP_Address (autosuper) :
     # end def __init__
 
     def contains (self, other) :
+        other = self._cast (other)
+        if not isinstance (other, self.__class__) :
+            return False
         return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
     # end def contains
 
@@ -111,6 +114,12 @@ class IP_Address (autosuper) :
     # end def netblk
 
     @property
+    def parent (self) :
+        if self.mask > 0 :
+            return self.__class__ (self.ip, self.mask - 1)
+    # end def parent
+
+    @property
     def subnet_mask (self) :
         return self.__class__ (self.bitmask)
     # end def subnet_mask
@@ -118,11 +127,24 @@ class IP_Address (autosuper) :
     netmask = subnet_mask
 
     def overlaps (self, other) :
+        other = self._cast (other)
+        if not isinstance (other, self.__class__) :
+            return False
         return \
             (  self.ip &  self.bitmask == other.ip &  self.bitmask
             or self.ip & other.bitmask == other.ip & other.bitmask
             )
     # end def overlaps
+
+    def is_sibling (self, other) :
+        other = self._cast (other)
+        if not isinstance (other, self.__class__) :
+            return False
+        if self.mask != other.mask :
+            return False
+        srt = tuple (sorted ((self, other)))
+        return srt == tuple (self.parent.subnets (self.mask))
+    # end def is_sibling
 
     def subnets (self, mask = None) :
         if mask is None :
@@ -136,21 +158,19 @@ class IP_Address (autosuper) :
     # end def subnets
 
     def __cmp__ (self, other) :
-        if  (  isinstance (other, self.__class__)
-            or isinstance (self, other.__class__)
-            ) :
-            return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
-        return cmp (type (self), type (other))
+        other = self._cast (other)
+        if not isinstance (other, self.__class__) :
+            return cmp (type (self), type (other))
+        return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
     # end def __cmp__
 
     __contains__ = contains
 
     def __eq__ (self, other) :
-        if  (  isinstance (other, self.__class__)
-            or isinstance (self, other.__class__)
-            ) :
-            return self.ip == other.ip and self.mask == other.mask
-        return False
+        other = self._cast (other)
+        if not isinstance (other, self.__class__) :
+            return False
+        return self.ip == other.ip and self.mask == other.mask
     # end def __eq__
 
     def __hash__ (self) :
@@ -176,6 +196,15 @@ class IP_Address (autosuper) :
 
     __str__  = __repr__
 
+    def _cast (self, other) :
+        if not isinstance (other, self.__class__) :
+            try :
+                other = self.__class__ (other)
+            except (ValueError, TypeError) :
+                pass
+        return other
+    # end def _cast
+
     # dangerous, put last to avoid conflict with built-in len
     # we keep this for compatibility with IPy
     len = __len__
@@ -188,6 +217,8 @@ class IP4_Address (IP_Address) :
         >>> a = IP4_Address ('10.100.10.0')
         >>> a.mask
         32
+        >>> a.parent
+        10.100.10.0/31
         >>> a.ip
         174328320L
         >>> a._broadcast
@@ -260,6 +291,17 @@ class IP4_Address (IP_Address) :
         >>> IP4_Address (0xFFFFFFFF)
         255.255.255.255
         >>> adr = IP4_Address ('10.100.10.1')
+        >>> adr.parent
+        10.100.10.0/31
+        >>> adr.is_sibling (IP4_Address ('10.100.10.0'))
+        True
+        >>> adr.is_sibling (IP4_Address ('10.100.10.2'))
+        False
+        >>> zz = IP4_Address ('10.101.0.0/16')
+        >>> zz.is_sibling (IP4_Address ('10.100.0.0/16'))
+        True
+        >>> zz.is_sibling (IP4_Address ('10.102.0.0/16'))
+        False
         >>> adr in IP4_Address ('10.100.0.0', 16)
         True
         >>> adr in IP4_Address ('10.100.10.0', 24)
@@ -295,6 +337,44 @@ class IP4_Address (IP_Address) :
         10.100.10.2
         >>> g == g
         True
+        >>> g == '10.100.10.2'
+        True
+        >>> g == '10.100.10.2/32'
+        True
+        >>> g != '10.100.10.2'
+        False
+        >>> g != '10.100.10.3'
+        True
+        >>> g <  '10.100.10.3'
+        True
+        >>> g <= '10.100.10.3'
+        True
+        >>> g <= '10.100.10.2'
+        True
+        >>> g <= '10.100.10.1'
+        False
+        >>> g >  '10.100.10.1'
+        True
+        >>> g >= '10.100.10.1'
+        True
+        >>> g >= '10.100.10.2'
+        True
+        >>> g >= '10.100.10.3'
+        False
+        >>> '10.100.10.2/32' in g
+        True
+        >>> '10.100.10.2/30' in g
+        False
+        >>> '10.100.10.2' in IP4_Address ('10.100.10.0/24')
+        True
+        >>> g == None
+        False
+        >>> None == g
+        False
+        >>> g == 'something-invalid'
+        False
+        >>> 'something-invalid' == g
+        False
         >>> g == f
         False
         >>> f
@@ -423,6 +503,14 @@ class IP6_Address (IP_Address) :
         >>> a._broadcast
         0L
         >>> a = IP6_Address ("::1")
+        >>> a.parent
+        ::/127
+        >>> a.is_sibling (IP6_Address ("::"))
+        True
+        >>> a.is_sibling (IP6_Address ("::2"))
+        False
+        >>> a.is_sibling (IP6_Address (a.ip, a.mask - 1))
+        False
         >>> a.ip
         1L
         >>> a = IP6_Address ("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
@@ -500,6 +588,51 @@ class IP6_Address (IP_Address) :
         >>> f.overlaps (f)
         True
         >>> g = IP6_Address ('2001:db8:dead:beef:1234:5678:9abc:def0')
+        >>> g == g
+        True
+        >>> g == '2001:db8:dead:beef:1234:5678:9abc:def0'
+        True
+        >>> g == '2001:db8:dead:beef:1234:5678:9abc:def0/128'
+        True
+        >>> g == '2001:db8:dead:beef:1234:5678:9abc:def1'
+        False
+        >>> g != '2001:db8:dead:beef:1234:5678:9abc:def0'
+        False
+        >>> g != '2001:db8:dead:beef:1234:5678:9abc:def1'
+        True
+        >>> g <  '2001:db8:dead:beef:1234:5678:9abc:def1'
+        True
+        >>> g <= '2001:db8:dead:beef:1234:5678:9abc:def1'
+        True
+        >>> g <= '2001:db8:dead:beef:1234:5678:9abc:def0'
+        True
+        >>> g <= '2001:db8:dead:beef:1234:5678:9abc:deef'
+        False
+        >>> g >  '2001:db8:dead:beef:1234:5678:9abc:deef'
+        True
+        >>> g >= '2001:db8:dead:beef:1234:5678:9abc:deef'
+        True
+        >>> g >= '2001:db8:dead:beef:1234:5678:9abc:def0'
+        True
+        >>> g >= '2001:db8:dead:beef:1234:5678:9abc:def1'
+        False
+        >>> '2001:db8:dead:beef:1234:5678:9abc:def0' in g
+        True
+        >>> '2001:db8:dead:beef:1234:5678:9abc:def0/128' in g
+        True
+        >>> '2001:db8:dead:beef:1234:5678:9abc::/112' in g
+        False
+        >>> zz = IP6_Address ('2001:db8:dead:beef:1234:5678:9abc::/112')
+        >>> '2001:db8:dead:beef:1234:5678:9abc:def0' in zz
+        True
+        >>> g == None
+        False
+        >>> None == g
+        False
+        >>> g == 'something-invalid'
+        False
+        >>> 'something-invalid' == g
+        False
         >>> f.overlaps (g)
         True
         >>> g.overlaps (g)
@@ -520,6 +653,14 @@ class IP6_Address (IP_Address) :
         False
         >>> f
         2001::/16
+        >>> f.parent
+        2000::/15
+        >>> f.is_sibling (IP6_Address ("2000::/16"))
+        True
+        >>> f.is_sibling (IP6_Address ("2002::/16"))
+        False
+        >>> f.is_sibling (f.parent)
+        False
         >>> f == IP6_Address ('2001:db8::')
         False
         >>> f.contains (IP6_Address ('2001:db8::'))

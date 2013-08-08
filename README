@@ -126,6 +126,15 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.36: Minor feature enhancements
+
+Allow auto-coercion of comparison parameters. Add parent property and
+is_sibling test.
+
+ - Now comparison operators and 'in' do auto coercion.
+ - Add parent property (next bigger network)
+ - Add is_sibling test (same parent)
+
 Version 0.35: Minor feature enhancements
 
 Add 'mask_len' as an alias of 'mask' to IP_Address.

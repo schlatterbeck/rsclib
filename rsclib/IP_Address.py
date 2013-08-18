@@ -19,7 +19,8 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-from rsclib.autosuper    import autosuper
+from rsclib.autosuper    import _autosuper
+from rsclib.pycompat     import with_metaclass
 from rsclib.iter_recipes import xxrange as xrange
 
 mask_bits = \
@@ -53,45 +54,72 @@ def netmask_from_string (s) :
     return mask
 # end def netmask_from_string
 
-class IP_Address (autosuper) :
+class _IP_Meta_ (_autosuper) :
+    """ Since IP_Address objects are immutable we return the given
+        object itself if we're passed an instance of our class.
+        So the copy-constructor effectively doesn't return a copy but
+        the object itself.
+    """
 
-    bitlen = None
+    def __call__ (self, arg, * args, ** kw) :
+        if isinstance (arg, self) :
+            return arg
+        return _autosuper.__call__ (self, arg, * args, ** kw)
+    # end def __call__
+
+    @property
+    def bitlen (self) :
+        return self._bitlen
+    # end def bitlen
+
+# end class _IP_Meta_
+
+class IP_Meta (with_metaclass (_IP_Meta_)) :
+    pass
+# end class IP_Meta
+
+class IP_Address (IP_Meta) :
+
+    _bitlen = None
 
     def __init__ (self, address, mask = None, strict_mask = False) :
         if mask is None :
-            mask  = self.bitlen
-        self.mask = self.mask_len = int (mask)
-        if self.mask < 0 or self.mask > self.bitlen :
-            raise ValueError, "Invalid netmask: %s" % self.mask
+            mask  = self._bitlen
+        self._mask = int (mask)
+        if self._mask < 0 or self._mask > self._bitlen :
+            raise ValueError, "Invalid netmask: %s" % self._mask
         if isinstance (address, basestring) :
             xadr = address.split ('/', 1)
             if len (xadr) > 1 :
                 m = int (xadr [1])
-                if m < 0 or m > self.bitlen :
+                if m < 0 or m > self._bitlen :
                     raise ValueError, "Invalid netmask: %s" % m
-                self.mask = self.mask_len = min (self.mask, m)
+                self._mask = min (self._mask, m)
             self._from_string (xadr [0])
         else :
-            self.ip = long (address)
-        if self.ip >= (1L << self.bitlen) :
+            self._ip = long (address)
+        if self._ip >= (1L << self._bitlen) :
             raise ValueError, "Invalid ip: %s" % address
-        self.bitmask = ((1L << self.mask) - 1L) << (self.bitlen - self.mask)
-        self.invmask = (~long (self.bitmask)) & ((1L << self.bitlen) - 1)
-        if strict_mask and (self.ip & self.bitmask) != self.ip :
+        self._bitmask = ((1L << self._mask) - 1L) << (self._bitlen - self._mask)
+        self._invmask = (~long (self._bitmask)) & ((1L << self._bitlen) - 1)
+        if strict_mask and (self._ip & self._bitmask) != self._ip :
             raise ValueError, "Bits to right of netmask not zero"
-        self.ip &= self.bitmask
+        self._ip &= self._bitmask
     # end def __init__
 
-    def contains (self, other) :
-        other = self._cast (other)
-        if not isinstance (other, self.__class__) :
-            return False
-        return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
-    # end def contains
+    @property
+    def bitlen (self) :
+        return self._bitlen
+    # end def bitlen
+
+    @property
+    def bitmask (self) :
+        return self._bitmask
+    # end def bitmask
 
     @property
     def _broadcast (self) :
-        return self.ip | self.invmask
+        return self._ip | self._invmask
     # end def _broadcast
 
     @property
@@ -102,29 +130,53 @@ class IP_Address (autosuper) :
     broadcast = broadcast_address
 
     @property
+    def invmask (self) :
+        return self._invmask
+    # end def invmask
+
+    @property
+    def ip (self) :
+        return self._ip
+    # end def ip
+
+    @property
+    def mask (self) :
+        return self._mask
+    # end def mask
+
+    mask_len = mask
+
+    @property
     def net (self) :
-        return self.__class__ (self.ip)
+        return self.__class__ (self._ip)
     # end def net
     
     network = net
 
     @property
     def netblk (self) :
-        return [self.__class__ (x) for x in (self.ip, self._broadcast)]
+        return [self.__class__ (x) for x in (self._ip, self._broadcast)]
     # end def netblk
 
     @property
     def parent (self) :
-        if self.mask > 0 :
-            return self.__class__ (self.ip, self.mask - 1)
+        if self._mask > 0 :
+            return self.__class__ (self._ip, self._mask - 1)
     # end def parent
 
     @property
     def subnet_mask (self) :
-        return self.__class__ (self.bitmask)
+        return self.__class__ (self._bitmask)
     # end def subnet_mask
 
     netmask = subnet_mask
+
+    def contains (self, other) :
+        other = self._cast (other)
+        if not isinstance (other, self.__class__) :
+            return False
+        return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
+    # end def contains
 
     def overlaps (self, other) :
         other = self._cast (other)
@@ -140,28 +192,28 @@ class IP_Address (autosuper) :
         other = self._cast (other)
         if not isinstance (other, self.__class__) :
             return False
-        if self.mask != other.mask :
+        if self._mask != other._mask :
             return False
         srt = tuple (sorted ((self, other)))
-        return srt == tuple (self.parent.subnets (self.mask))
+        return srt == tuple (self.parent.subnets (self._mask))
     # end def is_sibling
 
     def subnets (self, mask = None) :
         if mask is None :
-            mask = self.bitlen
-        inc = 1 << (self.bitlen - mask)
-        if mask < self.mask :
+            mask = self._bitlen
+        inc = 1 << (self._bitlen - mask)
+        if mask < self._mask :
             raise StopIteration
-        # xrange doesn't support long ints :-(
-        for i in xrange (0, self._broadcast - self.ip + 1, inc) :
-            yield self.__class__ (i + self.ip, mask)
+        # xrange doesn't support long ints :-( see xxrange import above
+        for i in xrange (0, self._broadcast - self._ip + 1, inc) :
+            yield self.__class__ (i + self._ip, mask)
     # end def subnets
 
     def __cmp__ (self, other) :
         other = self._cast (other)
         if not isinstance (other, self.__class__) :
             return cmp (type (self), type (other))
-        return cmp (self.ip, other.ip) or cmp (other.mask, self.mask)
+        return cmp (self.ip, other.ip) or cmp (self.mask, other.mask)
     # end def __cmp__
 
     __contains__ = contains
@@ -180,7 +232,7 @@ class IP_Address (autosuper) :
     __iter__ = subnets
 
     def __len__ (self) :
-        return self._broadcast - self.ip + 1
+        return self._broadcast - self._ip + 1
     # end def __len__
 
     def __ne__ (self, other) :
@@ -189,8 +241,8 @@ class IP_Address (autosuper) :
 
     def __repr__ (self) :
         ret = self._to_str ()
-        if self.mask != self.bitlen :
-            ret += '/%s' % self.mask
+        if self._mask != self._bitlen :
+            ret += '/%s' % self._mask
         return ret
     # end def __repr__
 
@@ -216,6 +268,14 @@ class IP4_Address (IP_Address) :
         IP version 4 Address with optional subnet mask.
         >>> a = IP4_Address ('10.100.10.0')
         >>> a.mask
+        32
+        >>> "%s" % a.mask
+        '32'
+        >>> a.bitlen
+        32
+        >>> "%s" % a.bitlen
+        '32'
+        >>> a.__class__.bitlen
         32
         >>> a.parent
         10.100.10.0/31
@@ -393,7 +453,7 @@ class IP4_Address (IP_Address) :
         >>> z.as_tc_basic_u32 (27)
         'u32 (u32 0x0a283800 0xfffffc00 at 0x10)'
         >>> list (sorted ((a, b, c, d, e, f, g)))
-        [10.100.0.0, 10.100.0.0/16, 10.100.0.0/16, 10.100.0.0/16, 10.100.10.0, 10.100.10.0/24, 10.100.10.2]
+        [10.100.0.0/16, 10.100.0.0/16, 10.100.0.0/16, 10.100.0.0, 10.100.10.0/24, 10.100.10.0, 10.100.10.2]
         >>> IP4_Address ('108.62.8.0/21').netblk
         [108.62.8.0, 108.62.15.255]
         >>> i5 = IP4_Address ('10.23.5.0/30')
@@ -446,11 +506,22 @@ class IP4_Address (IP_Address) :
         Traceback (most recent call last):
          ...
         ValueError: Bits to right of netmask not zero
+
+        >>> x1 = IP4_Address ('1.2.3.4')
+        >>> x2 = IP4_Address (x1)
+        >>> x1 == x2
+        True
+        >>> x1 is x2
+        True
+        >>> x3 = IP6_Address (x1)
+        Traceback (most recent call last):
+           ...
+        TypeError: long() argument must be a string or a number, not 'IP4_Address'
     """
 
-    bitlen = 32
+    _bitlen = 32
 
-    def __init__ (self, address, mask = bitlen, **kw) :
+    def __init__ (self, address, mask = _bitlen, **kw) :
         if isinstance (mask, basestring) and len (mask) > 3 :
             mask = netmask_from_string (mask)
         self.__super.__init__ (address, mask, **kw)
@@ -468,7 +539,7 @@ class IP4_Address (IP_Address) :
     # end def as_tc_basic_u32
 
     def dotted (self) :
-        ip = self.ip
+        ip = self._ip
         r = []
         for i in range (4) :
             r.append (ip & 255)
@@ -487,7 +558,7 @@ class IP4_Address (IP_Address) :
             a |= long (octet)
             if n > 3 :
                 raise ValueError, "Too many octets: %s" % address
-        self.ip = a
+        self._ip = a
     # end def _from_string
 
 # end class IP4_Address
@@ -497,6 +568,14 @@ class IP6_Address (IP_Address) :
         IP version 6 Address with optional subnet mask.
         >>> a = IP6_Address ("::")
         >>> a.mask
+        128
+        >>> "%s" % a.mask
+        '128'
+        >>> a.bitlen
+        128
+        >>> "%s" % a.bitlen
+        '128'
+        >>> a.__class__.bitlen
         128
         >>> a.ip
         0L
@@ -668,7 +747,7 @@ class IP6_Address (IP_Address) :
         >>> f == IP6_Address ('2001:db8::', 16)
         True
         >>> list (sorted ((a, b, c, d, e, f, g)))
-        [2001::/16, 2001:db8::1:1:0:1, 2001:db8:0:1:1::1, 2001:db8:85a3::/64, 2001:db8:85a3::/48, 2001:db8:85a3::8a2e:370:7334, 2001:db8:dead:beef:1234:5678:9abc:def0]
+        [2001::/16, 2001:db8::1:1:0:1, 2001:db8:0:1:1::1, 2001:db8:85a3::/48, 2001:db8:85a3::/64, 2001:db8:85a3::8a2e:370:7334, 2001:db8:dead:beef:1234:5678:9abc:def0]
         >>> i5 = IP6_Address ('2001:db8::/126')
         >>> i5.mask
         126
@@ -848,13 +927,23 @@ class IP6_Address (IP_Address) :
         Traceback (most recent call last):
          ...
         ValueError: Bits to right of netmask not zero
+        >>> x1 = IP6_Address ('2001:0db8::1')
+        >>> x2 = IP6_Address (x1)
+        >>> x1 == x2
+        True
+        >>> x1 is x2
+        True
+        >>> x3 = IP4_Address (x1)
+        Traceback (most recent call last):
+           ...
+        TypeError: long() argument must be a string or a number, not 'IP6_Address'
     """
 
-    bitlen = 128
+    _bitlen = 128
 
     def _to_str (self) :
         r    = []
-        ip   = self.ip
+        ip   = self._ip
         moff = 0
         mlen = 0
         off  = 0
@@ -908,7 +997,7 @@ class IP6_Address (IP_Address) :
             double_colon = False
 
         value = 0L
-        shift = self.bitlen - 16
+        shift = self._bitlen - 16
 
         count = 0
         if upper :
@@ -939,7 +1028,7 @@ class IP6_Address (IP_Address) :
             raise ValueError, "Too many hex parts in address: %s" % adr
         if not double_colon and count < 8 :
             raise ValueError, "Not enough hex parts in address: %s" % adr
-        self.ip = value
+        self._ip = value
     # end def _from_string
 
 # end class IP6_Address

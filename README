@@ -126,6 +126,26 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.37: Minor feature enhancements
+
+Change sort-order of IP_Address, make IP_Address immutable, use
+metaclass magic to allow copy-constructor semantics.
+
+ - Sort order of IP_Address objects (both v4 and v6) now reverses the
+   order of the netmask: If the IP-Address part of the objects to
+   compare are the same, we used to sort by *inverse* netmask (putting
+   smaller networks with higher netmask first). We now reversed this to
+   be compatible with PostgrSQL cidr type objects.
+ - All attributes of IP_Address objects are now implemented as
+   properties to return the '_' variant of the attribute. Thus
+   IP_Address objects are (when using the public interface) immutable.
+   Since we already had a __hash__ method this effectively fixes the
+   interface to not allow mutation of objects that are in a dictionary.
+ - Allow calling the IP_Address constructors with another IP_Address
+   object. Since IP_Address objects are now immutable we use metaclass
+   trickery to return the passed object itself (instead of generating a
+   copy).
+
 Version 0.36: Minor feature enhancements
 
 Allow auto-coercion of comparison parameters. Add parent property and

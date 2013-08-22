@@ -126,6 +126,13 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.38: Minor feature enhancements
+
+Fix boolean conversion of IP6_Address (and IP4_Address).
+
+ - IP6_Address would throw an error when trying a truth-test. Add
+   __nonzero__ (which always returns True even for the 0 Address)
+
 Version 0.37: Minor feature enhancements
 
 Change sort-order of IP_Address, make IP_Address immutable, use

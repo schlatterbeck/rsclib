@@ -239,6 +239,12 @@ class IP_Address (IP_Meta) :
         return not self == other
     # end def __ne__
 
+    def __nonzero__ (self) :
+        """ An IP address is always non-zero, even the 0 Address.
+        """
+        return True
+    # end def __nonzero__
+
     def __repr__ (self) :
         ret = self._to_str ()
         if self._mask != self._bitlen :
@@ -508,6 +514,10 @@ class IP4_Address (IP_Address) :
         ValueError: Bits to right of netmask not zero
 
         >>> x1 = IP4_Address ('1.2.3.4')
+        >>> bool (x1)
+        True
+        >>> bool (IP4_Address ('0.0.0.0'))
+        True
         >>> x2 = IP4_Address (x1)
         >>> x1 == x2
         True
@@ -928,6 +938,10 @@ class IP6_Address (IP_Address) :
          ...
         ValueError: Bits to right of netmask not zero
         >>> x1 = IP6_Address ('2001:0db8::1')
+        >>> bool (x1)
+        True
+        >>> bool (IP6_Address ('::'))
+        True
         >>> x2 = IP6_Address (x1)
         >>> x1 == x2
         True

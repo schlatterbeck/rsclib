@@ -220,7 +220,9 @@ class IP_Address (IP_Meta) :
 
     def __eq__ (self, other) :
         other = self._cast (other)
-        if not isinstance (other, self.__class__) :
+        if  (   not isinstance (other, self.__class__)
+            and not isinstance (self, other.__class__)
+            ) :
             return False
         return self.ip == other.ip and self.mask == other.mask
     # end def __eq__
@@ -389,6 +391,11 @@ class IP4_Address (IP_Address) :
         >>> f.overlaps (f)
         True
         >>> g = IP4_Address ('10.100.10.2', 32)
+        >>> f == IP4_Address (str (g), f.mask)
+        True
+        >>> class zoppel (IP4_Address) : pass
+        >>> f == zoppel (str (g), f.mask)
+        True
         >>> f.overlaps (g)
         True
         >>> g.overlaps (g)
@@ -677,6 +684,11 @@ class IP6_Address (IP_Address) :
         >>> f.overlaps (f)
         True
         >>> g = IP6_Address ('2001:db8:dead:beef:1234:5678:9abc:def0')
+        >>> f == IP6_Address (str (g), f.mask)
+        True
+        >>> class zoppel (IP6_Address) : pass
+        >>> f == zoppel (str (g), f.mask)
+        True
         >>> g == g
         True
         >>> g == '2001:db8:dead:beef:1234:5678:9abc:def0'

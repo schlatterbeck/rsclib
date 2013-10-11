@@ -19,6 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from   __future__       import unicode_literals
 from   rsclib.autosuper import autosuper
 from   StringIO         import StringIO
 try :
@@ -60,18 +61,20 @@ class ETree (autosuper) :
         , encode    = True
         ) :
         """ Return given node (default root) as a string """
+        if encode and self.charset is None :
+            encode = False
         s = [u"    " * indent]
         if n is None :
             n = self.etree.getroot ()
         s.append (n.tag)
         if with_attr :
             for attr in sorted (n.attrib.keys ()) :
-                s.append (u' %s="%s"' % (attr, n.attrib [attr]))
+                s.append (' %s="%s"' % (attr, n.attrib [attr]))
         if with_text :
             if n.text :
-                s.append (u" TEXT: %s" % n.text)
+                s.append (" TEXT: %s" % n.text)
             if n.tail :
-                s.append (u" TAIL: %s" % n.tail)
+                s.append (" TAIL: %s" % n.tail)
         if encode :
             return ''.join (s).encode (self.charset)
         return ''.join (s)

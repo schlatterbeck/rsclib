@@ -357,6 +357,7 @@ class NMAP_Parser (Parser) :
                    r"[(](\d+) hosts? ([a-z]+)[)] scanned in ([0-9.]+) seconds"
                   )
     re_intr  = rc (r"Interesting ports on %(re_addr)s:" % locals ())
+    re_start = rc (r"Nmap scan report for %(re_addr)s"  % locals ())
     re_or    =     r"( \((\d+)\) or ([a-z]+) \((\d+)\))?"
     re_show  = rc (r"Not shown: (\d+) ([a-z]+) ports")
     re_all   = rc ( r"All (\d+) scanned ports on %(re_addr)s "
@@ -367,6 +368,7 @@ class NMAP_Parser (Parser) :
     re_mac   = rc ( r"MAC Address:\s+((%s:){5}%s)(\s+[(]([^)]+)[)])?"
                   % (re_md, re_md)
                   )
+    re_up    = rc (r"Host is up(\s+\([0-9.]+s\s+latency\))?\.")
     re_warn  = rc (r"^Warning:(.*)$")
     re_plist = rc (r"PORT +STATE +SERVICE")
     re_empty = rc (r"^$")
@@ -375,6 +377,7 @@ class NMAP_Parser (Parser) :
     matrix = \
     [ ["init",            re_nmap,                  "started",     "start"]
     , ["init",            "",                       "init",        None]
+    , ["started",         re_start,                 "interest",    "interest"]
     , ["started",         re_intr,                  "interest",    "interest"]
     , ["started",         re_all,                   "mac",         "do_all"]
     , ["started",         re_empty,                 "started",     None]
@@ -382,6 +385,8 @@ class NMAP_Parser (Parser) :
     , ["started",         re_done,                  "init",        "end"]
     , ["interest",        re_show,                  "interest",    "notshown"]
     , ["interest",        re_plist,                 "portlist",    None]
+    , ["interest",        re_up,                    "interest",    None]
+    , ["interest",        re_all,                   "mac",         "do_all"]
     , ["mac",             re_mac,                   "started",     "mac"]
     , ["mac",             None,                     "started",     None]
     , ["portlist",        re_port,                  "portlist",    "port"]

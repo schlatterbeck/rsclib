@@ -20,10 +20,13 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__          import unicode_literals
+
 import re
 import sys
 from rsclib.autosuper    import autosuper
 from rsclib.base_pickler import Base_Pickler
+from rsclib.pycompat     import string_types
 
 class Parse_Error (ValueError) : pass
 
@@ -79,7 +82,7 @@ class Transition (Debug) :
             self.debug \
                 (2, "match: %s (act = %s)" % (self.pattern, self.act_name))
             return self._transition ()
-        if not isinstance (self.pattern, str) :
+        if not isinstance (self.pattern, string_types) :
             m = self.pattern.search (line)
             if m :
                 self.debug (2, "match: <regex> (act = %s)" % self.act_name)
@@ -127,6 +130,7 @@ class Parser (Debug, Base_Pickler) :
     """
 
     pickle_exceptions = dict.fromkeys (('stack', 'state', 'states'))
+    encoding          = 'latin1'
 
     def __init__ (self, matrix = None, **kw) :
         self.verbose = kw.get ('verbose')
@@ -159,12 +163,14 @@ class Parser (Debug, Base_Pickler) :
 
     def parse (self, file) :
         for n, line in enumerate (file) :
+            if self.encoding :
+                line = line.decode (self.encoding)
             self.line   = line.rstrip ()
             self.lineno = n + 1
             try :
                 self.state  = self.state.match ()
             except StandardError, cause :
-                raise Parse_Error, (self.lineno, cause)
+                #raise Parse_Error, (self.lineno, cause)
                 raise
     # end def parse
 

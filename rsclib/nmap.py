@@ -403,18 +403,19 @@ class NMAP_Parser (Parser) :
     def do_all (self, state, new_state, match) :
         g    = match.groups ()
         name, ip = self._get_name_and_ip (g [1], g [3])
-        host = Host \
-            ( ip
-            , name
-            , state  = g [4]
-            , count  = g [0]
-            , state2 = g [7]
-            , count1 = int (g [6] or 0)
-            , count2 = int (g [8] or 0)
-            )
+        if self.nmap.hosts [-1].ip == ip :
+            host = self.nmap.hosts [-1]
+            assert host.name == name
+        else :
+            host = Host (ip, name)
+            self.nmap.add_host (host)
+        host.state  = g [4]
+        host.count  = g [0]
+        host.state2 = g [7]
+        host.count1 = int (g [6] or 0)
+        host.count2 = int (g [8] or 0)
         if self.warnings :
             host.add_warnings (self.warnings)
-        self.nmap.add_host (host)
         self.warnings = []
     # end def do_all
 

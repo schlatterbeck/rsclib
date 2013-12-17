@@ -43,14 +43,18 @@ def netmask_from_string (s) :
         v = int (octet)
         if zero :
             if v != 0 :
-                raise ValueError, "Invalid Octet: %s in %s" % (octet, s)
+                raise ValueError \
+                    ( "IP4_Address: Syntax: Invalid Octet: %s in %s"
+                    % (octet, s)
+                    )
         elif v == 255 :
             mask += 8
         elif v in mask_bits :
             mask += mask_bits [v]
             zero = True
         else :
-            raise ValueError, "Invalid Octet: %s in %s" % (octet, s)
+            raise ValueError \
+                ("IP4_Address: Syntax: Invalid Octet: %s in %s" % (octet, s))
     return mask
 # end def netmask_from_string
 
@@ -87,23 +91,26 @@ class IP_Address (IP_Meta) :
             mask  = self._bitlen
         self._mask = int (mask)
         if self._mask < 0 or self._mask > self._bitlen :
-            raise ValueError, "Invalid netmask: %s" % self._mask
+            raise ValueError \
+                (self._esyntax_ ("Invalid netmask: %s" % self._mask))
         if isinstance (address, basestring) :
             xadr = address.split ('/', 1)
             if len (xadr) > 1 :
                 m = int (xadr [1])
                 if m < 0 or m > self._bitlen :
-                    raise ValueError, "Invalid netmask: %s" % m
+                    raise ValueError \
+                        (self._esyntax_ ("Invalid netmask: %s" % m))
                 self._mask = min (self._mask, m)
             self._from_string (xadr [0])
         else :
             self._ip = long (address)
         if self._ip >= (1L << self._bitlen) :
-            raise ValueError, "Invalid ip: %s" % address
+            raise ValueError (self._esyntax_ ("Invalid ip: %s" % address))
         self._bitmask = ((1L << self._mask) - 1L) << (self._bitlen - self._mask)
         self._invmask = (~long (self._bitmask)) & ((1L << self._bitlen) - 1)
         if strict_mask and (self._ip & self._bitmask) != self._ip :
-            raise ValueError, "Bits to right of netmask not zero"
+            raise ValueError \
+                (self._esyntax_ ("Bits to right of netmask not zero"))
         self._ip &= self._bitmask
     # end def __init__
 
@@ -172,14 +179,14 @@ class IP_Address (IP_Meta) :
     netmask = subnet_mask
 
     def contains (self, other) :
-        other = self._cast (other)
+        other = self._cast_ (other)
         if not isinstance (other, self.__class__) :
             return False
         return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
     # end def contains
 
     def overlaps (self, other) :
-        other = self._cast (other)
+        other = self._cast_ (other)
         if not isinstance (other, self.__class__) :
             return False
         return \
@@ -189,7 +196,7 @@ class IP_Address (IP_Meta) :
     # end def overlaps
 
     def is_sibling (self, other) :
-        other = self._cast (other)
+        other = self._cast_ (other)
         if not isinstance (other, self.__class__) :
             return False
         if self._mask != other._mask :
@@ -210,7 +217,7 @@ class IP_Address (IP_Meta) :
     # end def subnets
 
     def __cmp__ (self, other) :
-        other = self._cast (other)
+        other = self._cast_ (other)
         if not isinstance (other, self.__class__) :
             return cmp (type (self), type (other))
         return cmp (self.ip, other.ip) or cmp (self.mask, other.mask)
@@ -219,7 +226,7 @@ class IP_Address (IP_Meta) :
     __contains__ = contains
 
     def __eq__ (self, other) :
-        other = self._cast (other)
+        other = self._cast_ (other)
         if  (   not isinstance (other, self.__class__)
             and not isinstance (self, other.__class__)
             ) :
@@ -256,14 +263,18 @@ class IP_Address (IP_Meta) :
 
     __str__  = __repr__
 
-    def _cast (self, other) :
+    def _cast_ (self, other) :
         if not isinstance (other, self.__class__) :
             try :
                 other = self.__class__ (other)
             except (ValueError, TypeError) :
                 pass
         return other
-    # end def _cast
+    # end def _cast_
+
+    def _esyntax_ (self, s) :
+        return "%s: Syntax: %s" % (self.__class__.__name__, s)
+    # end def _esyntax_
 
     # dangerous, put last to avoid conflict with built-in len
     # we keep this for compatibility with IPy
@@ -506,19 +517,19 @@ class IP4_Address (IP_Address) :
         >>> IP4_Address ('1.2.3.4/33')
         Traceback (most recent call last):
          ...
-        ValueError: Invalid netmask: 33
+        ValueError: IP4_Address: Syntax: Invalid netmask: 33
         >>> IP4_Address ('256.2.3.4')
         Traceback (most recent call last):
          ...
-        ValueError: Invalid octet: 256
+        ValueError: IP4_Address: Syntax: Invalid octet: 256
         >>> IP4_Address ('1.2.3.4.5')
         Traceback (most recent call last):
          ...
-        ValueError: Too many octets: 1.2.3.4.5
+        ValueError: IP4_Address: Syntax: Too many octets: 1.2.3.4.5
         >>> IP4_Address ('1.2.4.3/22', strict_mask = True)
         Traceback (most recent call last):
          ...
-        ValueError: Bits to right of netmask not zero
+        ValueError: IP4_Address: Syntax: Bits to right of netmask not zero
 
         >>> x1 = IP4_Address ('1.2.3.4')
         >>> bool (x1)
@@ -571,10 +582,12 @@ class IP4_Address (IP_Address) :
             a <<= 8L
             v = long (octet)
             if not (0 <= v <= 255) :
-                raise ValueError, "Invalid octet: %s" % octet
+                raise ValueError \
+                    (self._esyntax_ ("Invalid octet: %s" % octet))
             a |= long (octet)
             if n > 3 :
-                raise ValueError, "Too many octets: %s" % address
+                raise ValueError \
+                    (self._esyntax_ ("Too many octets: %s" % address))
         self._ip = a
     # end def _from_string
 
@@ -816,31 +829,31 @@ class IP6_Address (IP_Address) :
         >>> IP6_Address ('2001:db8::/129')
         Traceback (most recent call last):
          ...
-        ValueError: Invalid netmask: 129
+        ValueError: IP6_Address: Syntax: Invalid netmask: 129
         >>> IP6_Address ('20001:db8::')
         Traceback (most recent call last):
          ...
-        ValueError: Hex value too long: 20001
+        ValueError: IP6_Address: Syntax: Hex value too long: 20001
         >>> IP6_Address ('1:2:3:4:5:6:7:8:9')
         Traceback (most recent call last):
          ...
-        ValueError: Too many hex parts in address: 1:2:3:4:5:6:7:8:9
+        ValueError: IP6_Address: Syntax: Too many hex parts in 1:2:3:4:5:6:7:8:9
         >>> IP6_Address (':1:2:3:4:5:6:7:8')
         Traceback (most recent call last):
          ...
-        ValueError: No single ':' at start allowed
+        ValueError: IP6_Address: Syntax: No single ':' at start allowed
         >>> IP6_Address ('1:2:3:4:5:6:7:8:')
         Traceback (most recent call last):
          ...
-        ValueError: No single ':' at end allowed
+        ValueError: IP6_Address: Syntax: No single ':' at end allowed
         >>> IP6_Address ('1:2:3:4:::6:7:8')
         Traceback (most recent call last):
          ...
-        ValueError: Too many ':': 1:2:3:4:::6:7:8
+        ValueError: IP6_Address: Syntax: Too many ':': 1:2:3:4:::6:7:8
         >>> IP6_Address ('1:2:4::6::7:8')
         Traceback (most recent call last):
          ...
-        ValueError: Only one '::' allowed
+        ValueError: IP6_Address: Syntax: Only one '::' allowed
         >>> IP6_Address ('2001:0db8:85a3:0000:0000:8a2e:0370:7334')
         2001:db8:85a3::8a2e:370:7334
         >>> IP6_Address ('2001:db8:85a3:0:0:8a2e:370:7335')
@@ -880,75 +893,75 @@ class IP6_Address (IP_Address) :
         >>> IP6_Address ('::ffff:12.34.56.78')
         Traceback (most recent call last):
          ...
-        ValueError: Hex value too long: 12.34.56.78
+        ValueError: IP6_Address: Syntax: Hex value too long: 12.34.56.78
         >>> IP6_Address ('::ffff:192.0.2.128')
         Traceback (most recent call last):
          ...
-        ValueError: Hex value too long: 192.0.2.128
+        ValueError: IP6_Address: Syntax: Hex value too long: 192.0.2.128
         >>> IP6_Address ('123')
         Traceback (most recent call last):
          ...
-        ValueError: Not enough hex parts in address: 123
+        ValueError: IP6_Address: Syntax: Not enough hex parts in 123
         >>> IP6_Address ('ldkfj')
         Traceback (most recent call last):
          ...
-        ValueError: Hex value too long: ldkfj
+        ValueError: IP6_Address: Syntax: Hex value too long: ldkfj
         >>> IP6_Address ('2001::FFD3::57ab')
         Traceback (most recent call last):
          ...
-        ValueError: Only one '::' allowed
+        ValueError: IP6_Address: Syntax: Only one '::' allowed
         >>> IP6_Address ('2001:db8:85a3::8a2e:37023:7334')
         Traceback (most recent call last):
          ...
-        ValueError: Hex value too long: 37023
+        ValueError: IP6_Address: Syntax: Hex value too long: 37023
         >>> IP6_Address ('2001:db8:85a3::8a2e:370k:7334')
         Traceback (most recent call last):
          ...
-        ValueError: invalid literal for long() with base 16: '370k'
+        ValueError: IP6_Address: Syntax: invalid literal for long() with base 16: '370k'
         >>> IP6_Address ('1::2::3')
         Traceback (most recent call last):
          ...
-        ValueError: Only one '::' allowed
+        ValueError: IP6_Address: Syntax: Only one '::' allowed
         >>> IP6_Address ('1:::3:4:5')
         Traceback (most recent call last):
          ...
-        ValueError: Too many ':': 1:::3:4:5
+        ValueError: IP6_Address: Syntax: Too many ':': 1:::3:4:5
         >>> IP6_Address ('1:2:3::4:5:6:7:8:9')
         Traceback (most recent call last):
          ...
-        ValueError: Too many hex parts in address: 1:2:3::4:5:6:7:8:9
+        ValueError: IP6_Address: Syntax: Too many hex parts in 1:2:3::4:5:6:7:8:9
         >>> IP6_Address ('::ffff:2.3.4')
         Traceback (most recent call last):
          ...
-        ValueError: Hex value too long: 2.3.4
+        ValueError: IP6_Address: Syntax: Hex value too long: 2.3.4
         >>> IP6_Address ('::ffff:257.1.2.3')
         Traceback (most recent call last):
          ...
-        ValueError: Hex value too long: 257.1.2.3
+        ValueError: IP6_Address: Syntax: Hex value too long: 257.1.2.3
         >>> IP6_Address ('1.2.3.4')
         Traceback (most recent call last):
          ...
-        ValueError: Hex value too long: 1.2.3.4
+        ValueError: IP6_Address: Syntax: Hex value too long: 1.2.3.4
         >>> IP6_Address (':aa:aa:aa')
         Traceback (most recent call last):
          ...
-        ValueError: No single ':' at start allowed
+        ValueError: IP6_Address: Syntax: No single ':' at start allowed
         >>> IP6_Address ('aa:aa:aa:')
         Traceback (most recent call last):
          ...
-        ValueError: No single ':' at end allowed
+        ValueError: IP6_Address: Syntax: No single ':' at end allowed
         >>> IP6_Address ('1:2:3:4:5:6:7')
         Traceback (most recent call last):
          ...
-        ValueError: Not enough hex parts in address: 1:2:3:4:5:6:7
+        ValueError: IP6_Address: Syntax: Not enough hex parts in 1:2:3:4:5:6:7
         >>> IP6_Address (':::')
         Traceback (most recent call last):
          ...
-        ValueError: No ':' at start and end
+        ValueError: IP6_Address: Syntax: No ':' at start and end
         >>> IP6_Address ('1::2/126', strict_mask = True)
         Traceback (most recent call last):
          ...
-        ValueError: Bits to right of netmask not zero
+        ValueError: IP6_Address: Syntax: Bits to right of netmask not zero
         >>> x1 = IP6_Address ('2001:0db8::1')
         >>> bool (x1)
         True
@@ -1005,16 +1018,18 @@ class IP6_Address (IP_Address) :
         """
         if adr.startswith (':') :
             if not adr.startswith ('::') :
-                raise ValueError, "No single ':' at start allowed"
+                raise ValueError \
+                    (self._esyntax_ ("No single ':' at start allowed"))
             if adr != '::' and adr.endswith (':') :
-                raise ValueError, "No ':' at start and end"
+                raise ValueError (self._esyntax_ ("No ':' at start and end"))
         elif adr.endswith (':') :
             if not adr.endswith ('::') :
-                raise ValueError, "No single ':' at end allowed"
+                raise ValueError \
+                    (self._esyntax_ ("No single ':' at end allowed"))
         lower = ''
         upper = adr.split ('::')
         if len (upper) > 2 :
-            raise ValueError, "Only one '::' allowed"
+            raise ValueError (self._esyntax_ ("Only one '::' allowed"))
         if len (upper) > 1 :
             upper, lower = upper
             double_colon = True
@@ -1029,12 +1044,15 @@ class IP6_Address (IP_Address) :
         if upper :
             for v in upper.split (':') :
                 if not v :
-                    raise ValueError, "Too many ':': %s" % adr
+                    raise ValueError \
+                        (self._esyntax_ ("Too many ':': %s" % adr))
                 if len (v) > 4 :
-                    raise ValueError, "Hex value too long: %s" % v
+                    raise ValueError \
+                        (self._esyntax_ ("Hex value too long: %s" % v))
                 v = long (v, 16)
                 if shift < 0 :
-                    raise ValueError, "Too many hex parts in address: %s" % adr
+                    raise ValueError \
+                        (self._esyntax_ ("Too many hex parts in %s" % adr))
                 value |= v << shift
                 shift -= 16
                 count += 1
@@ -1042,18 +1060,25 @@ class IP6_Address (IP_Address) :
             lv = 0L
             for v in lower.split (':') :
                 if not v :
-                    raise ValueError, "Too many ':': %s" % adr
+                    raise ValueError \
+                        (self._esyntax_ ("Too many ':': %s" % adr))
                 if len (v) > 4 :
-                    raise ValueError, "Hex value too long: %s" % v
-                v = long (v, 16)
+                    raise ValueError \
+                        (self._esyntax_ ("Hex value too long: %s" % v))
+                try :
+                    v = long (v, 16)
+                except ValueError, msg :
+                    raise ValueError (self._esyntax_ (msg))
                 lv <<= 16
                 lv |=  v
                 count += 1
             value |= lv
         if count > 8 :
-            raise ValueError, "Too many hex parts in address: %s" % adr
+            raise ValueError \
+                (self._esyntax_ ("Too many hex parts in %s" % adr))
         if not double_colon and count < 8 :
-            raise ValueError, "Not enough hex parts in address: %s" % adr
+            raise ValueError \
+                (self._esyntax_ ("Not enough hex parts in %s" % adr))
         self._ip = value
     # end def _from_string
 

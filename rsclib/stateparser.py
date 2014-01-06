@@ -33,7 +33,7 @@ class Parse_Error (ValueError) : pass
 class Debug (autosuper) :
     def debug (self, level, * msg) :
         if self.verbose >= level :
-            print >> sys.stderr, ' '.join (str (x) for x in msg)
+            print >> sys.stderr, ' '.join (unicode (x) for x in msg)
             sys.stderr.flush ()
     # end def debug
 # end class Debug

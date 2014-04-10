@@ -124,38 +124,38 @@ class SQL_character (autosuper) :
         if self.charset == 'utf-8' and self.fix_double_encode :
             if self.re_double.search (s) :
                 # Don't know how these happen -- seen in the wild
-                s = s.replace ('\xc3\x83\xc5\xb8', '\xc3\x83\xc2\x9f')     # ß
-                s = s.replace ('\xc3\x83\xc5\x93', '\xc3\x83\xc2\x9c')     # Ü
-                s = s.replace ('\xc3\x83\xe2\x80\x93', '\xc3\x83\xc2\x96') # Ö
-                s = s.replace ('\xc4\x82\xe2\x80\x93', '\xc3\x83\xc2\x96') # Ö
-                s = s.replace ('\xc4\x82\xc2\xb6', '\xc3\x83\xc2\xb6')     # ö
-                s = s.replace ('\xc4\x82\xc5\xba', '\xc3\x83\xc2\x9f')     # ß
-                s = s.replace ('\xc4\x82\xc2\xa4', '\xc3\x83\xc2\xa4')     # ä
-                s = s.replace ('\xc4\x82\xc4\xbd', '\xc3\x83\xc2\xbc')     # ü
+                s = s.replace (b'\xc3\x83\xc5\xb8', b'\xc3\x83\xc2\x9f')     # ß
+                s = s.replace (b'\xc3\x83\xc5\x93', b'\xc3\x83\xc2\x9c')     # Ü
+                s = s.replace (b'\xc3\x83\xe2\x80\x93', b'\xc3\x83\xc2\x96') # Ö
+                s = s.replace (b'\xc4\x82\xe2\x80\x93', b'\xc3\x83\xc2\x96') # Ö
+                s = s.replace (b'\xc4\x82\xc2\xb6', b'\xc3\x83\xc2\xb6')     # ö
+                s = s.replace (b'\xc4\x82\xc5\xba', b'\xc3\x83\xc2\x9f')     # ß
+                s = s.replace (b'\xc4\x82\xc2\xa4', b'\xc3\x83\xc2\xa4')     # ä
+                s = s.replace (b'\xc4\x82\xc4\xbd', b'\xc3\x83\xc2\xbc')     # ü
                 # mangled beyond repair, use context:
                 s = s.replace \
-                    ( 'stra\xc4\x8f\xc5\xbc\xcb\x9de'
-                    , 'stra\xc3\x83\xc2\x9fe'
+                    ( b'stra\xc4\x8f\xc5\xbc\xcb\x9de'
+                    , b'stra\xc3\x83\xc2\x9fe'
                     ) # straße
                 s = s.replace \
-                    ( 'g\xc4\x8f\xc5\xbc\xcb\x9drtel'
-                    , 'g\xc3\x83\xc2\xbcrtel'
+                    ( b'g\xc4\x8f\xc5\xbc\xcb\x9drtel'
+                    , b'g\xc3\x83\xc2\xbcrtel'
                     ) # gürtel
                 s = s.replace \
-                    ( 'F\xc4\x8f\xc5\xbc\xcb\x9dnfhaus'
-                    , 'F\xc3\x83\xc2\xbcnfhaus'
+                    ( b'F\xc4\x8f\xc5\xbc\xcb\x9dnfhaus'
+                    , b'F\xc3\x83\xc2\xbcnfhaus'
                     ) # Fünfhaus
                 s = s.replace \
-                    ( 'M\xc4\x8f\xc5\xbc\xcb\x9dller'
-                    , 'M\xc3\x83\xc2\xbcller'
+                    ( b'M\xc4\x8f\xc5\xbc\xcb\x9dller'
+                    , b'M\xc3\x83\xc2\xbcller'
                     ) # Müller
                 s = s.replace \
-                    ( 'H\xc4\x8f\xc5\xbc\xcb\x9dttel'
-                    , 'H\xc3\x83\xc2\xbcttel'
+                    ( b'H\xc4\x8f\xc5\xbc\xcb\x9dttel'
+                    , b'H\xc3\x83\xc2\xbcttel'
                     ) # Hüttel
                 s = s.replace \
-                    ( '\xc3\xa2\xe2\x82\xac\xe2\x80\x9c'
-                    , '\xc3\xa2\xc2\x80\xc2\x93'
+                    ( b'\xc3\xa2\xe2\x82\xac\xe2\x80\x9c'
+                    , b'\xc3\xa2\xc2\x80\xc2\x93'
                     ) # probably an N-Dash
                 try :
                     return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
@@ -251,6 +251,9 @@ class adict (dict) :
 # end class adict
 
 class SQL_Parser (Parser) :
+
+    # don't convert automagically to unicode
+    encoding   = None
 
     re_charset = re.compile (r'CHARSET=([-a-zA-Z0-9]+)')
     re_copy    = re.compile (r'^COPY\s+(\S+)\s\(([^)]+)\) FROM stdin;$')

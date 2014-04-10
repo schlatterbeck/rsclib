@@ -70,7 +70,7 @@ class Transition (Debug) :
         new    = new or self.new_state
         self.debug \
             ( 1
-            , "state: %s new: %s call: %s match: %s"
+            , "state: %s new: %s call: %s match: %r"
             % (pstate.name, new.name, self.act_name, line)
             )
         return new
@@ -89,7 +89,7 @@ class Transition (Debug) :
                 return self._transition (m)
         self.debug \
             ( 4
-            , "state: %s: No match: %s (act = %s)"
+            , "state: %s: No match: %r (act = %s)"
               % (self.state.name, line, self.act_name)
             )
         return None

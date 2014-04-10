@@ -293,6 +293,9 @@ class SQL_Parser (Parser) :
         tbl        = self.table
         fields     = self.fields
         datafields = line.split ('\t')
+        # compensate for rstrip
+        for x in xrange (len (fields) - len (datafields)) :
+            datafields.append ('')
         self.contents [self.tablename].append \
             (adict ((a, tbl [a] (b)) for a, b in zip (fields, datafields)))
     # end def copy_entry

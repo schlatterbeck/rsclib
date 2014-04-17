@@ -126,6 +126,22 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.39: Minor feature enhancements
+
+Fixes to hexdump, unicode issues (elementtree wrapper, stateparser).
+Add some fixes to IP_Address comparison. The nmap output has changed in
+recent versions, adapt to new format.
+
+  - Make address in hexdump configurable
+  - Bug-fix with comparison of sub-classes in IP_Address
+  - Unicode support in ETree
+  - Unicode support in stateparser
+  - Fix for trailing empty attributes in CSV output of PostgreSQL dumps
+    in sqlparser
+  - Unicode support in sqlparser (uses stateparser)
+  - Parse new nmap format
+  - Fix for configurable Releasetools location
+
 Version 0.38: Minor feature enhancements
 
 Fix boolean conversion of IP6_Address (and IP4_Address).

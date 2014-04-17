@@ -28,7 +28,7 @@ except :
 from distutils.core import setup, Extension
 
 description = []
-f = open ('README')
+f = open ('README.rst')
 logo_stripped = False
 for line in f :
     if not logo_stripped and line.strip () :

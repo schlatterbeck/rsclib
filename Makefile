@@ -1,4 +1,10 @@
-LASTRELEASE:=$(shell ../svntools/lastrelease -n)
+# To use this Makefile, get a copy of my SF Release Tools
+# git clone git://git.code.sf.net/p/sfreleasetools/code sfreleasetools
+# And point the environment variable RELEASETOOLS to the checkout
+ifeq (,${RELEASETOOLS})
+    RELEASETOOLS=../releasetools
+endif
+LASTRELEASE:=$(shell $(RELEASETOOLS)/lastrelease -n)
 RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP_Address.py \
     HTML_Parse.py PDF_Parse.py TeX_CSV_Writer.py base_pickler.py         \
     ast_call.py ast_cdr.py autosuper.py base_pickler.py bero.py          \
@@ -10,8 +16,9 @@ RSCLIB=__init__.py Config_File.py autosuper.py PM_Value.py IP_Address.py \
     TeX_CSV_Writer.py timeout.py trafficshape.py
 VERSIONPY=rsclib/Version.py
 VERSION=$(VERSIONPY)
+README=README.rst
 SRC=Makefile setup.py $(RSCLIB:%.py=rsclib/%.py) \
-    MANIFEST.in README README.html
+    MANIFEST.in $(README) README.html
 
 USERNAME=schlatterbeck
 PROJECT=rsclib
@@ -32,4 +39,4 @@ clean:
 	      README.tex announce_pypi
 	rm -rf dist build upload upload_homepage ReleaseNotes.txt
 
-include ../make/Makefile-sf
+include $(RELEASETOOLS)/Makefile-sf

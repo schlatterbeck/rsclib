@@ -126,6 +126,12 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.40: Distribution bug-fix
+
+Renaming of README lead to the missing file README.rst in the distro.
+
+  - Fix MANIFEST.in
+
 Version 0.39: Minor feature enhancements
 
 Fixes to hexdump, unicode issues (elementtree wrapper, stateparser).

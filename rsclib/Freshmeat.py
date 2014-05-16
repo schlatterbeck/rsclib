@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2010-2013 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2010-2014 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -46,6 +46,8 @@ class Freshmeat (autosuper) :
     """
 
     netrc_hosts = ('freecode.com', 'freshmeat.net')
+
+    content_type = {'json' : 'application/json', 'xml' : 'text/xml'}
 
     def __init__ \
         ( self
@@ -117,7 +119,7 @@ class Freshmeat (autosuper) :
             id: 272703
         >>> r = Release ('1.2.3', 'something changed', False, 'bugfix')
         >>> r.json
-        '{"changelog": "something changed", "version": "1.2.3", "tag_list": "bugfix", "hidden_from_frontpage": false}'
+        '{"changelog": "something changed", "version": "1.2.3", "tag_list": ["bugfix"], "hidden_from_frontpage": false}'
         >>> url = "http://localhost/%(project)s/%(objname)s.%(type)s"
         >>> Freshmeat.url = url
         >>> f = Freshmeat ('ooopy', 'releases', put = r, type = 'xml')
@@ -131,6 +133,7 @@ class Freshmeat (autosuper) :
         self.objname   = objname
         self.charset   = charset
         self.type      = type
+        self.c_type    = self.content_type [type]
         self.url       = self.url % locals ()
         self.auth_code = auth_code or self.get_auth ()
         self.code      = None
@@ -151,19 +154,18 @@ class Freshmeat (autosuper) :
     # end def _get
 
     def _put (self, putobj) :
+        auth = '?auth_code=%s' % self.auth_code
         if self.type == 'xml' :
             tree = ETree (putobj.element)
             data = tree.as_xml ()
-            auth = '?auth_code=%s' % self.auth_code
         else :
             auth = ''
-            auth = '?auth_code=%s' % self.auth_code
             data = dict (auth_code = self.auth_code, release = putobj.content)
             data = jsondumps (data)
         r = Request (self.url + auth, data)
         r.add_header \
             ( 'Content-Type'
-            , 'text/%(type)s; charset=%(charset)s'
+            , '%(c_type)s; charset=%(charset)s'
             % self.__dict__
             )
         try :
@@ -174,6 +176,7 @@ class Freshmeat (autosuper) :
         except HTTPError as cause :
             self.code   = cause.code
             self.result = cause.msg
+            self.err    = cause.readlines ()
     # end def _put
 
     def get_auth (self, netrc_file = None, netrc_hosts = None) :
@@ -248,7 +251,7 @@ class Release (autosuper) :
         </release>
         <BLANKLINE>
         >>> print (r.json)
-        {"changelog": "something changed", "version": "1.2.3", "tag_list": "bugfix", "hidden_from_frontpage": false}
+        {"changelog": "something changed", "version": "1.2.3", "tag_list": ["bugfix"], "hidden_from_frontpage": false}
         """
         self.changelog = changelog
         self.hidden    = hidden
@@ -285,7 +288,7 @@ class Release (autosuper) :
                 , changelog             = self.changelog
                 )
             if self.tags :
-                d ['tag_list'] = ','.join (self.tags)
+                d ['tag_list'] = list (self.tags)
         return self._content
     # end def content
 

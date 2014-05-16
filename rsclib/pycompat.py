@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2013 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2013-14 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -41,7 +41,7 @@ else :
 if PY2 :
     class ustr (unicode) :
         def __repr__ (self) :
-            return self.__super.__repr__ ().lstrip ('u')
+            return unicode.__repr__ (self).lstrip ('u')
         # end def __repr__
     # end class ustr
 else :

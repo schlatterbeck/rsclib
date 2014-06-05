@@ -319,11 +319,15 @@ class SQL_Parser (Parser) :
     def insert (self, state, new_state, match) :
         """ This asumes the whole insert statement is one line. """
         name   = match.group (1)
-        tuples = match.group (2).split ('),(')
+        tpl    = match.group (2).split ('),(')
+        tuples = []
+        for t in tpl :
+            tuples.append (t.replace ('\\n', '\n').replace ('\\r', '\r'))
         tbl    = self.tables  [name]
         fields = self.columns [name]
         self.contents [name] = []
-        reader = csv.reader (tuples, delimiter = ',', quotechar="'")
+        reader = csv.reader \
+            (tuples, delimiter = ',', quotechar="'", escapechar = '\\')
         for t in reader :
             self.contents [name].append \
                 (adict ((a, tbl [a] (b)) for a, b in zip (fields, t)))

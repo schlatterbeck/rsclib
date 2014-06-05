@@ -14,3 +14,13 @@
 .#*
 .*.swp
 .DS_store
+notes
+upload
+upload_homepage
+changes
+dist
+build
+announce_pypi
+README.html
+MANIFEST
+ReleaseNotes.txt

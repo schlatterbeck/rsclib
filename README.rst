@@ -126,6 +126,14 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.41: Minor feature enhancements
+
+Fixes to Freshmeat, pycompat, sql-dump parser.
+
+  - Fix parsing of escaped quotes in mysql dumps
+  - Freshmeat
+  - pycompat fixes
+
 Version 0.40: Distribution bug-fix
 
 Renaming of README lead to the missing file README.rst in the distro.

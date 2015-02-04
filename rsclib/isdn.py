@@ -407,27 +407,34 @@ class ISDN_Ports (Log) :
     def __init__ (self, config = 'ast_isdn', cfgpath = '/etc/ast_isdn', ** kw) :
         self.__super.__init__ (** kw)
         self.cfg     = cfg = Config (config = config, path = cfgpath)
-        self.manager = mgr = Manager ()
-        mgr.connect (cfg.ASTERISK_HOST)
-        mgr.login   (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
-        #mgr.register_event ('*', self.handler)
-        r = mgr.command ('core show applications')
-        d = {}
-        for line in r.data.split ('\n') :
-            line = line.strip ()
-            try :
-                k, v = (x.strip () for x in line.split (':', 1))
-            except ValueError :
-                assert (  not line
-                       or line == '--END COMMAND--'
-                       or line.startswith ('-=') and line.endswith ('=-')
-                       )
-                continue
-            d [k] = v
-        mgr.close ()
-        if 'lcr_config' in d :
+
+        arch = self.cfg.get ('ISDN_ARCHITECTURE')
+        if 'architecture' in kw :
+            d = dict (architecture = kw ['architecture'])
+        elif arch :
+            d ['architecture'] = arch
+        else :
+            self.manager = mgr = Manager ()
+            mgr.connect (cfg.ASTERISK_HOST)
+            mgr.login   (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
+            #mgr.register_event ('*', self.handler)
+            r = mgr.command ('core show applications')
+            d = {}
+            for line in r.data.split ('\n') :
+                line = line.strip ()
+                try :
+                    k, v = (x.strip () for x in line.split (':', 1))
+                except ValueError :
+                    assert (  not line
+                           or line == '--END COMMAND--'
+                           or line.startswith ('-=') and line.endswith ('=-')
+                           )
+                    continue
+                d [k] = v
+            mgr.close ()
+        if 'lcr_config' in d or d.get ('architecture') == 'lcr' :
             lcr_init (** kw)
-        if 'DAHDISendKeypadFacility' in d :
+        if 'DAHDISendKeypadFacility' in d or d.get ('architecture') == 'dahdi' :
             DAHDI_Ports (** kw)
     # end def __init__
 

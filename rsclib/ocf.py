@@ -245,7 +245,7 @@ class LSB_Resource (Resource) :
         try :
             print '\n'.join (self.exec_pipe ((self.command, cmd)))
         except Exec_Error, status :
-            self.log.error ("subcommand returned: %s" % status)
+            # exec_pipe already logged the error
             return error_return
         logger = self.log.info
         if cmd == 'status' :
@@ -393,13 +393,18 @@ class Asterisk_Resource (LSB_Resource) :
         ret = self.__super.handle_monitor ()
         if ret :
             return ret
-        ap = Asterisk_Probe (cfg = self.cfg)
+        try :
+            ap = Asterisk_Probe (cfg = self.cfg)
+        except :
+            self.log_exception ()
+            return self.OCF_ERR_GENERIC
         d  = ap.probe_apps ()
         ap.close ()
         if 'DAHDISendKeypadFacility' in d :
             self.log.debug ("successful asterisk-status for %s" % self.service)
             return self.OCF_SUCCESS
-        return self.OCF_NOT_RUNNING
+        self.log.error ("Asterisk runs but no dahdi channels")
+        return self.OCF_ERR_GENERIC
     # end def handle_monitor
     handle_status = handle_monitor
 

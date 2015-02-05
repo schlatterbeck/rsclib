@@ -409,10 +409,12 @@ class ISDN_Ports (Log) :
         self.cfg     = cfg = Config (config = config, path = cfgpath)
 
         arch = self.cfg.get ('ISDN_ARCHITECTURE')
+        if arch :
+            arch = dict.fromkeys (arch)
         if 'architecture' in kw :
-            d = dict (architecture = kw ['architecture'])
+            d = kw ['architecture']
         elif arch :
-            d ['architecture'] = arch
+            d = arch
         else :
             self.manager = mgr = Manager ()
             mgr.connect (cfg.ASTERISK_HOST)
@@ -432,9 +434,9 @@ class ISDN_Ports (Log) :
                     continue
                 d [k] = v
             mgr.close ()
-        if 'lcr_config' in d or d.get ('architecture') == 'lcr' :
+        if 'lcr_config' in d or 'lcr' in d :
             lcr_init (** kw)
-        if 'DAHDISendKeypadFacility' in d or d.get ('architecture') == 'dahdi' :
+        if 'DAHDISendKeypadFacility' in d or 'dahdi' in d :
             DAHDI_Ports (** kw)
     # end def __init__
 

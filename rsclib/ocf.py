@@ -296,12 +296,15 @@ class Dahdi_Resource_Mixin (Resource) :
     # end def __init__
 
     def handle_monitor (self) :
+        arch = self.cfg.get ('ISDN_ARCHITECTURE', ['dahdi'])
+        if arch :
+            arch = dict.fromkeys (arch)
         try :
             ISDN_Ports \
                 ( config       = config
                 , cfgpath      = cfgpath
                 , log_prefix   = self.log_prefix
-                , architecture = 'dahdi'
+                , architecture = arch
                 )
         except Exec_Error, status :
             # Log error but don't exit -- we are called as status update

@@ -517,7 +517,7 @@ coding=AMI
 framing=CCS
 [2]
 active=yes
-alarms=RED
+alarms=UNCONFIGURED
 description=B4XXP (PCI) Card 0 Span 2
 name=B4/0/2
 manufacturer=Digium

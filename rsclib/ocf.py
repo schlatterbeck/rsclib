@@ -432,7 +432,13 @@ class Bero_Resource (Dahdi_Resource_Mixin, Resource) :
             self.log.error ("URLError: %s" % msg)
         sleep (2)
         self.log.info ("successful start")
-        return self.handle_status ()
+        for i in range (3) :
+            st = self.handle_status ()
+            if not st :
+                return st
+            self.log.info ("interface not yet up: %d" % st)
+            sleep (2)
+        return st
     # end def handle_start
 
     def handle_stop (self) :

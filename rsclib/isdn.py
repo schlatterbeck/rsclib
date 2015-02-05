@@ -21,11 +21,11 @@
 # ****************************************************************************
 
 import re
-from asterisk.manager   import Manager
 from rsclib.autosuper   import autosuper
 from rsclib.stateparser import Parser
 from rsclib.execute     import Exec, Exec_Error, Log
 from rsclib.Config_File import Config_File
+from rsclib.ast_probe   import Asterisk_Probe
 
 class Config (Config_File) :
 
@@ -416,24 +416,9 @@ class ISDN_Ports (Log) :
         elif arch :
             d = arch
         else :
-            self.manager = mgr = Manager ()
-            mgr.connect (cfg.ASTERISK_HOST)
-            mgr.login   (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
-            #mgr.register_event ('*', self.handler)
-            r = mgr.command ('core show applications')
-            d = {}
-            for line in r.data.split ('\n') :
-                line = line.strip ()
-                try :
-                    k, v = (x.strip () for x in line.split (':', 1))
-                except ValueError :
-                    assert (  not line
-                           or line == '--END COMMAND--'
-                           or line.startswith ('-=') and line.endswith ('=-')
-                           )
-                    continue
-                d [k] = v
-            mgr.close ()
+            ap = Asterisk_Probe (cfg = self.cfg)
+            d  = ap.probe_apps ()
+            ap.close ()
         if 'lcr_config' in d or 'lcr' in d :
             lcr_init (** kw)
         if 'DAHDISendKeypadFacility' in d or 'dahdi' in d :

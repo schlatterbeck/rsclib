@@ -29,6 +29,7 @@ from   rsclib.Version     import VERSION
 from   rsclib.bero        import Bnfos_Command
 from   rsclib.Config_File import Config_File
 from   rsclib.isdn        import ISDN_Ports, ISDN_Port
+from   rsclib.ast_probe   import Asterisk_Probe
 
 class Parameter_Error (ValueError) : pass
 
@@ -65,6 +66,23 @@ class Parameter (autosuper) :
             """ % self.__dict__
     # end def as_xml
 # end class Parameter
+
+config  = 'alarmconfig'
+cfgpath = '/etc/alarmconfig'
+
+class Config (Config_File) :
+    def __init__ (self, config = config, path = cfgpath) :
+        self.__super.__init__ \
+            ( path, config
+            , HEARTBEAT_SWITCH      = {}
+            , ASTERISK_HOST         = 'localhost'
+            , ASTERISK_MGR_ACCOUNT  = 'user'
+            , ASTERISK_MGR_PASSWORD = 'secret'
+            )
+    # end def __init__
+# end class Config
+
+default_config = Config ()
 
 class Resource (Exec) :
     """ Base class for OCF Resource Agent for Heartbeat V.2 Cluster
@@ -119,9 +137,10 @@ class Resource (Exec) :
         , 'OCF_CHECK_LEVEL' # only for monitor
         ]
 
-    def __init__ (self, **kw) :
+    def __init__ (self, config = default_config, **kw) :
         self.__super.__init__ (**kw)
         self.value = None
+        self.cfg   = config
     # end def __init__
 
     def handle (self, args) :
@@ -160,17 +179,19 @@ class Resource (Exec) :
     # end def handle_meta_data
 
     def handle_monitor (self) :
-        raise NotImplementedError
+        return self.OCF_SUCCESS
     # end def handle_monitor
+    handle_status       = handle_monitor
 
     def handle_notify (self) :
         self.log.info (self.ocf_vars)
         return self.OCF_SUCCESS
     # end def handle_notify
 
-    handle_status       = handle_monitor
-    handle_start        = handle_monitor
-    handle_stop         = handle_monitor
+    def handle_start (self) :
+        raise NotImplementedError
+    # end def handle_start
+    handle_stop         = handle_start
 
     def parse_params (self) :
         self.value = {}
@@ -234,6 +255,9 @@ class LSB_Resource (Resource) :
     # end def _handle
 
     def handle_monitor (self) :
+        ret = self.__super.handle_monitor ()
+        if ret :
+            return ret
         return self._handle ('status', self.OCF_NOT_RUNNING)
     # end def handle_monitor
     handle_status = handle_monitor
@@ -260,20 +284,6 @@ class LSB_Resource (Resource) :
 
 # end class LSB_Resource
 
-config  = 'alarmconfig'
-cfgpath = '/etc/alarmconfig'
-
-class Config (Config_File) :
-    def __init__ (self, config = config, path = cfgpath) :
-        self.__super.__init__ \
-            ( path, config
-            , HEARTBEAT_SWITCH = {}
-            )
-    # end def __init__
-# end class Config
-
-default_config = Config ()
-
 class Dahdi_Resource_Mixin (Resource) :
     """ Mixin for parsing "HEARTBEAT_SWITCH" configuration.
         This is used to determine the isdn ports we need to check and
@@ -289,13 +299,15 @@ class Dahdi_Resource_Mixin (Resource) :
             )
         ]
 
-    def __init__ (self, config = default_config, **kw) :
+    def __init__ (self, **kw) :
         self.__super.__init__ (**kw)
-        self.cfg = config
         self.need_ports = True
     # end def __init__
 
     def handle_monitor (self) :
+        ret = self.__super.handle_monitor ()
+        if ret :
+            return ret
         arch = self.cfg.get ('ISDN_ARCHITECTURE', ['dahdi'])
         if arch :
             arch = dict.fromkeys (arch)
@@ -321,15 +333,16 @@ class Dahdi_Resource_Mixin (Resource) :
         for k, v in self.interfaces.iteritems () :
             if v is None :
                 self.log.error ("Interface %s not found" % k)
-                return self.OCF_ERR_GENERIC
+                return self.OCF_NOT_RUNNING
         if self.need_ports :
             for k, v in self.interfaces.iteritems () :
                 if v :
                     break
             else :
                 self.log.error ("No needed interface is up")
-                return self.OCF_ERR_GENERIC
-        self.log.debug ("successful status for %s" % self.service)
+                return self.OCF_NOT_RUNNING
+        self.log.debug ("successful dahdi line-status for %s" % self.service)
+        return self.OCF_SUCCESS
     # end def handle_monitor
     handle_status = handle_monitor
 
@@ -373,6 +386,24 @@ class Dahdi_Resource (Dahdi_Resource_Mixin, LSB_Resource) :
     # end def parse_params
 
 # end class Dahdi_Resource
+
+class Asterisk_Resource (LSB_Resource) :
+
+    def handle_monitor (self) :
+        ret = self.__super.handle_monitor ()
+        if ret :
+            return ret
+        ap = Asterisk_Probe (cfg = self.cfg)
+        d  = ap.probe_apps ()
+        ap.close ()
+        if 'DAHDISendKeypadFacility' in d :
+            self.log.debug ("successful asterisk-status for %s" % self.service)
+            return self.OCF_SUCCESS
+        return self.OCF_NOT_RUNNING
+    # end def handle_monitor
+    handle_status = handle_monitor
+
+# end def Asterisk_Resource
 
 class Bero_Resource (Dahdi_Resource_Mixin, Resource) :
     """ Script for modeling a resource that switches a Bero*fos switch.

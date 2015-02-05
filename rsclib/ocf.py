@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2009 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2009-14 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -28,7 +28,7 @@ from   rsclib.execute     import Exec, Exec_Error
 from   rsclib.Version     import VERSION
 from   rsclib.bero        import Bnfos_Command
 from   rsclib.Config_File import Config_File
-from   rsclib.lcr         import LCR_Port, LCR_Ports
+from   rsclib.isdn        import ISDN_Ports, ISDN_Port
 
 class Parameter_Error (ValueError) : pass
 
@@ -218,6 +218,9 @@ class LSB_Resource (Resource) :
 
     def _handle (self, cmd, error_return = None) :
         error_return = error_return or self.OCF_ERR_GENERIC
+        if not os.access (self.command, os.X_OK) :
+            self.log.error ("Service %s not installed" % self.service)
+            return self.OCF_ERR_INSTALLED
         try :
             print '\n'.join (self.exec_pipe ((self.command, cmd)))
         except Exec_Error, status :
@@ -252,9 +255,6 @@ class LSB_Resource (Resource) :
             self.service = os.path.basename (self.service)
         else :
             self.command = os.path.join ('/etc/init.d', self.service)
-        if not os.access (self.command, os.X_OK) :
-            self.log.error ("Service %s not installed" % self.service)
-            return self.OCF_ERR_INSTALLED
         return self.OCF_SUCCESS
     # end def parse_params
 
@@ -274,7 +274,104 @@ class Config (Config_File) :
 
 default_config = Config ()
 
-class Bero_Resource (Resource) :
+class Dahdi_Resource_Mixin (Resource) :
+    """ Mixin for parsing "HEARTBEAT_SWITCH" configuration.
+        This is used to determine the isdn ports we need to check and
+        the configuration of the beronet failover switch.
+        Note that our service name needs to be given to find the correct
+        entry in HEARTBEAT_SWITCH.
+    """
+
+    parameters = \
+        [ Parameter
+            ( "service"
+            , "Service-name in HEARTBEAT_SWITCH config item"
+            )
+        ]
+
+    def __init__ (self, config = default_config, **kw) :
+        self.__super.__init__ (**kw)
+        self.cfg = config
+        self.need_ports = True
+    # end def __init__
+
+    def handle_monitor (self) :
+        try :
+            ISDN_Ports \
+                ( config       = config
+                , cfgpath      = cfgpath
+                , log_prefix   = self.log_prefix
+                , architecture = 'dahdi'
+                )
+        except Exec_Error, status :
+            # Log error but don't exit -- we are called as status update
+            # and when dahdi is not running the dahdi_scan called will
+            # exit with nonzero exit code.
+            self.log.error (status)
+        for p in ISDN_Port.by_portnumber.itervalues () :
+            if p.interface in self.interfaces :
+                if p.l1 != 'up' or p.l2 != 'up' :
+                    self.log.error ("Interface %s not up" % p.interface)
+                    self.interfaces [p.interface] = False
+                else :
+                    self.interfaces [p.interface] = True
+        for k, v in self.interfaces.iteritems () :
+            if v is None :
+                self.log.error ("Interface %s not found" % k)
+                return self.OCF_ERR_GENERIC
+        if self.need_ports :
+            for k, v in self.interfaces.iteritems () :
+                if v :
+                    break
+            else :
+                self.log.error ("No needed interface is up")
+                return self.OCF_ERR_GENERIC
+        self.log.debug ("successful status for %s" % self.service)
+    # end def handle_monitor
+    handle_status = handle_monitor
+
+    def parse_params (self) :
+        retval = self.__super.parse_params ()
+        if retval :
+            return retval
+        hb = self.cfg.get ('HEARTBEAT_SWITCH')
+        if not hb or self.service not in hb :
+            self.log.error ("Heartbeat not configured")
+            return self.OCF_ERR_CONFIGURED
+        hb = hb [self.service]
+        self.host   = self.exec_pipe (('/bin/hostname', '-s')) [0]
+        self.bero   = hb [0]
+        self.switch = hb [1].get (self.host)
+        if self.switch is None or len (self.switch) != 2 :
+            self.log.error ("Own Hostname not found")
+            return self.OCF_ERR_CONFIGURED
+        self.switch, self.interfaces = self.switch
+        self.interfaces = dict.fromkeys (self.interfaces)
+        return self.OCF_SUCCESS
+    # end def parse_params
+
+# end class Dahdi_Resource_Mixin
+
+class Dahdi_Resource (Dahdi_Resource_Mixin, LSB_Resource) :
+    """ Start/Stop Dahdi via lsb script and verify we now see our ports
+    """
+
+    def __init__ (self, **kw) :
+        self.__super.__init__ (**kw)
+        self.need_ports = False
+    # end def __init__
+
+    def parse_params (self) :
+        retval = self.__super.parse_params ()
+        if retval :
+            return retval
+        self.command = '/etc/init.d/dahdi'
+        return retval
+    # end def parse_params
+
+# end class Dahdi_Resource
+
+class Bero_Resource (Dahdi_Resource_Mixin, Resource) :
     """ Script for modeling a resource that switches a Bero*fos switch.
         This service makes sure that the Bero*fos switch is in the
         correct state (the lines are switched so that we can see them)
@@ -298,8 +395,8 @@ class Bero_Resource (Resource) :
         switch-state: state of berofos switch for this host (either 1 or
         0 depending on the status of the berofos switch in which this
         host is connected)
-        interface_list: List of Linux Call Router (LCR) interfaces
-        switched by the berofos
+        interface_list: List of Dahdi or Linux Call Router (LCR)
+        interfaces switched by the berofos
 
         It's possible to define several services with different
         bero*fos switches, of course the service config must match the
@@ -307,20 +404,8 @@ class Bero_Resource (Resource) :
 
         Example:
         HEARTBEAT_SWITCH = \
-            {'fos': ('fos', {'fox': (0, ['Ext1']), 'dab': (1, ['Ext1'])}) }
+            {'fos': ('fos', {'fox': (0, ['1']), 'dab': (1, ['1'])}) }
     """
-
-    parameters = \
-        [ Parameter
-            ( "service"
-            , "Service-name in HEARTBEAT_SWITCH config item"
-            )
-        ]
-
-    def __init__ (self, config = default_config, **kw) :
-        self.__super.__init__ (**kw)
-        self.cfg = config
-    # end def __init__
 
     def handle_monitor (self) :
         try :
@@ -331,24 +416,7 @@ class Bero_Resource (Resource) :
                 return self.OCF_NOT_RUNNING
         except URLError, msg :
             self.log.error ("URLError: %s" % msg)
-        try :
-            LCR_Ports (log_prefix = self.log_prefix)
-        except Exec_Error, status :
-            self.log.error (status)
-            return self.OCF_ERR_GENERIC
-        for p in LCR_Port.by_portnumber.itervalues () :
-            if p.interface in self.interfaces :
-                if p.l1 != 'up' or p.l2 != 'up' :
-                    self.log.error ("Interface %s not up" % p.interface)
-                    return self.OCF_ERR_GENERIC
-                else :
-                    self.interfaces [p.interface] = True
-        for k, v in self.interfaces.iteritems () :
-            if not v :
-                self.log.error ("Interface %s not found" % k)
-                return self.OCF_ERR_GENERIC
-        self.log.debug ("successful status for %s" % self.service)
-        return self.OCF_SUCCESS
+        return self.__super.handle_monitor ()
     # end def handle_monitor
     handle_status = handle_monitor
 
@@ -368,26 +436,6 @@ class Bero_Resource (Resource) :
         self.log.info ("successful stop")
         return self.OCF_SUCCESS
     # end def handle_start
-
-    def parse_params (self) :
-        retval = self.__super.parse_params ()
-        if retval :
-            return retval
-        hb = self.cfg.get ('HEARTBEAT_SWITCH')
-        if not hb or self.service not in hb :
-            self.log.error ("Heartbeat not configured")
-            return self.OCF_ERR_CONFIGURED
-        hb = hb [self.service]
-        self.host   = self.exec_pipe (('/bin/hostname', '-s')) [0]
-        self.bero   = hb [0]
-        self.switch = hb [1].get (self.host)
-        if self.switch is None or len (self.switch) != 2 :
-            self.log.error ("Own Hostname not found")
-            return self.OCF_ERR_CONFIGURED
-        self.switch, self.interfaces = self.switch
-        self.interfaces = dict.fromkeys (self.interfaces)
-        return self.OCF_SUCCESS
-    # end def parse_params
 
 # end class Bero_Resource
 

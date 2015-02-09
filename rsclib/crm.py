@@ -143,13 +143,13 @@ class Cluster_Status (Exec) :
 
     def __init__ (self, **kw) :
         self.__super.__init__ (** kw)
-        self.nodes     = []
-        self.resources = []
+        self.nodes     = {}
+        self.resources = {}
         stdout = self.exec_pipe ((CRM_NODE, "-l"))
         for line in stdout :
             number, name, status = line.strip ().split ()
             ip = getaddrinfo (name, None, AF_INET) [0][-1][0]
-            self.nodes.append (Cluster_Node (name, number, ip, status))
+            self.nodes [name] = Cluster_Node (name, number, ip, status)
         stdout = self.exec_pipe ((CRM_RESOURCE, "-l"))
         for line in stdout :
             rname = line.strip ()
@@ -166,7 +166,7 @@ class Cluster_Status (Exec) :
                 node      = state.rsplit (None, 1) [-1]
                 node      = Cluster_Node.by_name [node]
             resource = Cluster_Resource (rname, node)
-            self.resources.append (resource)
+            self.resources [rname] = resource
             for nn in Cluster_Node.by_name :
                 fail  = self.exec_pipe ((CRM_FAILCOUNT, "-r", rname, "-N", nn))
                 assert len (fail) == 1
@@ -196,12 +196,55 @@ class Cluster_Status (Exec) :
                 Cluster_Resource_Fail (resource, nn, failcount, lastfail)
     # end def __init__
 
+    def _exec_resource_cmd (self, resourcename, nodename, cmd) :
+        if resourcename not in self.resources :
+            return (('Unknown resource', -1))
+        if nodename :
+            if nodename not in self.nodes :
+                return (('Unknown node', -2))
+            cmd.append ("-N")
+            cmd.append (nodename)
+        try :
+            res = self.exec_pipe (cmd)
+            self.log.debug ("Successful resource cmd: %s" % ' '.join (cmd))
+            if len (res) > 1 or len (res) == 1 and res [0] :
+                for r in res :
+                    self.log.debug (r)
+        except Exec_Error as cause :
+            return cause
+        return None
+    # end def _exec_resource_cmd
+
+    def clear_error (self, resourcename, nodename = None) :
+        """ Clear error for a resource with optionally specified node.
+        """
+        cmd = [CRM_RESOURCE, "-r", resourcename, "-C"]
+        return self._exec_resource_cmd (resourcename, nodename, cmd)
+    # end def clear_error
+
+    def migrate (self, resourcename, nodename = None) :
+        """ Migrate a cluster resource to another node.
+            Note that the destination node is optional, if the node is
+            not specified, the resource manager will set constraints
+            that force the recource away from the current node.
+            After the move we have to clean up the temporary constraints
+            that were placed for migration.
+        """
+        cmd = [CRM_RESOURCE, "-r", resourcename, "-M"]
+        ret = self._exec_resource_cmd (resourcename, nodename, cmd)
+        if ret :
+            return ret
+        sleep (5)
+        cmd = [CRM_RESOURCE, "-r", resourcename, "-U"]
+        return self._exec_resource_cmd (resourcename, None, cmd)
+    # end def migrate
+
     def __repr__ (self) :
         res = ['Nodes:']
-        for n in self.nodes :
+        for n in self.nodes.itervalues () :
             res.append (str (n))
         res.append ('Resources:')
-        for r in self.resources :
+        for r in self.resources.itervalues () :
             res.append (str (r))
         return '\n'.join (res)
     # end def __repr__

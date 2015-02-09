@@ -137,6 +137,10 @@ class Cluster_Resource (Cluster_Info) :
     # end def __repr__
     __str__ = __repr__
 
+    def terse (self) :
+        return self.__super.__repr__ ()
+    # end def terse
+
 # end class Cluster_Resource
 
 class Cluster_Status (Exec) :

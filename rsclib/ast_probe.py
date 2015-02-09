@@ -20,6 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from time               import sleep
 from asterisk.manager   import Manager
 from rsclib.execute     import Log
 from rsclib.Config_File import Config_File
@@ -44,6 +45,7 @@ class Asterisk_Probe (Log) :
         , config  = 'ast_isdn'
         , cfgpath = '/etc/ast_isdn'
         , cfg     = None
+        , retries = 0
         , ** kw
         ) :
         if cfg :
@@ -55,8 +57,15 @@ class Asterisk_Probe (Log) :
             self.mgr = mgr = kw ['manager']
         else :
             self.mgr = mgr = Manager ()
-            mgr.connect (cfg.ASTERISK_HOST)
-            mgr.login   (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
+            for r in range (retries + 1) :
+                try :
+                    mgr.connect (cfg.ASTERISK_HOST)
+                    break
+                except ManagerSocketException :
+                    if r >= retries :
+                        raise
+                    sleep (1)
+            mgr.login (cfg.ASTERISK_MGR_ACCOUNT, cfg.ASTERISK_MGR_PASSWORD)
     # end def __init__
 
     def close (self) :

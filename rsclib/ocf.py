@@ -369,7 +369,9 @@ class Dahdi_Resource_Mixin (Resource) :
 # end class Dahdi_Resource_Mixin
 
 class Dahdi_Resource (Dahdi_Resource_Mixin, LSB_Resource) :
-    """ Start/Stop Dahdi via lsb script and verify we now see our ports
+    """ Start/Stop Dahdi via lsb script and verify we now see our ports.
+        Extended status checks check that we see the configured dahdi
+        interfaces (not necessarily up).
     """
 
     def __init__ (self, **kw) :
@@ -389,12 +391,17 @@ class Dahdi_Resource (Dahdi_Resource_Mixin, LSB_Resource) :
 
 class Asterisk_Resource (LSB_Resource) :
 
+    """ Start/Stop Asterisk via lsb script and verify it is running.
+        Extended status checks for querying that the dahdi module is
+        loaded (this would fail if dahdi isn't started).
+    """
+
     def handle_monitor (self) :
         ret = self.__super.handle_monitor ()
         if ret :
             return ret
         try :
-            ap = Asterisk_Probe (cfg = self.cfg)
+            ap = Asterisk_Probe (cfg = self.cfg, retries = 3)
         except :
             self.log_exception ()
             return self.OCF_ERR_GENERIC

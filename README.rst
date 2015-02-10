@@ -31,6 +31,10 @@ The library includes various utility modules used in other projects.
    configurator code that comes with the device).
  - Config_File for python-syntax configuration files used in several of
    my projects.
+ - crm: Tools for the cluster resource manager of the pacemaker high
+   availability project. We allow querying of nodes, resources and
+   errors for resources as well as resetting errors and migration of
+   resources.
  - execute: module for executing commands and handling IO, this also
    has a Lock and a Log mixin. Now there is also a framework for
    executing processes in a pipeline, there can be fork-points in the
@@ -125,6 +129,20 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.42: Feature enhancements
+
+Add crm for pacemaker cluster management, new ast_probe for checking of
+asterisk status. Fixes to ocf and ast_call.
+
+  - Add crm.py
+  - Add ast_probe.py
+  - Allow specification of parsed config (cfg) for Call_Manager in
+    ast_call.py
+  - Better resource monitoring for asterisk and dahdi in ocf.py
+  - fix ocf.py to use new classes in isdn.py
+  - isdn.py now doesn't probe asterisk for the isdn stack in use if it
+    finds a hint in the config-file
 
 Version 0.41: Minor feature enhancements
 

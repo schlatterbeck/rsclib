@@ -44,7 +44,7 @@ class Cluster_Info (autosuper) :
         for n in self.attributes :
             if n not in d :
                 d [n] = getattr (self, n)
-        f = ' '.join ("%s=%%(%s)s" % (n, n) for n in self.attributes)
+        f = ', '.join ("%s=%%(%s)s" % (n, n) for n in self.attributes)
         return f % d
     # end def __repr__
     __str__ = __repr__

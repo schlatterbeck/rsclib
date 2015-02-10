@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2008-13 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2008-15 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -599,8 +599,12 @@ class Call_Manager (object) :
         , host          = None
         , port          = 5038
         , match_account = False
+        , cfg           = None
         ) :
-        self.cfg            = cfg = Config (config = config, path = cfgpath)
+        if cfg :
+            self.cfg = cfg
+        else :
+            self.cfg = cfg  = Config (config = config, path = cfgpath)
         self.manager        = mgr = asterisk.manager.Manager ()
         self.match_account  = match_account
         self.open_calls     = {} # by actionid

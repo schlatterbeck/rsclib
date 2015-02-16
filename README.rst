@@ -16,6 +16,7 @@ The library includes various utility modules used in other projects.
    can find out the status of the call and optionally the dialstatus.
  - ast_cdr: parser for CDR records in asterisk. We currently use
    text-files only, this might be later extended for database use.
+ - ast_probe: Methods for checking for running asterisk
  - Autosuper magic (originally from Guido van Rossums announcement of
    Python 2.2): For refactoring it's a good idea that each class knows
    its parents (that the parent is not hardcoded in the upcall),
@@ -129,6 +130,15 @@ and install using the standard python setup, e.g.::
 
 Changes
 -------
+
+Version 0.43: Support new berofos firmware
+
+The new berofos (failover switch) firmware has some new low-level
+commands which we now accept when getting the device status.
+
+  - Fix bero.py to accept new low-level commands
+  - Add some more documentation to bero.py
+  - Add description of ast_probe in this README
 
 Version 0.42: Feature enhancements
 

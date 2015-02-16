@@ -21,8 +21,14 @@
 
 from urllib2 import urlopen
 
+# Taken from src/beronet/confmap_fos.h in the linux command-line tool
+# with some additions of commands showing up in /config.txt of
+# web-interface.
+#       key,    type, cmd, param,       macro
 bnfos_confmap = \
     [ ( "sz"     , 'b', 1, "sz=%s"    , "szenario(0)")
+    , ( "szd00"  ,   0, 1, ""         , "")            ## not in bntools code
+    , ( "szd01"  ,   0, 1, ""         , "")            ## not in bntools code
     , ( "mode"   , 'b', 4, "mode=%s"  , "mode(0)")
     , ( "rm"     , 'b', 1, "rm=%s"    , "config(1,1)")
     , ( "p0"     , 'b', 5, "p=0&s=%s" , "pwrport(0,0)")
@@ -37,14 +43,15 @@ bnfos_confmap = \
     , ( "dhcp"   , 'b', 3, "dhcp=%s"  , "config(4,1)")
     , ( "port"   , 'p', 3, "port=%s"  , "netconf(6)")
     , ( "pwd"    , 'b', 3, "pwd=%s"   , "config(5,1)")
-    , ( "apwd"   , 'd', 3, "apwd=%s"  , None)
+    , ( "apwd"   , 'd', 3, "apwd=%s"  , None)          #### not in cmd list
+    , ( "mail"   ,   0, 2, ""         , "")            ## not in bntools code
     , ( "mhost"  , 's', 2, "mhost=%s" , "netconf(5)")
     , ( "mfrom"  , 's', 2, "mfrom=%s" , "netconf(7)")
     , ( "mto"    , 's', 2, "mto=%s"   , "netconf(8)")
-    , ( "XXXXX"  , 'n', 7, ""         , None)
+    , ( "XXXXX"  , 'n', 7, ""         , None)          #### not in cmd list
     , ( "log"    , 'b', 3, "syslog=%s", "config(10,1)")
     , ( "loghost", 'a', 3, "slgip=%s" , "netconf(9)")
-    , ( "logport", 'p', 3, "slgpt=%s" , "netconf(10)")
+    , ( "logport", 'p', 3, "slgpt=%s" , "netconf(10)") #### not in cmd list
     , ( "wen"    , 'b', 6, "wen=%s"   , "wdog(0)")
     , ( "wen"    , 'b', 2, "wen=%s"   , "config(6,1)")
     , ( "wstate" ,   0, 6, "wstate=%s", "wdog(0)")
@@ -54,6 +61,8 @@ bnfos_confmap = \
     , ( "wretv"  ,   0, 0, None       , "wdog(2)")
     ]
 
+# Taken from bnfos/main.c -- command-line interface
+#      key,     cmd,  command,   helptext
 bnfos_commands = \
     [ ("sz"     , 1, "scenario", "scenario (0=fallback; 1=bypass)")
     , ("mode"   , 4, "mode", "relais mode (0=A--D; 1=A--B or A--B,C--D)")

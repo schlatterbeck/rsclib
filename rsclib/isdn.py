@@ -241,7 +241,8 @@ class ISDN_Port (autosuper) :
         for k in self.ignore.iterkeys () :
             del d [k]
         return ', '.join \
-            ("%s = %s" % (k, repr (v))
+            ( "%s = %s"
+            % (k, (repr (v), repr (v)[1:])[repr (v).startswith ('u')])
              for k, v in sorted (d.iteritems ())
              if k [0] != '_' and v is not None
             )

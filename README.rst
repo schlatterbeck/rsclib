@@ -131,6 +131,13 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.44: Make line-waiting for bero configurable
+
+For cluster resource berofos we make waiting for the L1 and L2 of the
+ISDN line configurable. The hard-coded default was too low.
+
+   - New config-item ISDN_WAIT_UP
+
 Version 0.43: Support new berofos firmware
 
 The new berofos (failover switch) firmware has some new low-level

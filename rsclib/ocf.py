@@ -78,6 +78,7 @@ class Config (Config_File) :
             , ASTERISK_HOST         = 'localhost'
             , ASTERISK_MGR_ACCOUNT  = 'user'
             , ASTERISK_MGR_PASSWORD = 'secret'
+            , ISDN_WAIT_UP          = 30
             )
     # end def __init__
 # end class Config
@@ -475,12 +476,14 @@ class Bero_Resource (Dahdi_Resource_Mixin, Resource) :
             self.log.error ("URLError: %s" % msg)
         sleep (2)
         self.log.info ("successful start")
-        for i in range (3) :
+        t = 0;
+        while t < self.cfg.get ('ISDN_WAIT_UP', 30) :
             st = self.handle_status ()
             if not st :
                 return st
-            self.log.info ("interface not yet up: %d" % st)
+            self.log.info ("Interfaces not yet up, status: %d" % st)
             sleep (2)
+            t += 2
         return st
     # end def handle_start
 

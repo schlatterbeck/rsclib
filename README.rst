@@ -131,6 +131,12 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.45: Fix ISDN ports
+
+String reprentation had leading unicode 'u'
+
+   - Fix string representation in ISDN ports
+
 Version 0.44: Make line-waiting for bero configurable
 
 For cluster resource berofos we make waiting for the L1 and L2 of the

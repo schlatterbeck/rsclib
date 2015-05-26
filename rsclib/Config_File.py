@@ -49,10 +49,14 @@ class Config_File (autosuper) :
     # end def __init__
 
     def __getattr__ (self, key) :
-        if key [0] != '_' :
-            return self [key]
-        raise AttributeError, \
-            "%s instance has no attribute '%s'" % (self.__class__.__name__, key)
+        try :
+            if key [0] != '_' :
+                return self [key]
+        except KeyError :
+            raise AttributeError \
+                ( "%s instance has no attribute '%s'"
+                % (self.__class__.__name__, key)
+                )
     # end def __getattr__
 
     def __getitem__ (self, key) :

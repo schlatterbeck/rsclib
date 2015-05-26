@@ -21,13 +21,13 @@
 # ****************************************************************************
 
 from time               import sleep
-from asterisk.manager   import Manager
+from asterisk.manager   import Manager, ManagerSocketException
 from rsclib.execute     import Log
 from rsclib.Config_File import Config_File
 
 class Config (Config_File) :
 
-    def __init__ (self, config = 'ast_isdn', path = '/etc/ast_isdn') :
+    def __init__ (self, config = 'ast_probe', path = '/etc/ast_probe') :
         self.__super.__init__ \
             ( path, config
             , ASTERISK_HOST         = 'localhost'
@@ -42,8 +42,8 @@ class Asterisk_Probe (Log) :
 
     def __init__ \
         ( self
-        , config  = 'ast_isdn'
-        , cfgpath = '/etc/ast_isdn'
+        , config  = 'ast_probe'
+        , cfgpath = '/etc/ast_probe'
         , cfg     = None
         , retries = 0
         , ** kw
@@ -90,6 +90,29 @@ class Asterisk_Probe (Log) :
             d [k] = v
         return d
     # end def probe_apps
+
+    def probe_sip_registry (self) :
+        r = self.mgr.command ('sip show registry')
+        d = {}
+        for line in r.data.split ('\n') :
+            data = line.split (None, 5)
+            if len (data) != 6 :
+                assert data == [] or data [1] == 'SIP' or data [0] == '--END'
+                continue
+            if data [0] == 'Host' :
+                continue
+            if data [4] == 'Request' and data [5].startswith ('Sent') :
+                data [4] = 'Request Sent'
+                data [5] = data [5].split (None, 1) [-1]
+            host, port = data [0].split (':', 1)
+            d [host] = data [4]
+        return d
+    # end def probe_sip_registry
+
+    def reload_sip (self) :
+        r = self.mgr.command ('sip reload')
+        self.log.info ('SIP reload')
+    # end def reload_sip
 
 # end class Asterisk_Probe
 

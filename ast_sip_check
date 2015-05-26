@@ -1,0 +1,21 @@
+#!/usr/bin/python
+
+import sys
+from rsclib.ast_probe import Asterisk_Probe
+
+p = Asterisk_Probe ()
+r = p.probe_sip_registry ()
+reload = False
+for name in sys.argv [1:] :
+    if name not in r :
+        p.log.error ("Host %s not found" % name)
+    elif r [name] == 'Request Sent' :
+        p.log.warn ("Host %s: %s" % (name, r [name]))
+    elif r [name] != 'Registered' :
+        p.log.error ("Host %s not registered: %s" % (name, r [name]))
+        reload = True
+    else :
+        p.log.debug ("Host %s OK" % name)
+
+if reload :
+    p.reload_sip ()

@@ -50,6 +50,7 @@ setup \
     , packages         = ['rsclib']
     , platforms        = 'Any'
     , url              = "http://rsclib.sourceforge.net/"
+    , scripts          = ['ast_sip_check']
     , download_url     = \
         "%(download)s/%(VERSION)s/rsclib-%(VERSION)s.tar.gz" % locals ()
     , classifiers      = \

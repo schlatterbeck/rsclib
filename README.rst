@@ -131,6 +131,16 @@ and install using the standard python setup, e.g.::
 Changes
 -------
 
+Version 0.46: Additions to ast_probe; Bug-fix
+
+   - ast_probe now has methods for checking sip registry and reloading
+     the sip subsystem in asterisk
+   - Add a small script, ast_sip_check for checking sip registration on
+     an asterisk server and restart sip if some registrations are
+     missing.
+   - Config_File fixes the __getattr_ method to return an
+     AttributeError in case of failure
+
 Version 0.45: Fix ISDN ports
 
 String reprentation had leading unicode 'u'

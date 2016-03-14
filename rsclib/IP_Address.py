@@ -178,17 +178,23 @@ class IP_Address (IP_Meta) :
 
     netmask = subnet_mask
 
-    def contains (self, other) :
-        other = self._cast_ (other)
+    def _clscheck_ (self, other) :
         ii = isinstance
         if not ii (other, self.__class__) and not ii (self, other.__class__) :
+            return False
+        return True
+    # end def _clscheck_
+
+    def contains (self, other) :
+        other = self._cast_ (other)
+        if not self._clscheck_ (other) :
             return False
         return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
     # end def contains
 
     def overlaps (self, other) :
         other = self._cast_ (other)
-        if not isinstance (other, self.__class__) :
+        if not self._clscheck_ (other) :
             return False
         return \
             (  self.ip &  self.bitmask == other.ip &  self.bitmask
@@ -198,7 +204,7 @@ class IP_Address (IP_Meta) :
 
     def is_sibling (self, other) :
         other = self._cast_ (other)
-        if not isinstance (other, self.__class__) :
+        if not self._clscheck_ (other) :
             return False
         if self._mask != other._mask :
             return False
@@ -219,7 +225,7 @@ class IP_Address (IP_Meta) :
 
     def __cmp__ (self, other) :
         other = self._cast_ (other)
-        if not isinstance (other, self.__class__) :
+        if not self._clscheck_ (other) :
             return cmp (type (self), type (other))
         return cmp (self.ip, other.ip) or cmp (self.mask, other.mask)
     # end def __cmp__
@@ -228,9 +234,7 @@ class IP_Address (IP_Meta) :
 
     def __eq__ (self, other) :
         other = self._cast_ (other)
-        if  (   not isinstance (other, self.__class__)
-            and not isinstance (self, other.__class__)
-            ) :
+        if not self._clscheck_ (other) :
             return False
         return self.ip == other.ip and self.mask == other.mask
     # end def __eq__

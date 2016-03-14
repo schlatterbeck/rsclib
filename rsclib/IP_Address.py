@@ -180,7 +180,8 @@ class IP_Address (IP_Meta) :
 
     def contains (self, other) :
         other = self._cast_ (other)
-        if not isinstance (other, self.__class__) :
+        ii = isinstance
+        if not ii (other, self.__class__) and not ii (self, other.__class__) :
             return False
         return other.mask >= self.mask and self.ip == (other.ip & self.bitmask)
     # end def contains

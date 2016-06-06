@@ -127,9 +127,17 @@ and install using the standard python setup, e.g.::
 
  python setup.py install --prefix=/usr/local
 
+Alternatively get it from pypi and/or install via pip.
+
 
 Changes
 -------
+
+Version 0.47: Fixes for IP_Address; pypi
+
+   - IP_Address: Relax inheritance checks when comparing IP_Address
+     instances
+   - Version uploaded to pypi and documented in README
 
 Version 0.46: Additions to ast_probe; Bug-fix
 

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2009 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2009-16 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -151,11 +151,11 @@ def exitstatus (cmd, status) :
     return 'WARNING: %s returned nonzero exit status %s%s' % (cmd, s, sig)
 # end def exitstatus
 
-class Process (_Named) :
+class Process (Log) :
     """ A process in a (multi-)pipe
     """
 
-    by_pid = {}
+    by_pid      = {}
 
     def __init__ \
         (self
@@ -179,35 +179,37 @@ class Process (_Named) :
         self.bufsize      = bufsize
         self.status       = None
         self.name         = name
+        self.log_prefix   = name # use default from Log class if unset
         if not self.name :
             self.name     = self.clsname
         self.children     = []
         self.tee          = None
         self.pid          = None
         self.toclose      = []
+        self.__super.__init__ (log_prefix = self.log_prefix, **kw)
     # end def __init__
 
     def fork (self) :
         pid = os.fork ()
         if pid : # parent
             self.pid = pid
-            #print "PID:", self.name, self.pid
+            self.log.debug ("fork: pid: %s" % self.pid)
             self.by_pid [pid] = self
             if self.stdout and self.close_stdout :
-                #print "main closing:", self.stdout.fileno ()
+                self.log.debug ("fork: out closing: %s" % self.stdout.fileno ())
                 self.stdout.close ()
             if self.stderr and self.close_stderr :
                 self.stderr.close ()
             if self.stdin and self.close_stdin :
-                #print "main closing:", self.stdin.fileno ()
+                self.log.debug ("fork: in closing: %s" % self.stdin.fileno ())
                 self.stdin.close ()
             if hasattr (self, 'stdouts') :
                 for f in self.stdouts.iterkeys () :
-                    #print "main closing:", f.fileno ()
+                    self.log.debug ("fork: aux closing: %s" % f.fileno ())
                     f.close ()
         else : # child
             for f in self.toclose :
-                #print self.name, "closing:", f.fileno ()
+                self.log.debug ("fork: child closing: %s" % f.fileno ())
                 f.close ()
             self.method ()
             sys.exit    (0)
@@ -225,11 +227,16 @@ class Process (_Named) :
     @classmethod
     def wait (cls) :
         while cls.by_pid :
-            #print cls.by_pid.keys ()
             pid, status = os.wait ()
             if pid > 0 :
-                cls.by_pid [pid].status = status
-            del cls.by_pid [pid]
+                process = cls.by_pid [pid]
+                if status :
+                    process.log.info \
+                        ( "pid: %s: %s"
+                        % (pid, exitstatus (process.name, status))
+                        )
+                process.status = status
+                del cls.by_pid [pid]
     # end def wait
 
     def __repr__ (self) :
@@ -250,38 +257,20 @@ class Process (_Named) :
 # end class Process
 
 class Tee (Process) :
-    """ A tee in a pipe (like the unix command tee but copies to several
+    """ A tee in a pipe (like the unix command "tee" but copies to several
         sub-processes)
     """
     def __init__ (self, children, stdout, **kw) :
         self.stdouts  = {}
         self.__super.__init__ (**kw)
         self.children = children
-        for c in self.children :
-            pipe = os.pipe ()
-            #print "tee pipe:", pipe
-            self.stdouts [os.fdopen (pipe [1], 'w')] = c
-            c.stdin = os.fdopen (pipe [0], 'r')
-        self.toclose.append (stdout)
-        for c in self.children :
-            c.toclose.extend (self.stdouts.keys ())
-            c.toclose.append (stdout)
-            if self.stdin :
-                c.toclose.append (self.stdin)
-            for c2 in reversed (self.children) :
-                if c == c2 :
-                    break;
-                c.toclose.append (c2.stdin)
     # end def __init__
 
     def method (self) :
-        #print self.name, "method"
         while 1 :
-            #print self.name, "before read", self.stdin.fileno ()
             buf = self.stdin.read (self.bufsize)
-            #print "read:", len (buf)
             if not buf :
-                #print "Tee: empty read, terminating"
+                self.log.debug ("Tee: empty read, terminating")
                 return
             # use items () here, we want to modify dict
             written = False
@@ -291,17 +280,46 @@ class Tee (Process) :
                 try :
                     stdout.write (buf)
                     written = True
-                    #print "written:", child.name, len (buf)
+                    #self.log.debug ("written: %s" % len (buf))
                 except IOError, cause :
                     # this client died, no longer try to send to it
                     if cause.errno != errno.EPIPE :
                         raise
-                    #print "Dead:", child.name
-                    self.stdouts [stdout] = False
+                    self.log.debug ("%s: dead" % child.name)
+                    stdout.close ()
+                    del self.stdouts [stdout]
             # still clients existing?
             if not written :
+                if len (self.stdouts) :
+                    self.log.err ("All children had sigpipe ?!?")
                 return
     # end def method
+
+    def run (self) :
+        for c in self.children :
+            pipe = os.pipe ()
+            self.stdouts [os.fdopen (pipe [1], 'w')] = c
+            c.stdin = os.fdopen (pipe [0], 'r')
+        for c in self.children :
+            c.toclose.extend (self.toclose)
+            c.toclose.extend (self.stdouts.keys ())
+            if self.stdin :
+                c.toclose.append (self.stdin)
+            for c2 in self.children :
+                if c == c2 :
+                    continue;
+                c.toclose.append (c2.stdin)
+        for child in self.children :
+            child.run ()
+        # close children read descriptors in parent
+        for c in self.children :
+            c.stdin.close ()
+        retval = self.fork ()
+        # close tee write descriptors after forking off the tee process
+        for s in self.stdouts :
+            s.close ()
+        return retval
+    # end def run
 
 # end class Tee
 
@@ -344,30 +362,35 @@ class Method_Process (Process) :
     # end def redirect
 
     def run (self) :
+        stdout = None
         if self.children :
-            pipe  = os.pipe ()
-            #print "pipe:", pipe
-            stdin = os.fdopen (pipe [0], 'r')
-            self.stdout = os.fdopen (pipe [1], 'w')
+            pipe   = os.pipe ()
+            stdin  = os.fdopen (pipe [0], 'r')
+            stdout = self.stdout = os.fdopen (pipe [1], 'w')
             if len (self.children) > 1 :
-                self.tee = Tee \
+                child = self.tee = Tee \
                     ( self.children
-                    , stdin        = stdin
                     , stdout       = self.stdout
+                    , stdin        = stdin
                     , bufsize      = self.bufsize
                     , close_stdin  = True
                     , close_stdout = True
                     )
-            elif len (self.children) :
+            else :
                 child = self.children [0]
                 child.stdin = stdin
-                child.toclose.append (self.stdout)
-        for child in self.children :
-            child.run ()
-        if self.tee :
-            pid = self.tee.run ()
-            self.by_pid [pid] = self.tee
-        return self.fork ()
+            child.toclose.extend (self.toclose)
+            child.toclose.append (self.stdout)
+            if self.stdin :
+                child.toclose.append (self.stdin)
+            child.run () # if child is a Tee it will take care of children
+            # Now close input pipe read by child
+            stdin.close ()
+        retval = self.fork ()
+        # And close output pipe after forking off the process
+        if stdout :
+            stdout.close ()
+        return retval
     # end def run
 
 # end class Method_Process

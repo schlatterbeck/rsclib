@@ -40,7 +40,7 @@ The library includes various utility modules used in other projects.
    has a Lock and a Log mixin. Now there is also a framework for
    executing processes in a pipeline, there can be fork-points in the
    pipeline where the output of one process feeds several pipelines.
-   See test_exec.py and test2_exec.py.
+   See test_exec.py, test2_exec.py and test3_exec.py.
  - ETree: wrapper around ElementTree for pretty-printing and xml export.
    This uses delegation (not inheritance) because we can't seem to
    inherit from ElementTree.
@@ -132,6 +132,12 @@ Alternatively get it from pypi and/or install via pip.
 
 Changes
 -------
+
+Version 0.48: Fixes for execute
+
+   - Now we really close all relevant ends of pipes in other processes
+     which avoids hangs
+   - Add logging to Process
 
 Version 0.47: Fixes for IP_Address; pypi
 

@@ -5,7 +5,7 @@ import sys
 from rsclib.execute import exitstatus, Method_Process, Exec_Process
 
 def sleep () :
-    time.sleep (300)
+    time.sleep (10)
     for n, line in enumerate (sys.stdin) :
         if n < 4 :
             sys.stdout.write (line)
@@ -13,14 +13,15 @@ def sleep () :
 
 # might look excessive but we want the cat to block and pipe buffers are
 # huge these days:
-args = ['/var/log/Xorg.0.log'] * 5000
+#args = ['/var/log/Xorg.0.log'] * 5000
+args = ['/var/log/Xorg.0.log'] * 5
 args [0] = 'cat'
 p1 = Exec_Process \
     ( cmd = '/bin/cat'
     , args = args
     )
 p2 = Exec_Process (cmd = '/usr/bin/sort')
-p3 = Exec_Process (cmd = '/usr/bin/uniq', args = ('/usr/bin/uniq', '-c'))
+p3 = Exec_Process (cmd = '/usr/bin/uniq', args = ('uniq', '-c'))
 p4 = Method_Process (method = sleep)
 
 p1.append (p2)

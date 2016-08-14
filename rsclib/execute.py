@@ -26,6 +26,7 @@ import logging
 import errno
 import signal
 import atexit
+from   copy             import copy
 from   logging.handlers import SysLogHandler
 from   traceback        import format_exc
 from   subprocess       import Popen, PIPE
@@ -153,6 +154,15 @@ def exitstatus (cmd, status) :
 
 class Process (Log) :
     """ A process in a (multi-)pipe
+        Note that the file descriptors can take several different
+        values:
+        - None means: close this file descriptor if the respective
+          close-flag (e.g. close_stdin) is also set. Leave
+          file-descriptor alone if close flag is not set.
+        - 'PIPE' means we want an pipe to (stdin) / from (stdout or
+          stderr) this file descriptor
+        - A non-zero value must be a normal file object where the fileno()
+          can be extracted and used in dup2
     """
 
     by_pid      = {}
@@ -170,58 +180,162 @@ class Process (Log) :
         , **kw
         ) :
         self.__super.__init__ (**kw)
-        self.stdin        = stdin
-        self.stdout       = stdout
-        self.stderr       = stderr
-        self.close_stdin  = close_stdin
-        self.close_stdout = close_stdout
-        self.close_stderr = close_stderr
-        self.bufsize      = bufsize
-        self.status       = None
-        self.name         = name
-        self.log_prefix   = name # use default from Log class if unset
+        self.stdin         = stdin
+        self.stdout        = stdout
+        self.stdouts       = {}
+        self.stderr        = stderr
+        self.close_stdin   = close_stdin
+        self.close_stdout  = close_stdout
+        self.close_stderr  = close_stderr
+        self.bufsize       = bufsize
+        self.status        = None
+        self.name          = name
+        self.log_prefix    = name # use default from Log class if unset
+        self.children      = []
+        self.stderr_child  = None
+        self.tee           = None
+        self.pid           = None
+        self.stdin_w       = None
+        self.stdout_r      = None
+        self.stderr_r      = None
+        # 'toclose' may contain files to close for all clients.
+        # Will pick up all PIPE ends of all stdout and stderr and close
+        # the read ends in all children. The write ends will be closed
+        # after forking off the child with the PIPE end.
+        self.toclose       = []
+        self.sibling_files = []
         if not self.name :
-            self.name     = self.clsname
-        self.children     = []
-        self.tee          = None
-        self.pid          = None
-        self.toclose      = []
+            self.name = self.clsname
         self.__super.__init__ (log_prefix = self.log_prefix, **kw)
     # end def __init__
 
     def fork (self) :
+        rclose = []
+        if self.stdin == 'PIPE' :
+            pipe = os.pipe ()
+            self.stdin    = os.fdopen (pipe [0], 'r')
+            self.stdin_w  = os.fdopen (pipe [1], 'w')
+            self.toclose.append (self.stdin_w)
+        if self.stdout == 'PIPE' :
+            pipe = os.pipe ()
+            self.stdout   = os.fdopen (pipe [1], 'w')
+            # to close after fork:
+            self.stdouts [self.stdout] = 0
+            self.stdout_r = os.fdopen (pipe [0], 'r')
+            rclose.append (self.stdout_r)
+        if self.stderr == 'PIPE' :
+            pipe = os.pipe ()
+            self.stderr   = os.fdopen (pipe [1], 'w')
+            self.stderr_r = os.fdopen (pipe [0], 'r')
+            rclose.append (self.stderr_r)
         pid = os.fork ()
         if pid : # parent
             self.pid = pid
             self.log.debug ("fork: pid: %s" % self.pid)
             self.by_pid [pid] = self
-            if self.stdout and self.close_stdout :
-                self.log.debug ("fork: out closing: %s" % self.stdout.fileno ())
-                self.stdout.close ()
-            if self.stderr and self.close_stderr :
+            if self.stderr and self.stderr != sys.stderr :
+                self.log.debug \
+                    ("fork: closing stderr: %s" % self.stderr.fileno ())
                 self.stderr.close ()
-            if self.stdin and self.close_stdin :
-                self.log.debug ("fork: in closing: %s" % self.stdin.fileno ())
+            if self.stdin and self.stdin != sys.stdin :
+                self.log.debug \
+                    ("fork: closing stdin: %s" % self.stdin.fileno ())
                 self.stdin.close ()
             if hasattr (self, 'stdouts') :
-                for f in self.stdouts.iterkeys () :
+                for f in self.stdouts :
                     self.log.debug ("fork: aux closing: %s" % f.fileno ())
                     f.close ()
         else : # child
-            for f in self.toclose :
-                self.log.debug ("fork: child closing: %s" % f.fileno ())
+            for f in self.sibling_files :
+                self.log.debug ("fork: child closing sibling: %s" % f.fileno ())
                 f.close ()
-            self.method ()
-            sys.exit    (0)
-        return pid
+            for f in self.toclose :
+                self.log.debug ("fork: child closing toclose: %s" % f.fileno ())
+                f.close ()
+            # close children read descriptors in parent
+            for c in self.children :
+                self.log.debug \
+                    ( "closing stdin of %s->%s: %s"
+                    % (self.name, c.name, c.stdin.fileno ())
+                    )
+                c.stdin.close ()
+            self.redirect ()
+            self.method   ()
+            sys.exit      (0)
+        return rclose
     # end def fork
 
     def method (self) :
         raise NotImplementedError
     # end def method
 
+    def redirect (self) :
+        self.log.debug ("In redirect")
+        if self.stdin :
+            self.log.debug \
+                ( "stdin dup2: %s->%s"
+                % (self.stdin.fileno (), sys.stdin.fileno ())
+                )
+            os.dup2 (self.stdin.fileno (), sys.stdin.fileno ())
+        if self.stdout :
+            self.log.debug \
+                ( "stdout dup2: %s->%s"
+                % (self.stdout.fileno (), sys.stdout.fileno ())
+                )
+            os.dup2 (self.stdout.fileno (), sys.stdout.fileno ())
+        if self.stderr :
+            self.log.debug \
+                ( "stderr dup2: %s->%s"
+                % (self.stderr.fileno (), sys.stderr.fileno ()))
+            os.dup2 (self.stderr.fileno (), sys.stderr.fileno ())
+        if self.stdin :
+            self.stdin.close ()
+        elif self.close_stdin :
+            sys.stdin.close ()
+        if self.stdout :
+            self.stdout.close ()
+        elif self.close_stdout :
+            sys.stdout.close ()
+        if self.stderr :
+            self.stderr.close ()
+        elif self.close_stderr :
+            sys.stderr.close ()
+    # end def redirect
+
     def run (self) :
-        return self.fork ()
+        sibling_files = []
+        for c in reversed (self.children) :
+            pipe = os.pipe ()
+            self.stdouts [os.fdopen (pipe [1], 'w')] = c
+            c.stdin = os.fdopen (pipe [0], 'r')
+            self.log.debug \
+                ( "Setting sibling-files: %s->%s to %s"
+                % (self.name, c.name, [x.fileno () for x in sibling_files])
+                )
+            c.sibling_files = copy (sibling_files)
+            c.sibling_files.extend (self.sibling_files)
+            sibling_files.append (c.stdin)
+        # For dup2 in redirect to do its job:
+        if len (self.children) == 1 :
+            self.stdout = self.stdouts.keys () [0]
+        if self.stderr_child :
+            pipe = os.pipe ()
+            self.stderr = os.fdopen (pipe [1], 'w')
+            self.stderr_child.stdin = os.fdopen (pipe [0], 'r')
+            self.stderr_child.sibling_files = sibling_files
+            self.stderr_child.sibling_files.extend (self.sibling_files)
+            self.children.insert (0, self.stderr_child)
+        toclose = self.fork ()
+        for child in self.children :
+            self.log.debug \
+                ( "passing toclose to %s: %s"
+                % (child.name, [x.fileno () for x in self.toclose + toclose])
+                )
+            child.toclose.extend (self.toclose + toclose)
+            toclose.extend (child.run ())
+        self.log.debug \
+            ("toclose: %s" % ([x.fileno () for x in toclose]))
+        return toclose
     # end def run
 
     @classmethod
@@ -238,6 +352,43 @@ class Process (Log) :
                 process.status = status
                 del cls.by_pid [pid]
     # end def wait
+
+    def _add_buffer_process (self, found = False) :
+        if self.stderr == 'PIPE' :
+            self.log.debug ("found stderr PIPE: %s", self.name)
+            if found :
+                self.stderr = None
+                self.set_stderr_process (Buffer_Process (stderr = 'PIPE'))
+            found = True
+        if self.stdout == 'PIPE' :
+            self.log.debug ("found stdout PIPE: %s", self.name)
+            if found :
+                self.stdout = None
+                self.append (Buffer_Process (stdout = 'PIPE'))
+            found = True
+        else :
+            for c in self.children :
+                found = c._add_buffer_process (found)
+        return found
+    # end def _add_buffer_process
+
+    def _read_outputs (self) :
+        stdout = ''
+        stderr = ''
+        if self.stderr_r :
+            self.log.debug ("reading stderr: %s", self.name)
+            stderr = self.stderr_r.read ()
+        if self.stdout_r :
+            self.log.debug ("reading stdout: %s", self.name)
+            stdout = self.stdout_r.read ()
+        sout_l = [stdout]
+        serr_l = [stderr]
+        for c in self.children :
+            sout, serr = c._read_outputs ()
+            sout_l.append (sout)
+            serr_l.append (serr)
+        return ''.join (sout_l), ''.join (serr_l)
+    # end def _read_outputs
 
     def __repr__ (self) :
         r = []
@@ -260,7 +411,7 @@ class Tee (Process) :
     """ A tee in a pipe (like the unix command "tee" but copies to several
         sub-processes)
     """
-    def __init__ (self, children, stdout, **kw) :
+    def __init__ (self, children, **kw) :
         self.stdouts  = {}
         self.__super.__init__ (**kw)
         self.children = children
@@ -268,7 +419,7 @@ class Tee (Process) :
 
     def method (self) :
         while 1 :
-            buf = self.stdin.read (self.bufsize)
+            buf = sys.stdin.read (self.bufsize)
             if not buf :
                 self.log.debug ("Tee: empty read, terminating")
                 return
@@ -295,105 +446,106 @@ class Tee (Process) :
                 return
     # end def method
 
-    def run (self) :
-        for c in self.children :
-            pipe = os.pipe ()
-            self.stdouts [os.fdopen (pipe [1], 'w')] = c
-            c.stdin = os.fdopen (pipe [0], 'r')
-        for c in self.children :
-            c.toclose.extend (self.toclose)
-            c.toclose.extend (self.stdouts.keys ())
-            if self.stdin :
-                c.toclose.append (self.stdin)
-            for c2 in self.children :
-                if c == c2 :
-                    continue;
-                c.toclose.append (c2.stdin)
-        for child in self.children :
-            child.run ()
-        # close children read descriptors in parent
-        for c in self.children :
-            c.stdin.close ()
-        retval = self.fork ()
-        # close tee write descriptors after forking off the tee process
-        for s in self.stdouts :
-            s.close ()
-        return retval
-    # end def run
-
 # end class Tee
 
 class Method_Process (Process) :
     """ A process in a (multi-)pipe which runs a given method
     """
     def __init__ (self, name = None, **kw) :
+        self.tee = None
         if 'method' in kw :
-            self._method = kw ['method']
+            self.method = kw ['method']
         self.name      = name
         if not self.name :
-            self.name  = self._method.__name__
+            self.name  = self.method.__name__
         self.__super.__init__ (name = self.name, **kw)
     # end def __init__
 
     def append (self, child) :
-        assert (not self.stdout)
-        assert (not child.stdin)
-        self.children.append (child)
+        assert self.stdout is None
+        assert child.stdin is None
+        if self.children :
+            assert len (self.children) == 1
+            if not self.tee :
+                self.tee = Tee \
+                    (self.children, bufsize = self.bufsize)
+                self.children = [self.tee]
+            self.tee.children.append (child)
+        else :
+            self.children.append (child)
     # end def append
 
-    def method (self) :
-        self.redirect ()
-        self._method ()
-    # end def method
+    def communicate (self, input = None) :
+        assert input is None or self.stdin == 'PIPE'
+        p = self
+        if self.stdin == 'PIPE' :
+            self.stdin = None
+            if self.input is not None :
+                p = Echo_Process (message = str (input))
+                p.append (self)
+        # Add a Buffer_Process for each PIPE output in tree order.
+        # Only the very first is left unbuffered.
+        self._add_buffer_process ()
+        p.run ()
+        # Now get outputs/errors in tree order
+        stdout, stderr = self._read_outputs ()
+        p.wait ()
+        return stdout, stderr
+    # end def communicate
 
-    def redirect (self) :
-        if self.stdin :
-            os.dup2 (self.stdin.fileno (), sys.stdin.fileno ())
-        if self.stdout :
-            os.dup2 (self.stdout.fileno (), sys.stdout.fileno ())
-        if self.stderr :
-            os.dup2 (self.stderr.fileno (), sys.stderr.fileno ())
-        if self.stdin :
-            self.stdin.close ()
-        if self.stdout :
-            self.stdout.close ()
-        if self.stderr :
-            self.stderr.close ()
-    # end def redirect
-
-    def run (self) :
-        stdout = None
-        if self.children :
-            pipe   = os.pipe ()
-            stdin  = os.fdopen (pipe [0], 'r')
-            stdout = self.stdout = os.fdopen (pipe [1], 'w')
-            if len (self.children) > 1 :
-                child = self.tee = Tee \
-                    ( self.children
-                    , stdout       = self.stdout
-                    , stdin        = stdin
-                    , bufsize      = self.bufsize
-                    , close_stdin  = True
-                    , close_stdout = True
-                    )
-            else :
-                child = self.children [0]
-                child.stdin = stdin
-            child.toclose.extend (self.toclose)
-            child.toclose.append (self.stdout)
-            if self.stdin :
-                child.toclose.append (self.stdin)
-            child.run () # if child is a Tee it will take care of children
-            # Now close input pipe read by child
-            stdin.close ()
-        retval = self.fork ()
-        # And close output pipe after forking off the process
-        if stdout :
-            stdout.close ()
-        return retval
-    # end def run
+    def set_stderr_process (self, child) :
+        assert self.stderr is None
+        assert self.stderr_child is None
+        assert child.stdin is None
+        self.stderr_child = child
+    # end def set_stderr_process
 
 # end class Method_Process
+
+class Buffer_Process (Method_Process) :
+    """ First read *everything* from stdin, then write this to stdout.
+        So everything is buffered in-memory. Used to decouple reading
+        from multiple streams.
+    """
+
+    def __init__ (self, ** kw) :
+        self.__super.__init__ (method = self.copy, ** kw)
+        if self.stdout == 'PIPE' :
+            self.io = sys.stdout
+        else :
+            assert self.stderr == 'PIPE'
+            self.io = sys.stderr
+    # end def __init__
+
+    def copy (self) :
+        buf = sys.stdin.read ()
+        self.log.debug ("read: %s" % len (buf))
+        self.log.debug ("write: fd=%s" % self.io.fileno ())
+        self.io.write (buf)
+        self.io.flush ()
+    # end def echo
+
+# end class Buffer_Process
+
+class Echo_Process (Method_Process) :
+    """ Simply echo a message given in constructor to stdout.
+        Useful for specifying a constant input to a pipeline.
+    """
+
+    def __init__ (self, message, ** kw) :
+        self.message = message
+        self.__super.__init__ \
+            ( method       = self.echo
+            , close_stdin  = True
+            , ** kw
+            )
+    # end def __init__
+
+    def echo (self) :
+        sys.stdout.write (self.message)
+    # end def echo
+
+# end class Echo_Process
 
 class Exec_Process (Method_Process) :
     """ Process that execs a subcommand """
@@ -408,7 +560,6 @@ class Exec_Process (Method_Process) :
     # end def __init__
 
     def method (self) :
-        self.redirect ()
         os.execv (self.cmd, self.args)
     # end def method
 

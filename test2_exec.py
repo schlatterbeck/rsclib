@@ -15,7 +15,6 @@ def writer () :
 p1 = Method_Process (method = writer, args = ('cat', '/etc/passwd'))
 f  = open ('/tmp/sorted', 'w')
 p2 = Method_Process (method = reader)#, stdout = f)
-p3 = p2
 
 p1.append (p2)
 

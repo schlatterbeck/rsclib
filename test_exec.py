@@ -4,7 +4,7 @@ import time
 from rsclib.execute import exitstatus, Method_Process, Exec_Process
 
 def sleep () :
-    time.sleep (300)
+    time.sleep (5)
 # end def sleep
 
 p1 = Exec_Process \
@@ -18,7 +18,6 @@ p1 = Exec_Process \
     )
 f  = open ('/tmp/sorted', 'w')
 p2 = Exec_Process (cmd = '/usr/bin/sort', stdout = f)
-p3 = p2
 p3 = Exec_Process (cmd = '/usr/bin/uniq')
 p4 = Method_Process (method = sleep)
 

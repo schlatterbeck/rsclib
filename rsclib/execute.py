@@ -216,6 +216,7 @@ class Process (Log) :
             self.stdin    = os.fdopen (pipe [0], 'r')
             self.stdin_w  = os.fdopen (pipe [1], 'w')
             self.toclose.append (self.stdin_w)
+            self.close_stdin = True
         if self.stdout == 'PIPE' :
             pipe = os.pipe ()
             self.stdout   = os.fdopen (pipe [1], 'w')
@@ -223,21 +224,25 @@ class Process (Log) :
             self.stdouts [self.stdout] = 0
             self.stdout_r = os.fdopen (pipe [0], 'r')
             rclose.append (self.stdout_r)
+            self.close_stdout = True
+        elif self.close_stdout and self.stdout :
+            self.stdouts [self.stdout] = 0
         if self.stderr == 'PIPE' :
             pipe = os.pipe ()
             self.stderr   = os.fdopen (pipe [1], 'w')
             self.stderr_r = os.fdopen (pipe [0], 'r')
             rclose.append (self.stderr_r)
+            self.close_stderr = True
         pid = os.fork ()
         if pid : # parent
             self.pid = pid
             self.log.debug ("fork: pid: %s" % self.pid)
             self.by_pid [pid] = self
-            if self.stderr and self.stderr != sys.stderr :
+            if self.stderr and self.close_stderr :
                 self.log.debug \
                     ("fork: closing stderr: %s" % self.stderr.fileno ())
                 self.stderr.close ()
-            if self.stdin and self.stdin != sys.stdin :
+            if self.stdin and self.close_stdin :
                 self.log.debug \
                     ("fork: closing stdin: %s" % self.stdin.fileno ())
                 self.stdin.close ()
@@ -259,6 +264,9 @@ class Process (Log) :
                     % (self.name, c.name, c.stdin.fileno ())
                     )
                 c.stdin.close ()
+            # Python seems to ignore SIGPIPE by default, re-enable it
+            signal.signal (signal.SIGPIPE, signal.SIG_DFL)
+
             self.redirect ()
             self.method   ()
             sys.exit      (0)
@@ -308,6 +316,7 @@ class Process (Log) :
             pipe = os.pipe ()
             self.stdouts [os.fdopen (pipe [1], 'w')] = c
             c.stdin = os.fdopen (pipe [0], 'r')
+            c.close_stdin = True
             self.log.debug \
                 ( "Setting sibling-files: %s->%s to %s"
                 % (self.name, c.name, [x.fileno () for x in sibling_files])
@@ -321,7 +330,9 @@ class Process (Log) :
         if self.stderr_child :
             pipe = os.pipe ()
             self.stderr = os.fdopen (pipe [1], 'w')
+            self.close_stderr = True
             self.stderr_child.stdin = os.fdopen (pipe [0], 'r')
+            self.stderr_child.close_stdin = True
             self.stderr_child.sibling_files = sibling_files
             self.stderr_child.sibling_files.extend (self.sibling_files)
             self.children.insert (0, self.stderr_child)

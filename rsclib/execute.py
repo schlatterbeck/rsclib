@@ -55,7 +55,10 @@ class Log (_Named) :
             log_level  = log_level or logging.DEBUG
             formatter  = logging.Formatter \
                 ('%s[%%(process)d]: %%(message)s' % log_prefix)
-            handler    = SysLogHandler ('/dev/log', 'daemon')
+            if 'log_handler' in args :
+                handler = args ['log_handler']
+            else :
+                handler = SysLogHandler ('/dev/log', 'daemon')
             handler.setLevel     (log_level)
             handler.setFormatter (formatter)
             self.log.addHandler  (handler)

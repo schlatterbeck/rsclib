@@ -41,20 +41,11 @@ The library includes various utility modules used in other projects.
    executing processes in a pipeline, there can be fork-points in the
    pipeline where the output of one process feeds several pipelines.
    See test_exec.py, test2_exec.py and test3_exec.py.
- - ETree: wrapper around ElementTree for pretty-printing and xml export.
-   This uses delegation (not inheritance) because we can't seem to
-   inherit from ElementTree.
- - Firstname: given a string-candidate of a first name, check with
-   popular web-site if it is really considered a first name. 
  - Freshmeat: Get project and release information via the freshmeat.net
    REST API. Also support submit of a new release. I'm now using this
    for announcing new releases for my projects.
  - grepmime: search for pattern in email attachments (even if these are
    encoded)
- - HTML_Parse for opening and parsing URLs. The class can be used to
-   write a parser to extract info from a web page. After extraction the
-   result can be pickled but we lose the ability to continue parsing
-   after reading from the pickled result.
  - inductance: Inductance calculation of air-cored cylindrical
    flat-winded coil according to Robert Weaver
    http://electronbunker.ca/CalcMethods3b.html
@@ -64,9 +55,6 @@ The library includes various utility modules used in other projects.
    Router (LCR) ISDN lines or lines managed by DAHDI. Special case for
    Xorcom modules which provide more information using Xorcom-specific
    files in /proc than native DAHDI modules.
- - ldap_lib: some routines for common ldap tasks including an iterator
-   for LDAP implementations that use paged search (notably active
-   directory).
  - Math implements Euclids algorithm for greatest common divisor and as
    a by-product the least common multiple
  - nmap: A parser for output of nmap scans to (e.g. to generate tables
@@ -75,7 +63,6 @@ The library includes various utility modules used in other projects.
    cluster resource manager (probably also usable for the newer version
    called pacemaker but for now only tested with the version in Debian
    stable aka lenny).
- - PDF_Parse for opening and parsing PDFs, needs pdftotext installed
  - PDF_Signature: experimental code for checking signatures on adobe PDF
    documents
  - Phone: Parse phone numbers (Austria-specific)
@@ -132,6 +119,21 @@ Alternatively get it from pypi and/or install via pip.
 
 Changes
 -------
+
+Version 0.49: Python3 compatibility
+
+   - Remove ETree, HTML_Parse, PDF_Parse, multipart_form: These are
+     better handled by libraries like BeautifulSoup or specific PDF
+     handling libs or the requests library
+   - Remove ldap_lib.py: This is now nicely supported by ldap3 which
+     also has a native iterator for paged search
+   - Put Firstname (with all the history) into its own package, note
+     that this needs more work to run against the latest version of the
+     website
+   - Lots of fixes for python3 compatibility: Where doctests existed
+     these pass now but there is still untested code and some code where
+     libaries are missing for python3 (pyst asterisk bindings and
+     openssl wrappers)
 
 Version 0.48: Fixes for execute
 

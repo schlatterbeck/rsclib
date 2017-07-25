@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2008-09 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2008-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -19,18 +19,24 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__            import print_function
 import os
 from hashlib               import sha1
 from base64                import b64decode, encodestring
 from itertools             import islice
-from pyPdf                 import PdfFileReader
+from PyPDF2                import PdfFileReader
 from pyasn1.codec.der      import decoder as der
 from pyasn1.codec.ber      import decoder as ber
 from xml.etree.ElementTree import fromstring
-from cStringIO             import StringIO
 from rsclib.iter_recipes   import grouper
 from _TFL                  import TFL, Numeric_Interval, Interval_Set
+# Not yet available for python3:
 from M2Crypto              import RSA, X509, m2, m2urllib2, BIO, Err
+
+try :
+    from io                import StringIO
+except ImportError :
+    from cStringIO         import StringIO
 
 class Signature_Error   (ValueError)          : pass
 class Signature_Unknown (NotImplementedError) : pass
@@ -81,15 +87,15 @@ class PDF_Signature :
         try :
             sig = c ['/AcroForm']['/Fields'][0].getObject()['/V']
         except KeyError :
-            raise Signature_Error, "PDF File doesn't seem to have a signature"
+            raise Signature_Error ("PDF File doesn't seem to have a signature")
         if '/ByteRange' not in sig :
-            raise Signature_Unknown, "Not a byte range signature"
+            raise Signature_Unknown ("Not a byte range signature")
         for k, v in self.supported.iteritems () :
             if '/%s' % k not in sig :
-                raise Signature_Unknown, "Signature doesn't define %s" % k
+                raise Signature_Unknown ("Signature doesn't define %s" % k)
             stype = sig ['/%s' % k]
             if stype not in v :
-                raise Signature_Unknown, "Unknown %s: %s" % (k, stype)
+                raise Signature_Unknown ("Unknown %s: %s" % (k, stype))
         IS   = TFL.Interval_Set
         NI   = TFL.Numeric_Interval
         iv   = IS (NI (0, len (self.contents) - 1))
@@ -100,7 +106,7 @@ class PDF_Signature :
         self.digest = hash.digest ()
         l = len (iv.intervals)
         if l != 1 :
-            raise Signature_Error, "Number of non-signed Intervals %s != 1" % l
+            raise Signature_Error ("Number of non-signed Intervals %s != 1" % l)
         iv = iv.intervals [0]
         sig_contents = self.contents [iv.lower : iv.upper].strip ()
         assert (sig_contents  [0] == '<')
@@ -108,11 +114,11 @@ class PDF_Signature :
         sig_contents = sig_contents [1:-1].decode ('hex')
         self.sig     = sig ['/Contents']
         if self.sig != sig_contents :
-            raise Signature_Error, "Invalid byte-range for signature"
+            raise Signature_Error ("Invalid byte-range for signature")
         self._status.append \
             ("Byte range defined over whole document except signature, OK")
         self.sig = str (der.decode (self.sig) [0])
-        #print ber.decode (self.sig) # works too (der is a subset of ber)
+        #print (ber.decode (self.sig)) # works too (der is a subset of ber)
         # Seems the Cert is DER encoded. Beware of a just-reported bug
         # in pyPdf:
         # http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=511252
@@ -124,7 +130,7 @@ class PDF_Signature :
                 self._status.append ("Signature purpose verified")
                 break
         else :
-            raise Signature_Error, "Signature purpose not verified"
+            raise Signature_Error ("Signature purpose not verified")
         self.pubkey = self.cert.get_pubkey ().get_rsa ()
         self.verify_chain (self.cert)
 
@@ -134,9 +140,9 @@ class PDF_Signature :
         # expect also an M2Crypto.RSA.RSAError here and re-raise:
         try :
             if not self.pubkey.verify (self.digest, self.sig) :
-                raise Signature_Error, "Signature not verified"
-        except RSA.RSAError, cause :
-            raise Signature_Error, cause
+                raise Signature_Error ("Signature not verified")
+        except RSA.RSAError as cause :
+            raise Signature_Error (cause)
         self._status.append \
             ("Good Signature from %s" % self.cert.get_subject ())
     # end def __init__
@@ -157,10 +163,10 @@ class PDF_Signature :
                 cert = X509.load_cert ("%s.%s" % (path, ext))
                 if cert.get_subject ().as_der () == name.as_der () :
                     return cert
-            except IOError:
+            except IOError :
                 pass
         else :
-            raise Signature_Error, "Issuer Certificate not found"
+            raise Signature_Error ("Issuer Certificate not found")
     # end def find_cert
 
     def verify_chain (self, cert) :
@@ -175,7 +181,7 @@ class PDF_Signature :
             issuer_cert = self.find_cert (issuer)
             pubkey      = issuer_cert.get_pubkey ()
             if not cert.verify (pubkey) :
-                raise Signature_Error, \
+                raise Signature_Error \
                     ( "Certificate-Chain verify of %s with %s failed"
                     % (subject.as_text (), issuer.as_text ())
                     )
@@ -208,7 +214,7 @@ class PDF_Signature :
         # Grrrmpf: Hmm and how to use the CRL, then?
         crl_der = fh.read ()
         asn1 = der.decode (crl_der)
-        print asn1 [0][0]
+        print (asn1 [0][0])
         crl_pem = encodestring (crl_der)
         fh.close ()
         crl_pem = \
@@ -243,54 +249,54 @@ class PDF_Trodat_Signature :
             pdf_file = open (pdf_file, "rb")
         self.reader  = PdfFileReader (pdf_file)
         self.catalog = c = self.reader.trailer ['/Root']
-        print "Catalog:", c
+        print ("Catalog:", c)
         self.seal    = c ['/TRO_TrodatSeal'].getObject () [0].getObject ()
         assert (self.seal ['/Type'] == '/TRO_TrodatSealSignature')
-        print "Seal:", self.seal
+        print ("Seal:", self.seal)
         pages        = c ['/Pages']
-        print "Kids:", pages ['/Kids']
+        print ("Kids:", pages ['/Kids'])
         content      = []
         for k in pages ['/Kids'] :
-            print "kid:", k.getObject ()
-            print "pdf:", k.pdf
+            print ("kid:", k.getObject ())
+            print ("pdf:", k.pdf)
             content.append (k.getObject ())
-        print content
-        print "Pages:", pages
+        print (content)
+        print ("Pages:", pages)
         labels       = c ['/PageLabels']
-        print "Labels:", labels
+        print ("Labels:", labels)
         self.barcode = self.seal ['/BarCode'].getData ()
         xml          = self.seal ['/SecInfo'].getData ()
         self.xml     = ''.join (x for x in islice (xml, 0, None, 2))
         self.tree    = fromstring (self.xml)
-        print "SecInfo:", self.seal ['/SecInfo']
-        print "\nXML:"
-        print self.xml
+        print ("SecInfo:", self.seal ['/SecInfo'])
+        print ("\nXML:")
+        print (self.xml)
         signator     = self.tree [0]
         assert (signator.tag == "signator")
         for node in signator :
-            print "%s: %s" % (node.tag, node.text),
+            print ("%s: %s" % (node.tag, node.text), end = '')
             for k, v in node.attrib.iteritems () :
-                print "%s = %s " % (k, v),
-            print
+                print ("%s = %s " % (k, v), end = '')
+            print ('')
         for c in "TSTInfo_Xml DocumentHash LtcSignature".split () :
-            print c
+            print (c)
             cert = b64decode (self.tree.find ('.//%s' % c).text)
-            print cert
+            print (cert)
             for b in cert :
-                print "%02X " % ord (b),
-            print
+                print ("%02X " % ord (b), end = '')
+            print ('')
             if c == "TSTInfo_Xml" :
                 tsttree = fromstring ("<xml>" + cert + "</xml>")
                 hm = b64decode (tsttree.find ('.//HashedMessage').text)
-                print "HashedMessage:"
-                print hm
+                print ("HashedMessage:")
+                print (hm)
                 for b in hm :
-                    print "%02X " % ord (b),
-                print
+                    print ("%02X " % ord (b), end = '')
+                print ('')
         for c in "LtcCertificate TSTInfo_Signature".split () :
-            print c
+            print (c)
             cert = self.tree.find ('.//%s' % c).text
-            print der.decode (b64decode (cert))
+            print (der.decode (b64decode (cert)))
     # end def __init__
 
 # end class PDF_Trodat_Signature
@@ -302,4 +308,4 @@ if __name__ == "__main__" :
         ( "/home/ralf/451719664-00.pdf"
         , "/home/ralf/checkout/own/projects/rsclib/rsclib/certs"
         )
-    print sig.status
+    print (sig.status)

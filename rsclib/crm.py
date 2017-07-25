@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2015 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2015-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -19,6 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__ import print_function
 import os
 import sys
 from   time               import sleep
@@ -259,7 +260,7 @@ class Cluster_Status (Exec) :
 
 def main (args, **kw) :
     cs = Cluster_Status ()
-    print cs
+    print (cs)
 # end def main
 
 if __name__ == '__main__' :

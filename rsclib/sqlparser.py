@@ -1,5 +1,27 @@
 #!/usr/bin/python
-# -*- coding: iso-8859-15 -*-
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Reichergasse 131, A-3411 Weidling.
+# Web: http://www.runtux.com Email: office@runtux.com
+# All rights reserved
+# ****************************************************************************
+# This library is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Library General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# ****************************************************************************
+
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import sys
 import re
@@ -8,6 +30,7 @@ import csv
 from   datetime           import datetime, tzinfo, timedelta
 from   rsclib.stateparser import Parser
 from   rsclib.autosuper   import autosuper
+from   rsclib.pycompat    import ustr
 
 class TZ (tzinfo) :
     def __init__ (self, offset = 0) :
@@ -25,21 +48,21 @@ class TZ (tzinfo) :
 
 # end class TZ
 
-sql_bool = {'t' : True, 'f' : False}
+sql_bool = {b't' : True, b'f' : False}
 
 class SQL_boolean (autosuper) :
     """ Parse boolean from sql dump and return as python bool.
     >>> b = SQL_boolean ()
-    >>> b ('\\N')
-    >>> b ('NULL')
-    >>> b ('f')
+    >>> b (b'\\N')
+    >>> b (b'NULL')
+    >>> b (b'f')
     False
-    >>> b ('t')
+    >>> b (b't')
     True
     """
 
     def __call__ (self, b) :
-        if b == '\\N' or b == 'NULL' :
+        if b == b'\\N' or b == b'NULL' :
             return None
         return sql_bool [b]
     # end def __call__
@@ -67,51 +90,86 @@ class SQL_integer (autosuper) :
 # end class SQL_integer
 SQL_bigint = SQL_smallint = SQL_integer
 
+# For regression testing, doesn't work with doctest because doctest
+# needs backslashes in strings escaped and accented characters are
+# output as backslash-escapes in python2 and as rendered strings in
+# python3 by default.
+broken_strings_latin1 = \
+    ( (b'\xd6ffnungswinkel', '\xd6ffnungswinkel')
+    ,
+    )
+broken_strings_utf8 = \
+    ( (b'\xc3\x96ffnungswinkel', '\xd6ffnungswinkel')
+    ,
+    )
+broken_strings_utf8_double = \
+    ( ( b'\xc3\x83\xc2\xa4\xc3\x83\xc2\xb6\xc3\x83\xc2\xbc\xc3\x83'
+        b'\xc2\x84\xc3\x83\xc2\x96\xc3\x83\xc2\x9c\xc3\x83\xc2\x9f'
+      , '\xe4\xf6\xfc\xc4\xd6\xdc\xdf'
+      )
+    , ( b'Conrad von H\xc3\x83\xc2\xb6tzendorf Stra\xc3\x83\xc5\xb8e'
+      , 'Conrad von H\xf6tzendorf Stra\xdfe'
+      )
+    , ( b'Josefst\xc4\x82\xc2\xa4dter Stra\xc4\x82\xc5\xbae'
+      , 'Josefst\xe4dter Stra\xdfe'
+      )
+    , ( b'Josefst\xc4\x82\xc2\xa4dter Stra\xc3\x83\xc2\x9fe'
+      , 'Josefst\xe4dter Stra\xdfe'
+      )
+    , ( b'Sch\xc4\x82\xc2\xb6nburgstra\xc4\x82\xc5\xbae'
+      , 'Sch\xf6nburgstra\xdfe'
+      )
+    , ( b'Wei\xc3\x83\xc2\x9fgerberl\xc4\x82\xc2\xa4nde'
+      , 'Wei\xdfgerberl\xe4nde'
+      )
+    , ( b'M\xc4\x82\xc4\xbdller'
+      , 'M\xfcller'
+      )
+    , ( b'\xc4\x82\xe2\x80\x93'
+      , '\xd6'
+      )
+    , ( b'M\xc4\x8f\xc5\xbc\xcb\x9dller'
+      , 'M\xfcller'
+      )
+    , ( b'M\xc4\x8f\xc5\xbc\xcb\x9dller'
+      , 'M\xfcller'
+      )
+    , ( b'Thaliastra\xc4\x8f\xc5\xbc\xcb\x9de'
+      , 'Thaliastra\xdfe'
+      )
+    , ( b'F\xc4\x8f\xc5\xbc\xcb\x9dnfhaus'
+      , 'F\xfcnfhaus'
+      )
+    , ( b'Putzingerstra\xc4\x8f\xc5\xbc\xcb\x9de'
+      , 'Putzingerstra\xdfe'
+      )
+    , ( b'H\xc4\x8f\xc5\xbc\xcb\x9dtteldorf'
+      , 'H\xfctteldorf'
+      )
+    , ( b'Hollandstra\xc4\x8f\xc5\xbc\xcb\x9de'
+      , 'Hollandstra\xdfe'
+      )
+    , ( b'Margareteng\xc4\x8f\xc5\xbc\xcb\x9drtel'
+      , 'Margareteng\xfcrtel'
+      )
+    )
+
 class SQL_character (autosuper) :
 
     """ Get string from sql dump and convert to unicode.
     >>> sq = SQL_character ()
-    >>> sq ('\xc3\x96ffnungswinkel')
-    u'\\xd6ffnungswinkel'
+    >>> for k, v in broken_strings_utf8 :
+    ...     if sq (k) != v :
+    ...         print (repr (sq (k)), repr (v))
     >>> sq.charset = 'latin1'
-    >>> sq ('\xd6ffnungswinkel')
-    u'\\xd6ffnungswinkel'
+    >>> for k, v in broken_strings_latin1 :
+    ...     if sq (k) != v :
+    ...         print (repr (sq (k)), repr (v))
     >>> sq.charset = 'utf-8'
     >>> sq.fix_double_encode = True
-    >>> sq ('\xc3\x83\xc2\xa4\xc3\x83\xc2\xb6\xc3\x83\xc2\xbc\xc3\x83'
-    ...     '\xc2\x84\xc3\x83\xc2\x96\xc3\x83\xc2\x9c\xc3\x83\xc2\x9f'
-    ...    )
-    u'\\xe4\\xf6\\xfc\\xc4\\xd6\\xdc\\xdf'
-    >>> sq ('Conrad von H\xc3\x83\xc2\xb6tzendorf Stra\xc3\x83\xc5\xb8e')
-    u'Conrad von H\\xf6tzendorf Stra\\xdfe'
-    >>> sq ('Josefst\xc4\x82\xc2\xa4dter Stra\xc4\x82\xc5\xbae')
-    u'Josefst\\xe4dter Stra\\xdfe'
-    >>> sq ('Josefst\xc4\x82\xc2\xa4dter Stra\xc3\x83\xc2\x9fe')
-    u'Josefst\\xe4dter Stra\\xdfe'
-    >>> sq ('Sch\xc4\x82\xc2\xb6nburgstra\xc4\x82\xc5\xbae')
-    u'Sch\\xf6nburgstra\\xdfe'
-    >>> sq ('Wei\xc3\x83\xc2\x9fgerberl\xc4\x82\xc2\xa4nde')
-    u'Wei\\xdfgerberl\\xe4nde'
-    >>> sq ('M\xc4\x82\xc4\xbdller')
-    u'M\\xfcller'
-    >>> sq ('\xc4\x82\xe2\x80\x93')
-    u'\\xd6'
-    >>> sq ('M\xc4\x8f\xc5\xbc\xcb\x9dller')
-    u'M\\xfcller'
-    >>> sq ('M\xc4\x8f\xc5\xbc\xcb\x9dller')
-    u'M\\xfcller'
-    >>> sq ('Thaliastra\xc4\x8f\xc5\xbc\xcb\x9de')
-    u'Thaliastra\\xdfe'
-    >>> sq ('F\xc4\x8f\xc5\xbc\xcb\x9dnfhaus')
-    u'F\\xfcnfhaus'
-    >>> sq ('Putzingerstra\xc4\x8f\xc5\xbc\xcb\x9de')
-    u'Putzingerstra\\xdfe'
-    >>> sq ('H\xc4\x8f\xc5\xbc\xcb\x9dtteldorf')
-    u'H\\xfctteldorf'
-    >>> sq ('Hollandstra\xc4\x8f\xc5\xbc\xcb\x9de')
-    u'Hollandstra\\xdfe'
-    >>> sq ('Margareteng\xc4\x8f\xc5\xbc\xcb\x9drtel')
-    u'Margareteng\\xfcrtel'
+    >>> for k, v in broken_strings_utf8_double :
+    ...     if sq (k) != v :
+    ...         print (repr (sq (k)), repr (v))
     """
 
     charset = 'utf-8'
@@ -119,48 +177,55 @@ class SQL_character (autosuper) :
     re_double = re.compile (r'\xc3\x83|\x82\xc2|\xc5|\xc4\x82')
 
     def __call__ (self, s) :
-        if s == '\\N' or s == 'NULL' :
+        if s == b'\\N' or s == b'NULL' :
             return None
         if self.charset == 'utf-8' and self.fix_double_encode :
-            if self.re_double.search (s) :
-                # Don't know how these happen -- seen in the wild
-                s = s.replace (b'\xc3\x83\xc5\xb8', b'\xc3\x83\xc2\x9f')     # ß
-                s = s.replace (b'\xc3\x83\xc5\x93', b'\xc3\x83\xc2\x9c')     # Ü
-                s = s.replace (b'\xc3\x83\xe2\x80\x93', b'\xc3\x83\xc2\x96') # Ö
-                s = s.replace (b'\xc4\x82\xe2\x80\x93', b'\xc3\x83\xc2\x96') # Ö
-                s = s.replace (b'\xc4\x82\xc2\xb6', b'\xc3\x83\xc2\xb6')     # ö
-                s = s.replace (b'\xc4\x82\xc5\xba', b'\xc3\x83\xc2\x9f')     # ß
-                s = s.replace (b'\xc4\x82\xc2\xa4', b'\xc3\x83\xc2\xa4')     # ä
-                s = s.replace (b'\xc4\x82\xc4\xbd', b'\xc3\x83\xc2\xbc')     # ü
+            # Don't know how these happen -- seen in the wild
+            if b'\xc3\x83' in s :
+                s = s.replace (b'\xc3\x83\xc5\xb8', b'\xc3\x83\xc2\x9f')     # ÃŸ
+                s = s.replace (b'\xc3\x83\xc5\x93', b'\xc3\x83\xc2\x9c')     # Ãœ
+                s = s.replace (b'\xc3\x83\xe2\x80\x93', b'\xc3\x83\xc2\x96') # Ã–
+            if b'\x82\xc2' in s :
+                s = s.replace (b'\xc4\x82\xc2\xb6', b'\xc3\x83\xc2\xb6')     # Ã¶
+                s = s.replace (b'\xc4\x82\xc2\xa4', b'\xc3\x83\xc2\xa4')     # Ã¤
+
+            if b'\xc4\x82' in s :
+                s = s.replace (b'\xc4\x82\xe2\x80\x93', b'\xc3\x83\xc2\x96') # Ã–
+                s = s.replace (b'\xc4\x82\xc5\xba', b'\xc3\x83\xc2\x9f')     # ÃŸ
+                s = s.replace (b'\xc4\x82\xc4\xbd', b'\xc3\x83\xc2\xbc')     # Ã¼
+
+            if b'\xc5' in s :
                 # mangled beyond repair, use context:
                 s = s.replace \
                     ( b'stra\xc4\x8f\xc5\xbc\xcb\x9de'
                     , b'stra\xc3\x83\xc2\x9fe'
-                    ) # straße
+                    ) # straÃŸe
                 s = s.replace \
                     ( b'g\xc4\x8f\xc5\xbc\xcb\x9drtel'
                     , b'g\xc3\x83\xc2\xbcrtel'
-                    ) # gürtel
+                    ) # gÃ¼rtel
                 s = s.replace \
                     ( b'F\xc4\x8f\xc5\xbc\xcb\x9dnfhaus'
                     , b'F\xc3\x83\xc2\xbcnfhaus'
-                    ) # Fünfhaus
+                    ) # FÃ¼nfhaus
                 s = s.replace \
                     ( b'M\xc4\x8f\xc5\xbc\xcb\x9dller'
                     , b'M\xc3\x83\xc2\xbcller'
-                    ) # Müller
+                    ) # MÃ¼ller
                 s = s.replace \
                     ( b'H\xc4\x8f\xc5\xbc\xcb\x9dttel'
                     , b'H\xc3\x83\xc2\xbcttel'
-                    ) # Hüttel
+                    ) # HÃ¼ttel
+
+            if b'\xc3\xa2\xe2\x82' in s :
                 s = s.replace \
                     ( b'\xc3\xa2\xe2\x82\xac\xe2\x80\x9c'
                     , b'\xc3\xa2\xc2\x80\xc2\x93'
                     ) # probably an N-Dash
-                try :
-                    return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
-                except UnicodeEncodeError :
-                    print "OOPS: %r" % s
+            try :
+                return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
+            except UnicodeEncodeError :
+                print ("OOPS: %r" % s)
         return s.decode (self.charset)
     # end def __call__
 
@@ -241,7 +306,7 @@ class adict (dict) :
     def __getattr__ (self, key) :
         if key in self :
             return self [key]
-        raise AttributeError, key
+        raise AttributeError (key)
     # end def __getattr__
 
     def set_done (self, done = True) :
@@ -309,11 +374,11 @@ class SQL_Parser (Parser) :
 
     def dump (self) :
         for tbl, ct in self.contents.iteritems () :
-            print "Table: %s" % tbl
+            print ("Table: %s" % tbl)
             for line in ct :
-                print
+                print ('')
                 for k, v in line.iteritems () :
-                    print "  %s: %s" % (k, repr (v))
+                    print ("  %s: %s" % (k, repr (v)))
     # end dump
 
     def insert (self, state, new_state, match) :
@@ -400,7 +465,7 @@ class SQL_Parser (Parser) :
         elif rest.startswith ('without time zone') :
             return SQL_Timestamp_Without_Zone ()
         else :
-            raise ValueError, "Invalid timestamp spec: %s" % rest
+            raise ValueError ("Invalid timestamp spec: %s" % rest)
     # end def type_timestamp
 
     def type_datetime (self, type, rest) :

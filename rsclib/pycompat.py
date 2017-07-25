@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2013-14 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2013-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -33,10 +33,12 @@ if PY2 :
     text_type    = unicode
     string_types = (str, unicode)
     unichr       = unichr
+    long_type    = long
 else :
     text_type    = str
     string_types = (str,)
     unichr       = chr
+    long_type    = int
 
 if PY2 :
     class ustr (unicode) :
@@ -44,8 +46,20 @@ if PY2 :
             return unicode.__repr__ (self).lstrip ('u')
         # end def __repr__
     # end class ustr
+    def longpr (* longvar) :
+        """ For regression-testing """
+        for l in longvar [:-1] :
+            print (repr (l), end = ' ')
+        print (repr (longvar [-1]))
+    # end def longpr
 else :
     ustr = text_type
+    def longpr (* longvar) :
+        """ For regression-testing """
+        for l in longvar  [:-1]:
+            print (str (l) + 'L', end = ' ')
+        print (str (longvar [-1]) + 'L')
+    # end def longpr
 
 def with_metaclass (meta, *bases) :
     class metaclass (meta) :
@@ -56,4 +70,15 @@ def with_metaclass (meta, *bases) :
                 return type.__new__ (cls, name, (), d)
             return meta (name, bases, d)
     return metaclass ('temporary_class', None, {})
+# end def with_metaclass
 
+def assert_raises (exception, substr, function, * args) :
+    try :
+        function (* args)
+    except exception as cause :
+        if substr :
+            if substr in str (cause) :
+                return
+            assert False
+    assert False
+# end def assert_raises

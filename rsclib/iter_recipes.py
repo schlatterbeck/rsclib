@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2009 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2009-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -22,7 +22,13 @@
 # Some recipes for iterating, some from
 # http://docs.python.org/library/itertools.html
 
-from itertools import izip, tee
+import sys
+try :
+    from itertools import izip as zip
+except ImportError :
+    pass
+from itertools import tee
+from rsclib.pycompat import long_type
 
 def grouper (n, iterable) :
     """
@@ -30,7 +36,7 @@ def grouper (n, iterable) :
         [('A', 'B', 'C'), ('D', 'E', 'F')]
     """
     args = [iter (iterable)] * n
-    return izip (*args)
+    return zip (*args)
 # end def grouper
 
 def pairwise (iterable) :
@@ -41,7 +47,7 @@ def pairwise (iterable) :
     a, b = tee (iterable)
     for elem in b :
         break
-    return izip (a, b)
+    return zip (a, b)
 # end def pairwise
 
 def ranges (iterable, key = None, condition = None) :
@@ -64,7 +70,7 @@ def ranges (iterable, key = None, condition = None) :
     first = last = None
     i1, i2 = tee (iterable)
     try :
-        last = i1.next ()
+        last = next (i1)
     except StopIteration :
         pass
     for x1, x2 in pairwise (i2) :
@@ -86,65 +92,69 @@ def ranges (iterable, key = None, condition = None) :
             yield (last, last)
 # end def ranges
 
-def xxrange (start, stop = None, step = 1) :
-    """ Reimplementation of xrange that works for x-large numbers,
-        native xrange doesn't work with long integers. Note that we
-        enforce the same restriction as native xrange, we don't allow
-        float.
-        >>> list (xrange (8))
-        [0, 1, 2, 3, 4, 5, 6, 7]
-        >>> list (xxrange (8))
-        [0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L]
-        >>> list (xrange (6, 8))
-        [6, 7]
-        >>> list (xxrange (6, 8))
-        [6L, 7L]
-        >>> list (xrange (2, 8, 2))
-        [2, 4, 6]
-        >>> list (xxrange (2, 8, 2))
-        [2L, 4L, 6L]
-        >>> 0x800000000000
-        140737488355328L
-        >>> 0x800000000000 + 0x400000000000
-        211106232532992L
-        >>> list (xxrange (0x800000000000, 0x1000000000000, 0x400000000000))
-        [140737488355328L, 211106232532992L]
-        >>> list (xrange(8, 6, -1))
-        [8, 7]
-        >>> list (xxrange(8, 6, -1))
-        [8L, 7L]
-        >>> list (xrange(8, 9, -1))
-        []
-        >>> list (xxrange(8, 9, -1))
-        []
-        >>> list (xxrange(8, 9, 0))
-        Traceback (most recent call last):
-          ...
-        ValueError: xxrange arg 3 must not be zero
-        >>> list (xxrange(8, 9, 0.25))
-        Traceback (most recent call last):
-          ...
-        ValueError: xxrange arg 3 must not be zero
-        >>> list (xxrange (8.5, 9.5, 1))
-        [8L]
-    """
-    if stop is None :
-        stop  = start
-        start = 0
-    step  = long (step)
-    start = long (start)
-    stop  = long (stop)
-    if step == 0 :
-        raise ValueError ("xxrange arg 3 must not be zero")
-    if step > 0 :
-        while start < stop :
-            yield start
-            start += step
-    else :
-        while start > stop :
-            yield start
-            start += step
-# end def xxrange
+PY2 = sys.version_info [0] == 2
+if PY2 :
+    def xxrange (start, stop = None, step = 1) :
+        """ Reimplementation of xrange that works for x-large numbers,
+            native xrange doesn't work with long integers. Note that we
+            enforce the same restriction as native xrange, we don't allow
+            float.
+            >>> list (xrange (8))
+            [0, 1, 2, 3, 4, 5, 6, 7]
+            >>> list (xxrange (8))
+            [0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L]
+            >>> list (xrange (6, 8))
+            [6, 7]
+            >>> list (xxrange (6, 8))
+            [6L, 7L]
+            >>> list (xrange (2, 8, 2))
+            [2, 4, 6]
+            >>> list (xxrange (2, 8, 2))
+            [2L, 4L, 6L]
+            >>> 0x8000000000000000
+            9223372036854775808L
+            >>> 0x8000000000000000 + 0x4000000000000000
+            13835058055282163712L
+            >>> list (xxrange (0x800000000000, 0x1000000000000, 0x400000000000))
+            [140737488355328L, 211106232532992L]
+            >>> list (xrange(8, 6, -1))
+            [8, 7]
+            >>> list (xxrange(8, 6, -1))
+            [8L, 7L]
+            >>> list (xrange(8, 9, -1))
+            []
+            >>> list (xxrange(8, 9, -1))
+            []
+            >>> list (xxrange(8, 9, 0))
+            Traceback (most recent call last):
+              ...
+            ValueError: xxrange arg 3 must not be zero
+            >>> list (xxrange(8, 9, 0.25))
+            Traceback (most recent call last):
+              ...
+            ValueError: xxrange arg 3 must not be zero
+            >>> list (xxrange (8.5, 9.5, 1))
+            [8L]
+        """
+        if stop is None :
+            stop  = start
+            start = 0
+        step  = long_type (step)
+        start = long_type (start)
+        stop  = long_type (stop)
+        if step == 0 :
+            raise ValueError ("xxrange arg 3 must not be zero")
+        if step > 0 :
+            while start < stop :
+                yield start
+                start += step
+        else :
+            while start > stop :
+                yield start
+                start += step
+    # end def xxrange
+else :
+    xxrange = range
 
 try :
     from itertools import combinations

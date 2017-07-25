@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2007 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2007-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -19,31 +19,36 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__ import unicode_literals
+from rsclib.pycompat import ustr
 import re
 from rsclib.autosuper import autosuper
+try :
+    from io import StringIO
+except ImportError :
+    from StringIO import StringIO
 
 class TeX_CSV_Writer (autosuper) :
     """ Implement csv functionality for TeX readers -- quote TeX-specific
         characters, use '{' and '}' for quoting fields containing special
         characters.
 
-        >>> from StringIO import StringIO
         >>> io = StringIO ()
         >>> x = TeX_CSV_Writer (io)
         >>> x.writerow (['1&%$#[]{}\\\\','2\\n3'])
-        >>> io.getvalue ()
+        >>> ustr (io.getvalue ())
         '1\\\\&\\\\%\\\\$\\\\#\\\\[\\\\]\\\\{\\\\}\\\\backslash;2\\\\\\\\3\\n'
         >>> io = StringIO ()
         >>> x = TeX_CSV_Writer (io)
         >>> x.writerow (['3','4'])
         >>> x.writerow (['3;4','4;5'])
         >>> x.writerow (['5','6\\n7'])
-        >>> io.getvalue ()
+        >>> ustr (io.getvalue ())
         '3;4\\n{3;4};{4;5}\\n5;6\\\\\\\\7\\n'
         >>> io = StringIO ()
         >>> x = TeX_CSV_Writer (io)
         >>> x.writerow (['1-2', '1--2', '1 -- 2', '1 - 2', 'a - b', 'a-b'])
-        >>> io.getvalue ()
+        >>> ustr (io.getvalue ())
         '1--2;1--2;1--2;1--2;a -- b;a-b\\n'
     """
 

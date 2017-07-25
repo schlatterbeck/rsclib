@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2015 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2015-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -20,6 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__         import print_function
 from time               import sleep
 from asterisk.manager   import Manager, ManagerSocketException
 from rsclib.execute     import Log
@@ -120,5 +121,5 @@ if __name__ == '__main__' :
     ap = Asterisk_Probe ()
     d = ap.probe_apps ()
     for k, v in d.iteritems () :
-        print "%s: %s" % (k, v)
+        print ("%s: %s" % (k, v))
     ap.close ()

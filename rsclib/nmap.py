@@ -1,11 +1,33 @@
 #!/usr/bin/python
+# Copyright (C) 2010-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Reichergasse 131, A-3411 Weidling.
+# Web: http://www.runtux.com Email: office@runtux.com
+# All rights reserved
+# ****************************************************************************
+# This library is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Library General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# ****************************************************************************
 
+from __future__          import print_function
 from re                  import compile as rc
+from functools           import total_ordering
 from rsclib.autosuper    import autosuper
 from rsclib.stateparser  import Parser
 from rsclib.IP_Address   import IP4_Address
 from rsclib.iter_recipes import pairwise, ranges
 
+@total_ordering
 class Port (autosuper) :
     """ A Nmapped port with the protocol, port number, the scanned state
         and the service.
@@ -24,11 +46,19 @@ class Port (autosuper) :
         self.service  = service
     # end def __init__
 
-    def __cmp__ (self, other) :
-        return (  cmp (self.protocol, other.protocol)
-               or cmp (self.port, other.port)
-               )
-    # end def __cmp__
+    def __eq__ (self, other) :
+        return self.protocol == other.protocol and self.port == other.port
+    # end def __eq__
+
+    def __ne__ (self, other) :
+        return not self == other
+    # end def __ne__
+
+    def __lt__ (self, other) :
+        if self.protocol == other.protocol :
+            return self.port < other.port
+        return self.protocol < other.protocol
+    # end def __lt__
 
     def __repr__ (self) :
         return "Port (%s, %s, %s, %s)" \
@@ -257,7 +287,7 @@ class NMAP (autosuper) :
             , lambda x : x.ip.ip
             , lambda x, y : x.equivalent (y, ip_map)
             ) :
-            #print "DEBUG:", h1, h2
+            #print ("DEBUG:", h1, h2)
             x1 = str (h1.ip).replace ('.', '&')
             if h1.ip.ip == h2.ip.ip :
                 x2 = ''
@@ -544,20 +574,22 @@ def main () :
             cmd.error ("named-ip (-i) option value must contain a '='")
         ip_map [k] = v
     if opt.as_tex :
-        print NMAP.as_tex \
-            ( no_filtered      = opt.no_filtered
-            , label            = opt.label
-            , caption          = opt.caption
-            , ip_map           = ip_map
-            , thresh_open      = opt.thresh_open
-            , thresh_closed    = opt.thresh_closed
-            , paragraph_open   = opt.paragraph_open
-            , paragraph_closed = opt.paragraph_closed
+        print \
+            ( NMAP.as_tex \
+                ( no_filtered      = opt.no_filtered
+                , label            = opt.label
+                , caption          = opt.caption
+                , ip_map           = ip_map
+                , thresh_open      = opt.thresh_open
+                , thresh_closed    = opt.thresh_closed
+                , paragraph_open   = opt.paragraph_open
+                , paragraph_closed = opt.paragraph_closed
+                )
             )
     else :
         for n in NMAP.list :
             if not opt.no_filtered or not n.is_filtered :
-                print n.as_string (no_filtered = opt.no_filtered)
+                print (n.as_string (no_filtered = opt.no_filtered))
 # end def main
 
 if __name__ == '__main__' :

@@ -1,6 +1,6 @@
 #!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
-# Copyright (C) 2012 Dr. Ralf Schlatterbeck Open Source Consulting.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -22,6 +22,7 @@
 #
 # Phone: parse phone numbers
 
+from __future__ import unicode_literals
 import os
 from   rsclib.autosuper  import autosuper
 
@@ -53,9 +54,9 @@ class Phone (autosuper) :
         ))
     nan          = dict.fromkeys (('--', 'n/a', 'keine', '007'))
     number_types = \
-        { '720' : 'Ortsunabh‰ngig'.decode ('latin1')
-        , '780' : 'Kovergenter Dienst'.decode ('latin1')
-        , '900' : 'Mehrwertdienst'.decode ('latin1')
+        { '720' : 'Ortsunabh√§ngig'
+        , '780' : 'Kovergenter Dienst'
+        , '900' : 'Mehrwertdienst'
         }
     special      = dict.fromkeys \
         (('650', '660', '664', '676', '680', '681', '688', '699'))
@@ -93,7 +94,7 @@ class Phone (autosuper) :
                 cc   = '43'
                 rest = num [2:]
             else :
-                raise ValueError, "Number: %s" % number
+                raise ValueError ("Number: %s" % number)
         elif num.startswith ('0') :
             cc   = '43'
             rest = num [1:]
@@ -127,9 +128,9 @@ class Phone (autosuper) :
             cc   = '43'
             rest = num
         elif '@' in num :
-            raise ValueError, "WARN: Email in phone field? %s" % number
+            raise ValueError ("WARN: Email in phone field? %s" % number)
         else :
-            raise ValueError, "Number: %s" % number
+            raise ValueError ("Number: %s" % number)
 
         if rest.startswith ('1') :
             area = '1'
@@ -149,7 +150,7 @@ class Phone (autosuper) :
                 type = 'Festnetz'
             num = rest [3:]
         else :
-            raise ValueError, "Unknown area code: %s" % number
+            raise ValueError ("Unknown area code: %s" % number)
         self.country_code = cc
         self.area_code    = area
         self.number       = num

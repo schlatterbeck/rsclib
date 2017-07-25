@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2009-16 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2009-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -20,6 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__ import print_function
 import os
 import sys
 import logging
@@ -75,7 +76,7 @@ class Log (_Named) :
     def print_exception (self) :
         for l in format_exc ().split ('\n') :
             if l :
-                print "%s\r" % l
+                print ("%s\r" % l)
     # end def print_exception
 # end class Log
 
@@ -110,7 +111,7 @@ class Exec (Log) :
             for e in stderr.rstrip ().split ('\n') :
                 self.error (e)
             if not ignore_err :
-                raise Exec_Error, (msg, p.returncode)
+                raise Exec_Error (msg, p.returncode)
         return stdout.rstrip ().split ('\n')
     # end def exec_pipe
 # end class Exec
@@ -126,7 +127,7 @@ class Lock_Mixin (_Named) :
             f  = os.fdopen (fd, 'w')
             f.write ("%s\n" % os.getpid())
             f.close ()
-        except OSError, e:
+        except OSError as e:
             if e.errno != errno.EEXIST :
                 self.log_exception ()
                 raise
@@ -446,7 +447,7 @@ class Tee (Process) :
                     stdout.write (buf)
                     written = True
                     #self.log.debug ("written: %s" % len (buf))
-                except IOError, cause :
+                except IOError as cause :
                     # this client died, no longer try to send to it
                     if cause.errno != errno.EPIPE :
                         raise

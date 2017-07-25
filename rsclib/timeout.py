@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2009 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2009-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -46,6 +46,6 @@ class Timeout (autosuper) :
     def sig_alarm (self, sig, frame) :
         if hasattr (self, 'log') :
             self.log.debug ("SIGALRM received")
-        raise Timeout_Error, "SIGALRM"
+        raise Timeout_Error ("SIGALRM")
     # end def sig_alarm
 # end class Timeout

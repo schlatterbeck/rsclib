@@ -1,6 +1,26 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
+# Copyright (C) 2011-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Reichergasse 131, A-3411 Weidling.
+# Web: http://www.runtux.com Email: office@runtux.com
+# All rights reserved
+# ****************************************************************************
+# This library is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Library General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# ****************************************************************************
 
+from __future__ import print_function
 from math import pi, log
 
 def L_s (l, d, n) :
@@ -26,29 +46,29 @@ def L_s (l, d, n) :
         where he used a solver to optimize the formula for low errors.
         Note: This is a current sheet formula, and will require round
         wire corrections for best accuracy.
-    >>> print "%2.2f" % L_s ( 0.8,   2,  10)
+    >>> print ("%2.2f" % L_s ( 0.8,   2,  10))
     2.33
-    >>> print "%2.2f" % L_s ( 1.6,   2,  20)
+    >>> print ("%2.2f" % L_s ( 1.6,   2,  20))
     6.30
-    >>> print "%2.2f" % L_s ( 4.0,   2,  50)
+    >>> print ("%2.2f" % L_s ( 4.0,   2,  50))
     20.19
-    >>> print "%2.2f" % L_s ( 8.0,   2, 100)
+    >>> print ("%2.2f" % L_s ( 8.0,   2, 100))
     44.49
-    >>> print "%2.2f" % L_s ( 2.0,   2,  10)
+    >>> print ("%2.2f" % L_s ( 2.0,   2,  10))
     1.36
-    >>> print "%2.2f" % L_s ( 4.0,   2,  20)
+    >>> print ("%2.2f" % L_s ( 4.0,   2,  20))
     3.23
-    >>> print "%2.2f" % L_s (10.0,   2,  50)
+    >>> print ("%2.2f" % L_s (10.0,   2,  50))
     9.08
-    >>> print "%2.2f" % L_s (20.0,   2, 100)
+    >>> print ("%2.2f" % L_s (20.0,   2, 100))
     18.93
-    >>> print "%2.2f" % L_s ( 0.8,  10,   10)
+    >>> print ("%2.2f" % L_s ( 0.8,  10,   10))
     21.46
-    >>> print "%2.2f" % L_s ( 8.0,  10,  100)
+    >>> print ("%2.2f" % L_s ( 8.0,  10,  100))
     787.20
-    >>> print "%2.2f" % L_s ( 0.8, 200,   10)
+    >>> print ("%2.2f" % L_s ( 0.8, 200,   10))
     805.22
-    >>> print "%2.2f" % L_s ( 8.0, 200,  100)
+    >>> print ("%2.2f" % L_s ( 8.0, 200,  100))
     51598.29
     """
     # original formula output in H, input in m
@@ -95,29 +115,29 @@ def delta_roundwire (r, n, pitch, diameter) :
         http://electronbunker.ca/CalcMethods2a.html
         n is the number of turns, r is the coil radius.
         The winding pitch and conductor diameter are in cm.
-    >>> print "%2.5f" % delta_roundwire (1,  10, 0.080, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (1,  10, 0.080, 0.05))
     0.04439
-    >>> print "%2.5f" % delta_roundwire (1,  20, 0.080, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (1,  20, 0.080, 0.05))
     0.09631
-    >>> print "%2.5f" % delta_roundwire (1,  50, 0.080, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (1,  50, 0.080, 0.05))
     0.25451
-    >>> print "%2.5f" % delta_roundwire (1, 100, 0.080, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (1, 100, 0.080, 0.05))
     0.51992
-    >>> print "%2.5f" % delta_roundwire (1,  10, 0.200, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (1,  10, 0.200, 0.05))
     -0.07075
-    >>> print "%2.5f" % delta_roundwire (1,  20, 0.200, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (1,  20, 0.200, 0.05))
     -0.13398
-    >>> print "%2.5f" % delta_roundwire (1,  50, 0.200, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (1,  50, 0.200, 0.05))
     -0.32121
-    >>> print "%2.5f" % delta_roundwire (1, 100, 0.200, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (1, 100, 0.200, 0.05))
     -0.63152
-    >>> print "%2.5f" % delta_roundwire (  5,  10, 0.080, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (  5,  10, 0.080, 0.05))
     0.22196
-    >>> print "%2.5f" % delta_roundwire (  5, 100, 0.080, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (  5, 100, 0.080, 0.05))
     2.59962
-    >>> print "%2.5f" % delta_roundwire (100,  10, 0.080, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (100,  10, 0.080, 0.05))
     4.43916
-    >>> print "%2.5f" % delta_roundwire (100, 100, 0.080, 0.05)
+    >>> print ("%2.5f" % delta_roundwire (100, 100, 0.080, 0.05))
     51.99242
     """
     return 0.004 * pi * r * n * (k_s (pitch, diameter) + k_m (n))
@@ -125,31 +145,31 @@ def delta_roundwire (r, n, pitch, diameter) :
 
 def induction (d, n, diameter, l = 0, pitch = 0) :
     """ induction with round-wire correction
-    >>> print "%2.2f" % induction (  2,  10, 0.05, l =  0.8)
+    >>> print ("%2.2f" % induction (  2,  10, 0.05, l =  0.8))
     2.28
-    >>> print "%2.2f" % induction (  2,  20, 0.05, l =  1.6)
+    >>> print ("%2.2f" % induction (  2,  20, 0.05, l =  1.6))
     6.20
-    >>> print "%2.2f" % induction (  2,  50, 0.05, l =  4.0)
+    >>> print ("%2.2f" % induction (  2,  50, 0.05, l =  4.0))
     19.93
-    >>> print "%2.2f" % induction (  2, 100, 0.05, l =  8.0)
+    >>> print ("%2.2f" % induction (  2, 100, 0.05, l =  8.0))
     43.97
-    >>> print "%2.2f" % induction (  2,  10, 0.05, l =  2.0)
+    >>> print ("%2.2f" % induction (  2,  10, 0.05, l =  2.0))
     1.43
-    >>> print "%2.2f" % induction (  2,  20, 0.05, l =  4.0)
+    >>> print ("%2.2f" % induction (  2,  20, 0.05, l =  4.0))
     3.36
-    >>> print "%2.2f" % induction (  2,  50, 0.05, l = 10.0)
+    >>> print ("%2.2f" % induction (  2,  50, 0.05, l = 10.0))
     9.40
-    >>> print "%2.2f" % induction (  2, 100, 0.05, l = 20.0)
+    >>> print ("%2.2f" % induction (  2, 100, 0.05, l = 20.0))
     19.56
-    >>> print "%2.2f" % induction ( 10,  10, 0.05, l =  0.8)
+    >>> print ("%2.2f" % induction ( 10,  10, 0.05, l =  0.8))
     21.24
-    >>> print "%2.2f" % induction ( 10, 100, 0.05, l =  8.0)
+    >>> print ("%2.2f" % induction ( 10, 100, 0.05, l =  8.0))
     784.60
-    >>> print "%2.2f" % induction (200,  10, 0.05, l =  0.8)
+    >>> print ("%2.2f" % induction (200,  10, 0.05, l =  0.8))
     800.78
-    >>> print "%2.2f" % induction (200, 100, 0.05, l =  8.0)
+    >>> print ("%2.2f" % induction (200, 100, 0.05, l =  8.0))
     51546.30
-    >>> print "%2.2f" % induction (  2,  10, 0.05, pitch = 0.08)
+    >>> print ("%2.2f" % induction (  2,  10, 0.05, pitch = 0.08))
     2.28
     """
     if l :
@@ -157,7 +177,7 @@ def induction (d, n, diameter, l = 0, pitch = 0) :
     elif pitch :
         l = float (pitch) * float (n)
     else :
-        raise ValueError, "l or pitch must be != 0"
+        raise ValueError ("l or pitch must be != 0")
     return L_s (l, d, n) - delta_roundwire (d / 2.0, n, pitch, diameter)
 # end def induction
 
@@ -168,4 +188,4 @@ if __name__ == "__main__" :
             , "Usage: %s diameter windings wirediameter pitch" % sys.argv [0]
         sys.exit (23)
     args = [float (i) for i in sys.argv [1:]]
-    print induction (*args [:3], pitch = args [3])
+    print (induction (*args [:3], pitch = args [3]))

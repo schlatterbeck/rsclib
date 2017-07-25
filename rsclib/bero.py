@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2009 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2009-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -19,7 +19,11 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-from urllib2 import urlopen
+from __future__ import print_function
+try :
+    from urllib.request import urlopen
+except ImportError :
+    from urllib2 import urlopen
 
 # Taken from src/beronet/confmap_fos.h in the linux command-line tool
 # with some additions of commands showing up in /config.txt of
@@ -204,7 +208,7 @@ class Bnfos_Command (object) :
             except ValueError :
                 valid = False
         if len (a) != 4 or not valid :
-            raise ValueError, "Invalid Address: %s" % val
+            raise ValueError ("Invalid Address: %s" % val)
         return val
     # end def get_a
 
@@ -270,12 +274,12 @@ def main () :
         if value is not None :
             try :
                 Bnfos_Command.by_highlevel_command [command].value = value
-            except ValueError, cause :
+            except ValueError as cause :
                 parser.error (cause)
         else :
             c = Bnfos_Command.by_highlevel_command [command]
             if c.macro is not None :
-                print "=".join ((c.command, str (c.value)))
+                print ("=".join ((c.command, str (c.value))))
     Bnfos_Command.update_config ()
 # end def main
 

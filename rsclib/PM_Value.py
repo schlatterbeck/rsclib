@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2005 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -19,6 +19,8 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__ import division
+from pycompat   import long_type
 import operator
 from rsclib.autosuper import autosuper
 
@@ -91,13 +93,18 @@ class PM_Value (autosuper) :
             self.missing += 1
     # end def __init__
 
-    def __cmp__ (self, other) :
-        return cmp (self.value, getattr (other, 'value', other))
-    # end def __cmp__
+    def __eq__ (self, other) :
+        return self.value == getattr (other, 'value', other)
+    # end def __eq__
+
+    def __ne__ (self, other) :
+        return not self == other
+    # end def __ne__
 
     def __nonzero__ (self) :
         return bool (self.value)
     # end def __nonzero__
+    __bool__ = __nonzero__
 
 # end class PM_Value
 
@@ -135,7 +142,7 @@ def _define_convop (func) :
 # end _define_convop
 
 for name in \
-    ( '__add__',      '__sub__', '__mul__', '__div__',    '__truediv__'
+    ( '__add__',      '__sub__', '__mul__', '__truediv__'
     , '__floordiv__', '__mod__', '__pow__', '__lshift__', '__rshift__'
     , '__and__',      '__xor__', '__or__'
     ) :
@@ -144,7 +151,7 @@ for name in \
 for name in ('__neg__', '__pos__', '__abs__', '__invert__') :
     _define_unop (name)
 
-for func in (int, long, float, oct, hex, str, repr) :
+for func in (int, long_type, float, str, repr) :
     _define_convop (func)
 
 del name, func

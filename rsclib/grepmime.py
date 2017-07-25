@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2007 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2007-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -51,7 +51,7 @@ class Mail (autosuper) :
             result = getattr (self.msg, name)
             setattr (self, name, result)
             return result
-        raise AttributeError, name
+        raise AttributeError (name)
     # end def __getattr__
 
 # end class Mail

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2009-15 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2009-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -19,10 +19,10 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__           import print_function
 import os
 import sys
 from   time               import sleep
-from   urllib2            import URLError
 from   rsclib.autosuper   import autosuper
 from   rsclib.execute     import Exec, Exec_Error
 from   rsclib.Version     import VERSION
@@ -30,6 +30,10 @@ from   rsclib.bero        import Bnfos_Command
 from   rsclib.Config_File import Config_File
 from   rsclib.isdn        import ISDN_Ports, ISDN_Port
 from   rsclib.ast_probe   import Asterisk_Probe
+try :
+    from urllib.error     import URLError
+except ImportError :
+    from   urllib2        import URLError
 
 class Parameter_Error (ValueError) : pass
 
@@ -152,7 +156,7 @@ class Resource (Exec) :
             return self.OCF_ERR_ARGS
         arg = args [0]
         if arg != 'meta-data' and r :
-            raise Parameter_Error, r
+            raise Parameter_Error (r)
         if arg == 'validate-all' :
             self.log.debug ("successful validate_all")
             return self.OCF_SUCCESS
@@ -174,7 +178,7 @@ class Resource (Exec) :
         action_description    = self.action_description
         parameter_description = '\n'.join (p.as_xml () for p in self.parameters)
         name                  = self.__class__.__name__.lower ()
-        print self.xml_template % locals ()
+        print (self.xml_template % locals ())
         self.log.debug ("successful meta-data")
         return self.OCF_SUCCESS
     # end def handle_meta_data
@@ -215,7 +219,7 @@ class Resource (Exec) :
                 return d [name]
             except KeyError :
                 pass
-        raise AttributeError, name
+        raise AttributeError (name)
     # end def __getattr__
 
 # end class Resource
@@ -244,8 +248,8 @@ class LSB_Resource (Resource) :
             self.log.error ("Service %s not installed" % self.service)
             return self.OCF_ERR_INSTALLED
         try :
-            print '\n'.join (self.exec_pipe ((self.command, cmd)))
-        except Exec_Error, status :
+            print ('\n'.join (self.exec_pipe ((self.command, cmd))))
+        except Exec_Error as status :
             # exec_pipe already logged the error
             return error_return
         logger = self.log.info
@@ -319,7 +323,7 @@ class Dahdi_Resource_Mixin (Resource) :
                 , log_prefix   = self.log_prefix
                 , architecture = arch
                 )
-        except Exec_Error, status :
+        except Exec_Error as status :
             # Log error but don't exit -- we are called as status update
             # and when dahdi is not running the dahdi_scan called will
             # exit with nonzero exit code.
@@ -461,7 +465,7 @@ class Bero_Resource (Dahdi_Resource_Mixin, Resource) :
             if val != self.switch :
                 self.log.info ("not running")
                 return self.OCF_NOT_RUNNING
-        except URLError, msg :
+        except URLError as msg :
             self.log.error ("URLError: %s" % msg)
         return self.__super.handle_monitor ()
     # end def handle_monitor
@@ -472,7 +476,7 @@ class Bero_Resource (Dahdi_Resource_Mixin, Resource) :
             Bnfos_Command.get_config (host = self.bero, port = 80)
             Bnfos_Command.by_highlevel_command ['mode'].value = self.switch
             Bnfos_Command.update_config ()
-        except URLError, msg :
+        except URLError as msg :
             self.log.error ("URLError: %s" % msg)
         sleep (2)
         self.log.info ("successful start")
@@ -499,7 +503,7 @@ def main (args, cls = LSB_Resource, **kw) :
     try :
         ret = rsrc.handle (args)
         sys.exit (ret)
-    except Parameter_Error, val :
+    except Parameter_Error as val :
         sys.exit (val.args [0])
     except StandardError :
         rsrc.log_exception ()

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2005-12 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -19,9 +19,13 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__          import print_function
 from rsclib.autosuper    import _autosuper
-from rsclib.pycompat     import with_metaclass
+from rsclib.pycompat     import with_metaclass, string_types, long_type, longpr
+from rsclib.pycompat     import assert_raises
 from rsclib.iter_recipes import xxrange as xrange
+from functools           import total_ordering
+
 
 mask_bits = \
     { 0 : 0, 128 : 1, 192 : 2, 224 : 3, 240 : 4, 248 : 5, 252 : 6, 254 : 7 }
@@ -82,6 +86,7 @@ class IP_Meta (with_metaclass (_IP_Meta_)) :
     pass
 # end class IP_Meta
 
+@total_ordering
 class IP_Address (IP_Meta) :
 
     _bitlen = None
@@ -89,11 +94,11 @@ class IP_Address (IP_Meta) :
     def __init__ (self, address, mask = None, strict_mask = False) :
         if mask is None :
             mask  = self._bitlen
-        self._mask = int (mask)
+        self._mask = long_type (mask)
         if self._mask < 0 or self._mask > self._bitlen :
             raise ValueError \
                 (self._esyntax_ ("Invalid netmask: %s" % self._mask))
-        if isinstance (address, basestring) :
+        if isinstance (address, string_types) :
             xadr = address.split ('/', 1)
             if len (xadr) > 1 :
                 m = int (xadr [1])
@@ -103,11 +108,11 @@ class IP_Address (IP_Meta) :
                 self._mask = min (self._mask, m)
             self._from_string (xadr [0])
         else :
-            self._ip = long (address)
-        if self._ip >= (1L << self._bitlen) :
+            self._ip = long_type (address)
+        if self._ip >= (1 << self._bitlen) :
             raise ValueError (self._esyntax_ ("Invalid ip: %s" % address))
-        self._bitmask = ((1L << self._mask) - 1L) << (self._bitlen - self._mask)
-        self._invmask = (~long (self._bitmask)) & ((1L << self._bitlen) - 1)
+        self._bitmask = ((1 << self._mask) - 1) << (self._bitlen - self._mask)
+        self._invmask = (~long_type (self._bitmask)) & ((1 << self._bitlen) - 1)
         if strict_mask and (self._ip & self._bitmask) != self._ip :
             raise ValueError \
                 (self._esyntax_ ("Bits to right of netmask not zero"))
@@ -223,12 +228,23 @@ class IP_Address (IP_Meta) :
             yield self.__class__ (i + self._ip, mask)
     # end def subnets
 
-    def __cmp__ (self, other) :
-        other = self._cast_ (other)
+    def __eq__ (self, other) :
         if not self._clscheck_ (other) :
-            return cmp (type (self), type (other))
-        return cmp (self.ip, other.ip) or cmp (self.mask, other.mask)
-    # end def __cmp__
+            return type (self) == type (other)
+        return self.ip == other.ip and self.mask == other.mask
+    # end def __eq__
+
+    def __ne__ (self, other) :
+        return not self == other
+    # end def __ne__
+
+    def __lt__ (self, other) :
+        if not self._clscheck_ (other) :
+            return id (type (self)) < id (type (other))
+        if self.ip == other.ip :
+            return self.mask < other.mask
+        return self.ip < other.ip
+    # end def __lt__
 
     __contains__ = contains
 
@@ -291,8 +307,8 @@ class IP4_Address (IP_Address) :
     """
         IP version 4 Address with optional subnet mask.
         >>> a = IP4_Address ('10.100.10.0')
-        >>> a.mask
-        32
+        >>> longpr (a.mask)
+        32L
         >>> "%s" % a.mask
         '32'
         >>> a.bitlen
@@ -303,9 +319,9 @@ class IP4_Address (IP_Address) :
         32
         >>> a.parent
         10.100.10.0/31
-        >>> a.ip
+        >>> longpr (a.ip)
         174328320L
-        >>> a._broadcast
+        >>> longpr (a._broadcast)
         174328320L
         >>> str (a)
         '10.100.10.0'
@@ -313,14 +329,14 @@ class IP4_Address (IP_Address) :
         >>> str (a)
         '10.100.10.0'
         >>> aa = IP4_Address ('10.36.48.129', '255.255.255.224')
-        >>> aa.mask
-        27
-        >>> aa.mask_len
-        27
+        >>> longpr (aa.mask)
+        27L
+        >>> longpr (aa.mask_len)
+        27L
         >>> str (aa)
         '10.36.48.128/27'
         >>> b = IP4_Address ('10.100.10.5', 24)
-        >>> b.ip
+        >>> longpr (b.ip)
         174328320L
         >>> str (b)
         '10.100.10.0/24'
@@ -335,7 +351,7 @@ class IP4_Address (IP_Address) :
         >>> b
         10.100.10.0/24
         >>> b = IP4_Address ('10.100.10.5/24')
-        >>> b.ip
+        >>> longpr (b.ip)
         174328320L
         >>> str (b)
         '10.100.10.0/24'
@@ -346,29 +362,29 @@ class IP4_Address (IP_Address) :
         True
         >>> c in b
         False
-        >>> c.ip
+        >>> longpr (c.ip)
         174325760L
         >>> str (c)
         '10.100.0.0/16'
         >>> d = IP4_Address ('10.100.0.0/24', 16)
-        >>> d.ip
+        >>> longpr (d.ip)
         174325760L
         >>> str (d)
         '10.100.0.0/16'
         >>> str (d.subnet_mask)
         '255.255.0.0'
-        >>> print d.subnet_mask
+        >>> print (d.subnet_mask)
         255.255.0.0
         >>> d.broadcast_address
         10.100.255.255
         >>> d.net
         10.100.0.0
         >>> e = IP4_Address ('10.100.0.0')
-        >>> e.ip
+        >>> longpr (e.ip)
         174325760L
         >>> str (e)
         '10.100.0.0'
-        >>> str (IP4_Address (174325760L))
+        >>> str (IP4_Address (174325760))
         '10.100.0.0'
         >>> str (IP4_Address (65535))
         '0.0.255.255'
@@ -420,8 +436,8 @@ class IP4_Address (IP_Address) :
         False
         >>> g.overlaps (IP4_Address ('10.100.10.3', 32))
         False
-        >>> g.ip, g.bitmask
-        (174328322L, 4294967295L)
+        >>> longpr (g.ip, g.bitmask)
+        174328322L 4294967295L
         >>> g
         10.100.10.2
         >>> g == g
@@ -435,8 +451,12 @@ class IP4_Address (IP_Address) :
         >>> g != '10.100.10.3'
         True
         >>> g <  '10.100.10.3'
-        True
+        False
         >>> g <= '10.100.10.3'
+        False
+        >>> g >= '10.100.10.3'
+        True
+        >>> g > '10.100.10.3'
         True
         >>> g <= '10.100.10.2'
         True
@@ -449,7 +469,7 @@ class IP4_Address (IP_Address) :
         >>> g >= '10.100.10.2'
         True
         >>> g >= '10.100.10.3'
-        False
+        True
         >>> '10.100.10.2/32' in g
         True
         >>> '10.100.10.2/30' in g
@@ -486,32 +506,32 @@ class IP4_Address (IP_Address) :
         >>> IP4_Address ('108.62.8.0/21').netblk
         [108.62.8.0, 108.62.15.255]
         >>> i5 = IP4_Address ('10.23.5.0/30')
-        >>> print "0x%X" % i5.bitmask
+        >>> print ("0x%X" % i5.bitmask)
         0xFFFFFFFC
         >>> len (i5)
         4
-        >>> i5.len ()
+        >>> longpr (i5.len ())
         4L
-        >>> i5._broadcast
+        >>> longpr (i5._broadcast)
         169280771L
         >>> i5.netblk
         [10.23.5.0, 10.23.5.3]
         >>> for i in i5 :
-        ...     print i
+        ...     print (i)
         10.23.5.0
         10.23.5.1
         10.23.5.2
         10.23.5.3
         >>> for i in i5.subnets () :
-        ...     print i
+        ...     print (i)
         10.23.5.0
         10.23.5.1
         10.23.5.2
         10.23.5.3
         >>> for i in i5.subnets (24) :
-        ...     print i
+        ...     print (i)
         >>> for i in i5.subnets (31) :
-        ...     print i
+        ...     print (i)
         10.23.5.0/31
         10.23.5.2/31
         >>> i1 = IP4_Address ('10.23.5.5/24')
@@ -546,16 +566,14 @@ class IP4_Address (IP_Address) :
         True
         >>> x1 is x2
         True
-        >>> x3 = IP6_Address (x1)
-        Traceback (most recent call last):
-           ...
-        TypeError: long() argument must be a string or a number, not 'IP4_Address'
+        >>> sub = 'argument must be a string'
+        >>> assert_raises (TypeError, sub, IP6_Address, x1)
     """
 
     _bitlen = 32
 
     def __init__ (self, address, mask = _bitlen, **kw) :
-        if isinstance (mask, basestring) and len (mask) > 3 :
+        if isinstance (mask, string_types) and len (mask) > 3 :
             mask = netmask_from_string (mask)
         self.__super.__init__ (address, mask, **kw)
     # end def __init__
@@ -582,14 +600,14 @@ class IP4_Address (IP_Address) :
     _to_str = dotted
 
     def _from_string (self, address) :
-        a = 0L
+        a = 0
         for n, octet in enumerate (address.split ('.')) :
-            a <<= 8L
-            v = long (octet)
+            a <<= 8
+            v = long_type (octet)
             if not (0 <= v <= 255) :
                 raise ValueError \
                     (self._esyntax_ ("Invalid octet: %s" % octet))
-            a |= long (octet)
+            a |= long_type (octet)
             if n > 3 :
                 raise ValueError \
                     (self._esyntax_ ("Too many octets: %s" % address))
@@ -602,8 +620,8 @@ class IP6_Address (IP_Address) :
     """
         IP version 6 Address with optional subnet mask.
         >>> a = IP6_Address ("::")
-        >>> a.mask
-        128
+        >>> longpr (a.mask)
+        128L
         >>> "%s" % a.mask
         '128'
         >>> a.bitlen
@@ -612,9 +630,9 @@ class IP6_Address (IP_Address) :
         '128'
         >>> a.__class__.bitlen
         128
-        >>> a.ip
+        >>> longpr (a.ip)
         0L
-        >>> a._broadcast
+        >>> longpr (a._broadcast)
         0L
         >>> a = IP6_Address ("::1")
         >>> a.parent
@@ -625,25 +643,25 @@ class IP6_Address (IP_Address) :
         False
         >>> a.is_sibling (IP6_Address (a.ip, a.mask - 1))
         False
-        >>> a.ip
+        >>> longpr (a.ip)
         1L
         >>> a = IP6_Address ("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
-        >>> print "%X" % a.ip
+        >>> print ("%X" % a.ip)
         20010DB885A3000000008A2E03707334
-        >>> print "%X" % IP6_Address ("2001:db8:85a3:0:0:8a2e:370:7334").ip
+        >>> print ("%X" % IP6_Address ("2001:db8:85a3:0:0:8a2e:370:7334").ip)
         20010DB885A3000000008A2E03707334
-        >>> print "%X" % IP6_Address ("2001:db8:85a3::8a2e:370:7334").ip
+        >>> print ("%X" % IP6_Address ("2001:db8:85a3::8a2e:370:7334").ip)
         20010DB885A3000000008A2E03707334
-        >>> print "%X" % IP6_Address ("2001:db8:85a3::").ip
+        >>> print ("%X" % IP6_Address ("2001:db8:85a3::").ip)
         20010DB885A300000000000000000000
-        >>> print "%X" % IP6_Address ("::8a2e:370:7334").ip
+        >>> print ("%X" % IP6_Address ("::8a2e:370:7334").ip)
         8A2E03707334
         >>> str (a)
         '2001:db8:85a3::8a2e:370:7334'
         >>> b = IP6_Address ('2001:db8:85a3::8a2e:370:7334', 64)
-        >>> print "%X" % b.ip
+        >>> print ("%X" % b.ip)
         20010DB885A300000000000000000000
-        >>> str (IP6_Address (0x20010DB885A300000000000000000000L))
+        >>> str (IP6_Address (0x20010DB885A300000000000000000000))
         '2001:db8:85a3::'
         >>> str (b)
         '2001:db8:85a3::/64'
@@ -662,15 +680,15 @@ class IP6_Address (IP_Address) :
         >>> b in b
         True
         >>> c = IP6_Address ('2001:db8:85a3::', 48)
-        >>> c.mask
-        48
-        >>> c.mask_len
-        48
+        >>> longpr (c.mask)
+        48L
+        >>> longpr (c.mask_len)
+        48L
         >>> b in c
         True
         >>> c in b
         False
-        >>> print "%X" % c.ip
+        >>> print ("%X" % c.ip)
         20010DB885A300000000000000000000
         >>> str (c)
         '2001:db8:85a3::/48'
@@ -720,9 +738,9 @@ class IP6_Address (IP_Address) :
         >>> g != '2001:db8:dead:beef:1234:5678:9abc:def1'
         True
         >>> g <  '2001:db8:dead:beef:1234:5678:9abc:def1'
-        True
+        False
         >>> g <= '2001:db8:dead:beef:1234:5678:9abc:def1'
-        True
+        False
         >>> g <= '2001:db8:dead:beef:1234:5678:9abc:def0'
         True
         >>> g <= '2001:db8:dead:beef:1234:5678:9abc:deef'
@@ -734,7 +752,7 @@ class IP6_Address (IP_Address) :
         >>> g >= '2001:db8:dead:beef:1234:5678:9abc:def0'
         True
         >>> g >= '2001:db8:dead:beef:1234:5678:9abc:def1'
-        False
+        True
         >>> '2001:db8:dead:beef:1234:5678:9abc:def0' in g
         True
         >>> '2001:db8:dead:beef:1234:5678:9abc:def0/128' in g
@@ -760,9 +778,9 @@ class IP6_Address (IP_Address) :
         False
         >>> g.overlaps (IP6_Address (g.ip + (2 << 96), 32))
         False
-        >>> print "%x" % g.ip
+        >>> print ("%x" % g.ip)
         20010db8deadbeef123456789abcdef0
-        >>> print "%x" % g.bitmask
+        >>> print ("%x" % g.bitmask)
         ffffffffffffffffffffffffffffffff
         >>> g
         2001:db8:dead:beef:1234:5678:9abc:def0
@@ -793,37 +811,37 @@ class IP6_Address (IP_Address) :
         126
         >>> i5.mask_len
         126
-        >>> print "0x%X" % i5.bitmask
+        >>> print ("0x%X" % i5.bitmask)
         0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC
         >>> len (i5)
         4
-        >>> i5.len ()
+        >>> longpr (i5.len ())
         4L
-        >>> print "0x%x" % i5._broadcast
+        >>> print ("0x%x" % i5._broadcast)
         0x20010db8000000000000000000000003
         >>> i5.netblk
         [2001:db8::, 2001:db8::3]
         >>> for i in i5 :
-        ...     print i
+        ...     print (i)
         2001:db8::
         2001:db8::1
         2001:db8::2
         2001:db8::3
         >>> for i in i5.subnets () :
-        ...     print i
+        ...     print (i)
         2001:db8::
         2001:db8::1
         2001:db8::2
         2001:db8::3
         >>> for i in i5.subnets (24) :
-        ...     print i
+        ...     print (i)
         >>> for i in i5.subnets (127) :
-        ...     print i
+        ...     print (i)
         2001:db8::/127
         2001:db8::2/127
         >>> i32 = IP6_Address ('2001:db8::/32')
         >>> for i in i32.subnets (33) :
-        ...     print i
+        ...     print (i)
         2001:db8::/33
         2001:db8:8000::/33
         >>> i1 = IP6_Address ('2001:db8::/16')
@@ -919,10 +937,7 @@ class IP6_Address (IP_Address) :
         Traceback (most recent call last):
          ...
         ValueError: IP6_Address: Syntax: Hex value too long: 37023
-        >>> IP6_Address ('2001:db8:85a3::8a2e:370k:7334')
-        Traceback (most recent call last):
-         ...
-        ValueError: IP6_Address: Syntax: invalid literal for long() with base 16: '370k'
+        >>> assert_raises (ValueError, 'invalid literal', IP6_Address, '2001:db8:85a3::8a2e:370k:7334')
         >>> IP6_Address ('1::2::3')
         Traceback (most recent call last):
          ...
@@ -977,10 +992,7 @@ class IP6_Address (IP_Address) :
         True
         >>> x1 is x2
         True
-        >>> x3 = IP4_Address (x1)
-        Traceback (most recent call last):
-           ...
-        TypeError: long() argument must be a string or a number, not 'IP6_Address'
+        >>> assert_raises (TypeError, 'must be a string', IP4_Address, x1)
     """
 
     _bitlen = 128
@@ -1042,7 +1054,7 @@ class IP6_Address (IP_Address) :
             upper = upper [0]
             double_colon = False
 
-        value = 0L
+        value = 0
         shift = self._bitlen - 16
 
         count = 0
@@ -1054,7 +1066,7 @@ class IP6_Address (IP_Address) :
                 if len (v) > 4 :
                     raise ValueError \
                         (self._esyntax_ ("Hex value too long: %s" % v))
-                v = long (v, 16)
+                v = long_type (v, 16)
                 if shift < 0 :
                     raise ValueError \
                         (self._esyntax_ ("Too many hex parts in %s" % adr))
@@ -1062,7 +1074,7 @@ class IP6_Address (IP_Address) :
                 shift -= 16
                 count += 1
         if lower :
-            lv = 0L
+            lv = 0
             for v in lower.split (':') :
                 if not v :
                     raise ValueError \
@@ -1071,8 +1083,8 @@ class IP6_Address (IP_Address) :
                     raise ValueError \
                         (self._esyntax_ ("Hex value too long: %s" % v))
                 try :
-                    v = long (v, 16)
-                except ValueError, msg :
+                    v = long_type (v, 16)
+                except ValueError as msg :
                     raise ValueError (self._esyntax_ (msg))
                 lv <<= 16
                 lv |=  v
@@ -1096,10 +1108,10 @@ if __name__ == "__main__" :
 
     def interfaces (ip, mask) :
         x = IP4_Address (ip, mask)
-        print "address %s" % ip
-        print "netmask %s" % x.subnet_mask ()
-        print "network %s" % x.net ()
-        print "broadcast %s" % x.broadcast_address ()
+        print ("address %s" % ip)
+        print ("netmask %s" % x.subnet_mask ())
+        print ("network %s" % x.net ())
+        print ("broadcast %s" % x.broadcast_address ())
     # end def interfaces
 
     interfaces (sys.argv [1], int (sys.argv [2]))

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2009-13 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2009-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -20,6 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__ import print_function
 import re
 from rsclib.autosuper   import autosuper
 from rsclib.stateparser import Parser
@@ -720,9 +721,9 @@ framing=CCS
         lcr_init (parsestring = lcr_output)
         DAHDI_Ports (parsestring = dahdi_output)
         for n, p in sorted (ISDN_Port.by_portnumber.iteritems ()) :
-            print n, p
-            print p.channel
+            print (n, p)
+            print (p.channel)
     else :
         p = ISDN_Ports ()
         for port in p :
-            print port
+            print (port)

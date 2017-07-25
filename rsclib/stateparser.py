@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2007 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2007-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -118,7 +118,8 @@ class State (Debug) :
             if state :
                 return state
         else :
-            raise Parse_Error, "%s: %s" % (self.parser.lineno, self.parser.line)
+            raise Parse_Error \
+                ("%s: %s" % (self.parser.lineno, self.parser.line))
     # end def match
 
 # end class State
@@ -169,8 +170,8 @@ class Parser (Debug, Base_Pickler) :
             self.lineno = n + 1
             try :
                 self.state  = self.state.match ()
-            except StandardError, cause :
-                #raise Parse_Error, (self.lineno, cause)
+            except StandardError as cause :
+                #raise Parse_Error (self.lineno, cause)
                 raise
     # end def parse
 

@@ -20,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-from __future__       import division
+from __future__       import division, print_function
 from functools        import total_ordering
 from rsclib.pycompat  import long_type, longpr
 from rsclib.autosuper import autosuper
@@ -31,9 +31,9 @@ class Rational (autosuper) :
     """ Rational number implemented as quotient of two (long) integers
         >>> R = Rational
         >>> R (21, 6) - R (7, 6)
-        7/3 = 2 1/3
+        7/3
         >>> R (21, 6) + R (7, 6)
-        14/3 = 4 2/3
+        14/3
         >>> R (21, 6) * R (6, 7)
         3
         >>> R (21, 6) // R (7, 6)
@@ -59,13 +59,19 @@ class Rational (autosuper) :
         >>> R (3, 4) >= R (5, 4)
         False
         >>> 2 + R (3, 4)
-        11/4 = 2 3/4
+        11/4
         >>> 2 - R (3, 4)
-        5/4 = 1 1/4
+        5/4
+        >>> print ((2 - R (3, 4)).as_mixed_fraction ())
+        1 1/4
         >>> 2 * R (3, 4)
-        3/2 = 1 1/2
+        3/2
+        >>> print ((2 * R (3, 4)).as_mixed_fraction ())
+        1 1/2
         >>> 2 // R (3, 4)
-        8/3 = 2 2/3
+        8/3
+        >>> print ((2 // R (3, 4)).as_mixed_fraction ())
+        2 2/3
         >>> int (R (3, 4))
         0
         >>> int (R (4, 3))
@@ -80,11 +86,26 @@ class Rational (autosuper) :
         False
         >>> ((3+R(3,11))+(-(2+R(1,2)))) // (-(3+R(1,11)))
         -1/4
+        >>> r1 = Rational (1)
+        >>> r1
+        1
+        >>> r2 = Rational (r1)
+        >>> r2
+        1
+        >>> r1 = Rational (1, 2)
+        >>> r1
+        1/2
+        >>> r2 = Rational (r1)
+        >>> r2
+        1/2
     """
     def __init__ (self, p, q = 1) :
         if isinstance (p, Rational) :
             p //= q
-            self.p = p.p, self.q = p.q
+            self.p = p.p
+            self.q = p.q
+            p = self.p
+            q = self.q
         elif isinstance (p, int) or isinstance (p, long_type) :
             self.p = p
         else :
@@ -179,11 +200,15 @@ class Rational (autosuper) :
     def __repr__ (self) :
         if self.q == 1 :
             return "%d" % self.p
-        g = ""
-        if self.p > self.q :
-            g = " = %d %d/" % divmod (self.p, self.q) + '%d' % self.q
-        return "%d/%d%s" % (self.p, self.q, g)
+        return "%d/%d" % (self.p, self.q)
     # end def __repr__
+
+    def as_mixed_fraction (self) :
+        if self.q == 1 or self.p <= self.q :
+            return repr (self)
+        g = "%d %d/" % divmod (self.p, self.q) + '%d' % self.q
+        return g
+    # end def as_mixed_fraction
 
     def __rmul__ (self, other) :
         return self * other

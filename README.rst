@@ -113,6 +113,11 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.50: Small additions
+
+    - Change Rational to no longer print mixed fractions by default
+    - Allow setting the locking filename for Lock_Mixin in execute
+
 Version 0.49: Python3 compatibility
 
    - Remove ETree, HTML_Parse, PDF_Parse, multipart_form: These are

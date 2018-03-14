@@ -120,7 +120,15 @@ class Lock_Mixin (_Named) :
     def __init__ (self, *args, **kw) :
         self.need_unlock = True
         self.__super.__init__ (*args, **kw)
-        self.lockfile = '/var/lock/%s.lock' % self.clsname
+        if getattr (self, 'lockfile', None) :
+            lf = self.lockfile
+            if not lf.startswith ('/') :
+                lf = os.path.join ('/var/lock', lf)
+            if not lf.endswith ('.lock') :
+                lf += '.lock'
+            self.lockfile = lf
+        else :
+            self.lockfile = '/var/lock/%s.lock' % self.clsname
         atexit.register (self.unlock)
         try :
             fd = os.open (self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR)
@@ -133,8 +141,15 @@ class Lock_Mixin (_Named) :
                 raise
             self.need_unlock = False
             self.log.error ('Lockfile exists: %s' % self.lockfile)
-            sys.exit (1)
+            self.lock_fail ()
     # end def __init__
+
+    def lock_fail (self) :
+        """ By default we exit when locking fails. A derived class may
+            want to override this.
+        """
+        sys.exit (1)
+    # end def lock_fail
 
     def unlock (self) :
         if self.need_unlock :

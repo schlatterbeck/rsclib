@@ -38,7 +38,7 @@ for line in f :
 
 license     = 'GNU Library or Lesser General Public License (LGPL)'
 download    = 'http://downloads.sourceforge.net/project/rsclib/rsclib'
-
+rq          = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
 setup \
     ( name             = "rsclib"
     , version          = VERSION
@@ -51,6 +51,7 @@ setup \
     , platforms        = 'Any'
     , url              = "http://rsclib.sourceforge.net/"
     , scripts          = ['ast_sip_check']
+    , python_requires  = rq
     , download_url     = \
         "%(download)s/%(VERSION)s/rsclib-%(VERSION)s.tar.gz" % locals ()
     , classifiers      = \
@@ -59,5 +60,10 @@ setup \
         , 'Operating System :: OS Independent'
         , 'Programming Language :: Python'
         , 'Intended Audience :: Developers'
+        , 'Programming Language :: Python :: 2'
+        , 'Programming Language :: Python :: 2.7'
+        , 'Programming Language :: Python :: 3'
+        , 'Programming Language :: Python :: 3.5'
+        , 'Programming Language :: Python :: 3.6'
         ]
     )

@@ -113,6 +113,11 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.51: Small fixes
+
+    - Fix IP addresses in boolean context
+    - Add supported python versions to setup.py
+
 Version 0.50: Small additions
 
     - Change Rational to no longer print mixed fractions by default

@@ -274,6 +274,7 @@ class IP_Address (IP_Meta) :
         """
         return True
     # end def __nonzero__
+    __bool__ = __nonzero__
 
     def __repr__ (self) :
         ret = self._to_str ()
@@ -560,6 +561,8 @@ class IP4_Address (IP_Address) :
         >>> bool (x1)
         True
         >>> bool (IP4_Address ('0.0.0.0'))
+        True
+        >>> bool (IP4_Address ('192.168.0.96/27'))
         True
         >>> x2 = IP4_Address (x1)
         >>> x1 == x2
@@ -986,6 +989,8 @@ class IP6_Address (IP_Address) :
         >>> bool (x1)
         True
         >>> bool (IP6_Address ('::'))
+        True
+        >>> bool (IP6_Address ('2001:0db8::/64'))
         True
         >>> x2 = IP6_Address (x1)
         >>> x1 == x2

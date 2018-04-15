@@ -224,8 +224,8 @@ class SQL_character (autosuper) :
                     ) # probably an N-Dash
             try :
                 return s.decode ('utf-8').encode ('latin1').decode ('utf-8')
-            except UnicodeEncodeError :
-                print ("OOPS: %r" % s)
+            except UnicodeDecodeError :
+                pass
         return s.decode (self.charset)
     # end def __call__
 
@@ -320,13 +320,13 @@ class SQL_Parser (Parser) :
     # don't convert automagically to unicode
     encoding   = None
 
-    re_charset = re.compile (r'CHARSET=([-a-zA-Z0-9]+)')
-    re_copy    = re.compile (r'^COPY\s+(\S+)\s\(([^)]+)\) FROM stdin;$')
-    re_endtbl  = re.compile (r'^\).*;$')
-    re_func    = re.compile (r'^CREATE FUNCTION ([a-zA-Z0-9]+)\s*\(')
+    re_charset = re.compile (br'CHARSET=([-a-zA-Z0-9]+)')
+    re_copy    = re.compile (br'^COPY\s+(\S+)\s\(([^)]+)\) FROM stdin;$')
+    re_endtbl  = re.compile (br'^\).*;$')
+    re_func    = re.compile (br'^CREATE FUNCTION ([a-zA-Z0-9]+)\s*\(')
     re_insert  = re.compile \
-        (r'INSERT INTO ["`]?([a-z0-9]+)["`]? VALUES \((.*)\);')
-    re_table   = re.compile (r'^CREATE TABLE (\S+) \(')
+        (br'INSERT INTO ["`]?([a-z0-9]+)["`]? VALUES \((.*)\);')
+    re_table   = re.compile (br'^CREATE TABLE (\S+) \(')
 
     matrix = \
         [ ["init",  re_copy,   "copy",  "copy_start"]
@@ -334,10 +334,10 @@ class SQL_Parser (Parser) :
         , ["init",  re_func,   "func",  None]
         , ["init",  re_table,  "table", "table_start"]
         , ["init",  None,      "init",  None]
-        , ["copy",  '\\.',     "init",  None]
+        , ["copy",  b'\\.',    "init",  None]
         , ["copy",  None,      "copy",  "copy_entry"]
-        , ["func",  "END;",    "init",  None]
-        , ["func",  "END;$$",  "init",  None]
+        , ["func",  b"END;",   "init",  None]
+        , ["func",  b"END;$$", "init",  None]
         , ["func",  None,      "func",  None]
         , ["table", re_endtbl, "init",  "table_end"]
         , ["table", None,      "table", "table_entry"]
@@ -354,13 +354,13 @@ class SQL_Parser (Parser) :
     # end def __init__
 
     def copy_entry (self, state, new_state, match) :
-        line       = self.line.rstrip ('\n')
+        line       = self.line.rstrip (b'\n')
         tbl        = self.table
         fields     = self.fields
-        datafields = line.split ('\t')
+        datafields = line.split (b'\t')
         # compensate for rstrip
         for x in xrange (len (fields) - len (datafields)) :
-            datafields.append ('')
+            datafields.append (b'')
         self.contents [self.tablename].append \
             (adict ((a, tbl [a] (b)) for a, b in zip (fields, datafields)))
     # end def copy_entry

@@ -113,6 +113,10 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.52: Small fixes
+
+    - Fix unicode problem in sqlparser
+
 Version 0.51: Small fixes
 
     - Fix IP addresses in boolean context

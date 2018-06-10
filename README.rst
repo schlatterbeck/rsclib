@@ -113,6 +113,10 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.53: Small fixes
+
+    - Fix IPv4 address parsing when address contains less than 3 dots
+
 Version 0.52: Small fixes
 
     - Fix unicode problem in sqlparser

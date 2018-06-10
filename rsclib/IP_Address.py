@@ -307,6 +307,16 @@ class IP_Address (IP_Meta) :
 class IP4_Address (IP_Address) :
     """
         IP version 4 Address with optional subnet mask.
+        >>> IP4_Address ('10.100.10')
+        10.100.10.0
+        >>> IP4_Address ('10.100.10/22')
+        10.100.8.0/22
+        >>> IP4_Address ('10.100/22')
+        10.100.0.0/22
+        >>> IP4_Address ('10/8')
+        10.0.0.0/8
+        >>> IP4_Address ('10')
+        10.0.0.0
         >>> a = IP4_Address ('10.100.10.0')
         >>> longpr (a.mask)
         32L
@@ -604,6 +614,7 @@ class IP4_Address (IP_Address) :
 
     def _from_string (self, address) :
         a = 0
+        n = 0
         for n, octet in enumerate (address.split ('.')) :
             a <<= 8
             v = long_type (octet)
@@ -614,6 +625,8 @@ class IP4_Address (IP_Address) :
             if n > 3 :
                 raise ValueError \
                     (self._esyntax_ ("Too many octets: %s" % address))
+        if n < 3 :
+            a <<= (3 - n) * 8
         self._ip = a
     # end def _from_string
 

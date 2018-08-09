@@ -113,8 +113,9 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
-Version 0.53: Small fixes
+Version 0.53: inductance, IPv4 address
 
+    - Bring inductance to metric units (output in F, input in m)
     - Fix IPv4 address parsing when address contains less than 3 dots
 
 Version 0.52: Small fixes

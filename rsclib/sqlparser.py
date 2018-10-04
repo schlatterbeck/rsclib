@@ -27,7 +27,7 @@ import sys
 import re
 import csv
 
-from   datetime           import datetime, tzinfo, timedelta
+from   datetime           import datetime, time, tzinfo, timedelta
 from   rsclib.stateparser import Parser
 from   rsclib.autosuper   import autosuper
 from   rsclib.pycompat    import ustr
@@ -88,6 +88,22 @@ class SQL_integer (autosuper) :
     # end def __call__
 
 # end class SQL_integer
+
+class SQL_numeric (autosuper) :
+
+    def __init__ (self, integer_part_len, fractional_part_len) :
+        self.integer_part_len    = integer_part_len
+        self.fractional_part_len = fractional_part_len
+    # end def __init__
+
+    def __call__ (self, n) :
+        if n == '\\N' or n == 'NULL' :
+            return None
+        a, b = n.split ('.')
+        return (int (a), int (b))
+    # end def __call__
+
+# end class SQL_numeric
 SQL_bigint = SQL_smallint = SQL_integer
 
 # For regression testing, doesn't work with doctest because doctest
@@ -231,6 +247,31 @@ class SQL_character (autosuper) :
 
 # end class SQL_character
 SQL_enum = SQL_text = SQL_varchar = SQL_character
+
+class SQL_Time_Without_Zone (autosuper) :
+    """ convert sql timestamp with time zone.
+    >>> t = SQL_Time_Without_Zone ()
+    >>> t ("00:00:00")
+    datetime.time(0, 0)
+    >>> t ("17:05:16.609")
+    datetime.time(17, 5, 16, 609000)
+    >>> t ("17:05:16")
+    datetime.time(17, 5, 16)
+    >>> t ("17:43:33")
+    datetime.time(17, 43, 33)
+    """
+
+    def __call__ (self, ts) :
+        if ts == '\\N' or ts == 'NULL' :
+            return None
+        format = '%H:%M:%S.%f'
+        if len (ts) == 8 :
+            format = '%H:%M:%S'
+        d = datetime.strptime (ts, format)
+        return d.time ()
+    # end def __call__
+
+# end class SQL_Time_Without_Zone
 
 class SQL_Timestamp_Without_Zone (autosuper) :
     """ convert sql timestamp with time zone.
@@ -413,6 +454,7 @@ class SQL_Parser (Parser) :
 
     def table_entry (self, state, new_state, match) :
         line = self.line.strip ()
+        pars = []
         try :
             name, type, rest = line.split (None, 2)
         except ValueError :
@@ -428,12 +470,17 @@ class SQL_Parser (Parser) :
             type = 'varchar'
         if type.startswith ('enum') :
             type = 'enum'
+        if type.startswith ('numeric') :
+            pars = type [7:].split (',')
+            type = 'numeric'
         if name in ('PRIMARY', 'UNIQUE') and type == 'KEY' :
             return
         if name == 'KEY' :
             return
+        if name == 'CONSTRAINT' :
+            return
         method = getattr (self, 'type_' + type, self.type_default)
-        self.table [name] = method (type, rest)
+        self.table [name] = method (type, rest, pars)
         self.col.append (name)
     # end def table_entry
 
@@ -445,21 +492,30 @@ class SQL_Parser (Parser) :
 
     # Magic type methods for SQL types:
 
-    def type_default (self, type, rest) :
-        return globals () ['SQL_' + type] ()
+    def type_default (self, type, rest, pars) :
+        return globals () ['SQL_' + type] (*pars)
     # end def type_default
 
-    def type_character (self, type, rest) :
+    def type_character (self, type, rest, pars) :
         assert (rest.startswith ('varying'))
-        return self.type_default (type, rest)
+        return self.type_default (type, rest, pars)
     # end def type_character
 
-    def type_double (self, type, rest) :
+    def type_double (self, type, rest, pars) :
         assert (rest.startswith ('precision'))
-        return self.type_default (type, rest)
+        return self.type_default (type, rest, pars)
     # end def type_double
 
-    def type_timestamp (self, type, rest) :
+    def type_time (self, type, rest, pars) :
+        if rest.startswith ('with time zone') :
+            return SQL_Time_With_Zone ()
+        elif rest.startswith ('without time zone') :
+            return SQL_Time_Without_Zone ()
+        else :
+            raise ValueError ("Invalid timestamp spec: %s" % rest)
+    # end def type_time
+
+    def type_timestamp (self, type, rest, pars) :
         if rest.startswith ('with time zone') :
             return SQL_Timestamp_With_Zone ()
         elif rest.startswith ('without time zone') :
@@ -468,12 +524,16 @@ class SQL_Parser (Parser) :
             raise ValueError ("Invalid timestamp spec: %s" % rest)
     # end def type_timestamp
 
-    def type_datetime (self, type, rest) :
+    def type_datetime (self, type, rest, pars) :
         return SQL_Timestamp_Without_Zone ()
     # end def type_datetime
 
-    def type_varchar (self, type, rest) :
-        return self.type_default (type, rest)
+    def type_date (self, type, rest, pars) :
+        return SQL_date ()
+    # end def type_date
+
+    def type_varchar (self, type, rest, pars) :
+        return self.type_default (type, rest, pars)
     # end def type_varchar
 
 

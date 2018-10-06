@@ -21,7 +21,7 @@
 # ****************************************************************************
 
 from __future__ import print_function
-from math import pi, log
+from math import pi, log, sqrt, e
 
 mu0 = 4e-7 * pi
 
@@ -33,7 +33,7 @@ def A (d) :
     return pi * (d/2.0) ** 2
 
 def L_s (l, d, n) :
-    """ Inductance in µH for an air-cored cylindrical flat-winded coil
+    """ Inductance in H for an air-cored cylindrical flat-winded coil
         of length l and diameter d with n windings.  Both l and d are in m.
         The first publication that tried to give a formula for this type
         of coils is 
@@ -94,6 +94,264 @@ def L_s (l, d, n) :
             )
         )
 # end def L_s
+
+def nagaoka (u) :
+    """ Nagaoka's coefficient computed with iterative elliptic integral
+        method, see http://electronbunker.ca/eb/CalcMethods1a.html
+        we use the iterated elliptic integral calculation
+        e.g., the Javascript implementation there.
+    >>> nagaoka (0)
+    1.0
+    >>> print ("%2.5f" % nagaoka (0.01))
+    0.99577
+    >>> print ("%2.5f" % nagaoka (0.02))
+    0.99156
+    >>> print ("%2.5f" % nagaoka (0.03))
+    0.98738
+    >>> print ("%2.5f" % nagaoka (0.04))
+    0.98322
+    >>> print ("%2.5f" % nagaoka (0.05))
+    0.97909
+    >>> print ("%2.5f" % nagaoka (0.10))
+    0.95881
+    >>> print ("%2.5f" % nagaoka (0.15))
+    0.93914
+    >>> print ("%2.5f" % nagaoka (0.20))
+    0.92009
+    >>> print ("%2.5f" % nagaoka (0.25))
+    0.90165
+    >>> print ("%2.5f" % nagaoka (0.30))
+    0.88380
+    >>> print ("%2.5f" % nagaoka (0.35))
+    0.86654
+    >>> print ("%2.5f" % nagaoka (0.40))
+    0.84985
+    >>> print ("%2.5f" % nagaoka (0.45))
+    0.83372
+    >>> print ("%2.5f" % nagaoka (0.50))
+    0.81814
+    >>> print ("%2.5f" % nagaoka (0.55))
+    0.80308
+    >>> print ("%2.6f" % nagaoka (0.60))
+    0.788525
+    >>> print ("%2.5f" % nagaoka (0.65))
+    0.77447
+    >>> print ("%2.5f" % nagaoka (0.70))
+    0.76089
+    >>> print ("%2.5f" % nagaoka (0.75))
+    0.74776
+    >>> print ("%2.5f" % nagaoka (0.80))
+    0.73508
+    >>> print ("%2.5f" % nagaoka (0.85))
+    0.72282
+    >>> print ("%2.5f" % nagaoka (0.90))
+    0.71097
+    >>> print ("%2.5f" % nagaoka (0.95))
+    0.69951
+    >>> print ("%2.5f" % nagaoka (1.0))
+    0.68842
+    >>> print ("%2.5f" % nagaoka (1.5))
+    0.59505
+    >>> print ("%2.5f" % nagaoka (2.0))
+    0.52551
+    >>> print ("%2.5f" % nagaoka (3.0))
+    0.42920
+
+    # This disagrees with nagaoka, he has .365438
+    >>> print ("%2.6f" % nagaoka (4.0))
+    0.365432
+    >>> print ("%2.5f" % nagaoka (5.0))
+    0.31983
+    >>> print ("%2.5f" % nagaoka (6.0))
+    0.28541
+    >>> print ("%2.5f" % nagaoka (7.0))
+    0.25841
+    >>> print ("%2.5f" % nagaoka (8.0))
+    0.23658
+    >>> print ("%2.5f" % nagaoka (9.0))
+    0.21853
+    >>> print ("%2.5f" % nagaoka (10.0))
+    0.20332
+    """
+    if u == 0 :
+        return 1.0
+    uu = u ** 2
+    m  = uu / (1.0 + uu)
+    m2 = 4 * sqrt (1 + uu)
+    a  = 1
+    b  = sqrt (1 - m)
+    c  = a - b
+    ci = 1
+    cs = (c ** 2 / 2) + m
+    co = 1e12 # loop at least once
+    while c < co :
+        an = (a + b) / 2
+        b  = sqrt (a * b)
+        a  = an
+        co = c
+        c  = a - b
+        cs += ci * c ** 2
+        ci *= 2
+    cs /= 2.0
+    K   = pi / (2 * a)
+    KmE = K * cs
+    E   = K * (1 - cs)
+    return 1 / (3 * pi) * (m2 / uu * KmE + m2 * E - 4 * u)
+# end def nagaoka
+
+def L_s_Lorenz (l, d, n) :
+    """ Current-Sheet inductance according to Lorenz corrected for SI
+        units, see http://electronbunker.ca/eb/CalcMethods1a.html
+    """
+    u = l / d
+    r = d / 2.0
+    return (mu0 * pi * n ** 2 * r ** 2 / l) * nagaoka (u)
+# end def L_s_Lorenz
+
+# in nano-Ohm * meter (SI would be Ohm * mm^2 / m, we have factor 10^3)
+# Values from http://www.g3ynh.info/zdocs/comps/part_1.html
+# German Wikipedia has some different values:
+# al = 26.5
+# au = 22.14
+# cu = 17.21 ("rein")
+# cu = 16.9 -- 17.5 ("Elektro-Kabel")
+# sn = 109
+# It agrees for pt, ag
+# But looking up the conductivity again yields different values.
+rho_m = dict \
+    ( al  =  28.24
+    , cuh =  17.71  # hard drawn
+    , cu  =  17.241 # annealed
+    , au  =  24.4
+    , pt  = 105.0
+    , ag  =  15.87
+    , sn  = 115.0
+    , zn  =  58.0
+    , ni  =  78.0
+    , fe  = 100.0
+    )
+
+mu_r = dict \
+    ( fe = 200
+    , ni = 250
+    )
+
+def L_e (d, d_w) :
+    """ External inductance of a single-turn loop according to
+        http://www.g3ynh.info/zdocs/comps/part_2.html (6.2) and previous
+        unnumbered equation.
+    >>> print ("%3.2f" % (L_e (0.06366, 0.00163) * 1e9))
+    149.77
+    """
+    r = d / 2.0
+    return mu0 * r * (log (8 * d / d_w) - 2)
+# end def L_e
+
+def delta_i (f, rho = rho_m ['cu'], mur = 1) :
+    """ Skin depth at given frequency, rho defaults to copper
+        http://www.g3ynh.info/zdocs/comps/part_1.html (2.2)
+        Frequency f in Hz, delta_i in m
+        mur = Âµr in nano-ohm-meter
+    >>> print ("%3.1f" % (delta_i (136e3)  * 1e6))
+    179.2
+    >>> print ("%3.1f" % (delta_i (1.9e6)  * 1e6))
+    47.9
+    >>> print ("%3.1f" % (delta_i (3.7e6)  * 1e6))
+    34.4
+    >>> print ("%3.1f" % (delta_i (7.1e6)  * 1e6))
+    24.8
+    >>> print ("%3.1f" % (delta_i (10.1e6) * 1e6))
+    20.8
+    >>> print ("%3.1f" % (delta_i (14.2e6) * 1e6))
+    17.5
+    >>> print ("%3.1f" % (delta_i (18.1e6) * 1e6))
+    15.5
+    >>> print ("%3.1f" % (delta_i (21.3e6) * 1e6))
+    14.3
+    >>> print ("%3.1f" % (delta_i (24.9e6) * 1e6))
+    13.2
+    >>> print ("%3.1f" % (delta_i (29e6)   * 1e6))
+    12.3
+    >>> print ("%3.1f" % (delta_i (51e6)   * 1e6))
+    9.3
+    >>> print ("%3.1f" % (delta_i (145e6)  * 1e6))
+    5.5
+    >>> rfe = rho_m  ['fe']
+    >>> mfe = mu_r  ['fe']
+    >>> print ("%3.1f" % (delta_i (136e3, rho = rfe, mur = mfe)  * 1e6))
+    30.5
+    >>> print ("%3.1f" % (delta_i (1.9e6, rho = rfe, mur = mfe)  * 1e6))
+    8.2
+    >>> print ("%3.1f" % (delta_i (3.7e6, rho = rfe, mur = mfe)  * 1e6))
+    5.9
+    >>> print ("%3.1f" % (delta_i (7.1e6, rho = rfe, mur = mfe)  * 1e6))
+    4.2
+    >>> print ("%3.1f" % (delta_i (10.1e6, rho = rfe, mur = mfe) * 1e6))
+    3.5
+    >>> print ("%3.1f" % (delta_i (14.2e6, rho = rfe, mur = mfe) * 1e6))
+    3.0
+    >>> print ("%3.1f" % (delta_i (18.1e6, rho = rfe, mur = mfe) * 1e6))
+    2.6
+    >>> print ("%3.1f" % (delta_i (21.3e6, rho = rfe, mur = mfe) * 1e6))
+    2.4
+    >>> print ("%3.1f" % (delta_i (24.9e6, rho = rfe, mur = mfe) * 1e6))
+    2.3
+    >>> print ("%3.1f" % (delta_i (29e6, rho = rfe, mur = mfe)   * 1e6))
+    2.1
+    >>> print ("%3.1f" % (delta_i (51e6, rho = rfe, mur = mfe)   * 1e6))
+    1.6
+    >>> print ("%3.1f" % (delta_i (145e6, rho = rfe, mur = mfe)  * 1e6))
+    0.9
+    """
+    return 1.0 / sqrt (mu0 * mur * pi * f / (rho * 1e-9))
+# end def delta_i
+
+def L_i (f, d, d_w, material = 'cu') :
+    """ Internal inductance of a single-turn loop (or a straight wire)
+        according to http://www.g3ynh.info/zdocs/comps/part_2.html (6.1)
+    >>> print ("%3.2f" % (L_i (5e6, 0.06366, 0.00163) * 1e9))
+    0.73
+    """
+    l   = d * pi
+    mur = mu_r.get (material, 1.0)
+    rho = rho_m [material]
+    return l * (mu0 * mur / (2.0 * pi)) * delta_i (f, rho, mur) / d_w
+# end def L_i
+
+def flpml (q) :
+    """ Internal inductance factor D. W. Knight
+        http://www.g3ynh.info/zdocs/comps/Zint.pdf
+    """
+    if q < 0.0001 :
+        return 1.0
+    f  = \
+       ( (4.0 / q)
+       * (1.0 / sqrt (2))
+       * ( 1.0
+         + 0.01209 / (q + 1.0)
+         - 0.63523 / (q ** 2 + 1)
+         + 0.16476 / (q ** 3 + 1)
+         )
+       )
+    f  = f * (1.0 - e ** (-1.0 * f ** -1.5819)) ** 0.63215121
+    z  = 0.38691 * q
+    zz = z ** 1.2652 - z ** -0.39709
+    y  = -0.198584 / ((1.0 + 0.25741 * zz ** 2) ** 2.62343)
+    f  = f * (1.0 - y)
+    return f
+# end def flpml
+
+def L_i_PACAML (f, lw, d_w, material = 'cu') :
+    """ Internal Inductance to withing 151 ppM D. W. Knight
+        http://www.g3ynh.info/zdocs/comps/Zint.pdf
+        lw is the wire length.
+    """
+    rho = rho_m [material]
+    mur = mu_r.get (material, 1.0)
+    d   = delta_i (f, rho, mur)
+    q   = d_w / (d * sqrt (2))
+    return lw * 0.5e-7 * mur * flpml (q)
+# end def L_i_PACAML
 
 def k_s (pitch, d_w) :
     """ Self inductance correction for round wire
@@ -173,10 +431,10 @@ def delta_roundwire (r, n, pitch, d_w) :
     >>> print ("%2.5f" % (1e6 * delta_roundwire (1,    100, 0.080, 0.05)))
     51.99242
     """
-    return 4e-7 * pi * r * n * (k_s (pitch, d_w) + k_m (n))
+    return mu0 * r * n * (k_s (pitch, d_w) + k_m (n))
 # end def delta_roundwire
 
-def induction (d, n, d_w, l = 0, pitch = 0) :
+def induction (d, n, d_w, l = 0, pitch = 0, f = 0, material = 'cu') :
     """ induction with round-wire correction
         d (diameter of coil) and (optional) l in m, either l or pitch
         must be specified.
@@ -188,6 +446,9 @@ def induction (d, n, d_w, l = 0, pitch = 0) :
         http://electronbunker.ca/eb/InductanceCalc.html
         We have some rounding errors compared to the javascript
         implementation.
+        Note that for a single turn we use the formula from
+        http://www.g3ynh.info/zdocs/comps/part_2.html with optional
+        internal inductance (if frequency is given).
     >>> print ("%2.4f" % (induction (0.02,  10, 0.0005, l = 0.008) * 1e6))
     2.2842
     >>> print ("%2.4f" % (induction (0.02,  20, 0.0005, l = 0.016) * 1e6))
@@ -214,6 +475,18 @@ def induction (d, n, d_w, l = 0, pitch = 0) :
     51546.30
     >>> print ("%2.4f" % (induction (2,     10, 0.0005, pitch = 0.008) * 1e6))
     540.4789
+
+    # Single Turn, special handling
+    >>> print ("%3.2f" % (induction (5, 1, 0.0235, 0.0235, f=1.9e6)*1e6))
+    17.10
+    
+    # From http://www.g3ynh.info/zdocs/comps/part_2.html
+    >>> print ("%3.2f" % (induction (0.06366, 1, 0.00163, 0.00163, f=5e6)*1e9))
+    150.50
+    >>> print ("%3.2f" % (induction (0.06366, 1, 0.000376, 0.00163, f=5e6)*1e9))
+    211.58
+    >>> print ("%3.2f" % (induction (0.06366, 1, 0.000193, 0.00163, f=5e6)*1e9))
+    241.24
     """
     if l :
         pitch = float (l) / float (n)
@@ -221,7 +494,14 @@ def induction (d, n, d_w, l = 0, pitch = 0) :
         l = float (pitch) * float (n)
     else :
         raise ValueError ("l or pitch must be != 0")
-    return L_s (l, d, n) - delta_roundwire (d / 2.0, n, pitch, d_w)
+    if n == 1 :
+        v = L_e (d, d_w)
+        if f :
+            v += L_i (f, d, d_w, material)
+        return v
+    v = L_s (l, d, n) - delta_roundwire (d / 2.0, n, pitch, d_w)
+    # FIXME: Frequency correction
+    return v
 # end def induction
 
 def wikipedia_long_coil (n, d, l) :

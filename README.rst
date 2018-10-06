@@ -67,7 +67,8 @@ The library includes various utility modules used in other projects.
    usage see nmap. After parsing the result can be pickled but we lose
    the ability to continue parsing after reading from the pickled
    result.
- - sqlparser: Parse SQL dumps from postgreSQL and mysql
+ - sqlparser: Parse SQL dumps from postgreSQL and mysql and optionally
+   create an new (e.g. anonymized) sql dump
  - timeout: A simple timeout mechanism using SIGALRM
  - Tex_CSV_Writer: Write CVS files in a syntax that can be parsed by
    TeX. Implements same interface as the csv module. Only implements
@@ -112,6 +113,12 @@ Alternatively get it from pypi and/or install via pip.
 
 Changes
 -------
+
+Version 0.54: inductance, sqlparser
+
+    - The sqlparser now can do round-tripping (some items are in
+      different order)
+    - More inductance formulae
 
 Version 0.53: inductance, IPv4 address
 

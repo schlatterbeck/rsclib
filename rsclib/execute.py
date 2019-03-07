@@ -120,15 +120,16 @@ class Lock_Mixin (_Named) :
     def __init__ (self, *args, **kw) :
         self.need_unlock = True
         self.__super.__init__ (*args, **kw)
+        lockdir = os.environ.get ('LOCKDIR', '/var/lock')
         if getattr (self, 'lockfile', None) :
             lf = self.lockfile
             if not lf.startswith ('/') :
-                lf = os.path.join ('/var/lock', lf)
+                lf = os.path.join (lockdir, lf)
             if not lf.endswith ('.lock') :
                 lf += '.lock'
             self.lockfile = lf
         else :
-            self.lockfile = '/var/lock/%s.lock' % self.clsname
+            self.lockfile = os.path.join (lockdir, '%s.lock' % self.clsname)
         atexit.register (self.unlock)
         try :
             fd = os.open (self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR)

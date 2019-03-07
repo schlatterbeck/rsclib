@@ -114,6 +114,12 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.55: LOCKDIR
+
+    - Now it's possible to set the locking directory (default is still
+      /var/lock which is a symlink to /run/lock on modern systems) via
+      the environment variable LOCKDIR.
+
 Version 0.54: inductance, sqlparser
 
     - The sqlparser now can do round-tripping (some items are in

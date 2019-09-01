@@ -53,7 +53,7 @@ class Transition (Debug) :
         self.pattern   = pattern
         self.state     = state
         self.new_state = new_state
-        self.verbose   = kw.get ('verbose')
+        self.verbose   = kw.get ('verbose', 0)
         self.act_name  = action
         if action :
             action = getattr (self.state.parser, action)
@@ -104,7 +104,7 @@ class State (Debug) :
         self.name        = name
         self.parser      = parser
         self.transitions = []
-        self.verbose     = kw.get ('verbose')
+        self.verbose     = kw.get ('verbose', 0)
         self.__super.__init__ (**kw)
     # end def __init__
 
@@ -134,7 +134,7 @@ class Parser (Debug, Base_Pickler) :
     encoding          = 'latin1'
 
     def __init__ (self, matrix = None, **kw) :
-        self.verbose = kw.get ('verbose')
+        self.verbose = kw.get ('verbose', 0)
         self.state   = None
         self.states  = {}
         matrix = matrix or self.matrix
@@ -170,7 +170,7 @@ class Parser (Debug, Base_Pickler) :
             self.lineno = n + 1
             try :
                 self.state  = self.state.match ()
-            except StandardError as cause :
+            except Exception as cause :
                 #raise Parse_Error (self.lineno, cause)
                 raise
     # end def parse

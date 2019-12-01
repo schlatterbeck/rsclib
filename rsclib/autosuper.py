@@ -30,7 +30,11 @@ class autosuper (with_metaclass (_autosuper)) :
     """
 
     def __init__ (self, *args, **kw) :
-        if self.__super.__init__.__objclass__ is object :
+        try :
+            oc =  self.__super.__init__.__objclass__
+        except AttributeError :
+            oc = None
+        if oc is object :
             self.__super.__init__ ()
         else :
             self.__super.__init__ (*args, **kw)

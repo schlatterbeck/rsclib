@@ -172,5 +172,6 @@ class Phone (autosuper) :
     def __nonzero__ (self) :
         return self.is_valid
     # end def __nonzero__
+    __bool__ = __nonzero__
 
 # end class Phone

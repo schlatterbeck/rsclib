@@ -31,7 +31,7 @@ from time               import sleep
 from random             import randint
 from rsclib.Config_File import Config_File
 
-def call_id (uniqid) :
+def call_id (uniqid, exact = False) :
     """ Strip the last component off a Uniqueid, this apparently
         identifies all the call legs belonging to an asterisk call.
         But sometimes we get ids like asterisk-18477-1236970792
@@ -45,10 +45,25 @@ def call_id (uniqid) :
         '1371796712'
         >>> call_id ('<null>')
         ''
+        >>> call_id ('<unknown>')
+        ''
+        >>> call_id ('asterisk-18477-1236970792.47', True)
+        'asterisk-1236970792.47'
+        >>> call_id ('asterisk-1236970792.47', True)
+        'asterisk-1236970792.47'
+        >>> call_id ('1371796712.69', True)
+        '1371796712.69'
+        >>> call_id ('<null>', True)
+        ''
+        >>> call_id ('<unknown>', True)
+        ''
     """
-    if uniqid == '<null>' :
+    if uniqid == '<null>' or uniqid == '<unknown>' :
         return ''
-    l = '.'.join (uniqid.split ('.') [:-1]).split ('-')
+    if exact :
+        l = uniqid.split ('-')
+    else :
+        l = '.'.join (uniqid.split ('.') [:-1]).split ('-')
     if len (l) == 1 :
         return l [0]
     return '-'.join ((l [0], l [-1]))
@@ -72,6 +87,7 @@ class Config (Config_File) :
             , CHANNEL_TYPE          = 'Local'
             , CHANNEL_SUFFIX        = '@dialout'
             , ACCOUNT_CODE          = 'RANDOMID'
+            , EXACT_UNIQUEID        = True
             )
     # end def __init__
 # end class Config
@@ -385,6 +401,7 @@ class Call (object) :
         , account   = None
         ) :
         self.manager          = call_manager
+        self.exact_id         = self.manager.exact_id
         self.actionid         = actionid
         self.uniqueid         = None
         self.caller_id        = caller_id
@@ -420,7 +437,7 @@ class Call (object) :
         # ignore calls in progress with lower seqno
         if self.seqno and self.seqno < self.min_seqno :
             return
-        if self.id != '<null>' :
+        if self.id != '<null>' and self.id != '<unknown>' :
             self.uids [self.id] = True
             self.uids_seen      = True
         handler = getattr (self, 'handle_%s' % event.name, None)
@@ -450,27 +467,33 @@ class Call (object) :
         chan  = self.event.headers ['Channel']
         # ignore name-clash with incoming call:
         if chan in self.state_by_chan and 'Ring' in self.state_by_chan [chan] :
+            self.manager.log.debug ("Call: Ignoring incoming call")
             return
         # ignore channel without our caller-id
         if  (   self.caller_id
             and chan in self.callerid_by_chan
             and self.caller_id not in self.callerid_by_chan [chan]
             ) :
+            self.manager.log.debug ("Call: Ignoring by callerid")
             return
         # ignore channel with context but without our context
         if  (   self.context
             and chan in self.context_by_chan
             and self.context not in self.context_by_chan [chan]
             ) :
+            self.manager.log.debug ("Call: Ignoring by context")
             return
         # when we know our unique id (and the seqno is the last part of
         # it) we don't accept hangup cause for other seqno:
         if self.sure and self.seqno != self.seqno_seen :
+            self.manager.log.debug ("Call: Ignoring by seqno")
             return
         if not self.causecode or self.seqno <= self.seqno_seen :
+            self.manager.log.debug ("Call: matched hangup")
             self.causecode  = int (self.event.headers ['Cause'])
             self.causetext  = self.event.headers ['Cause-txt']
             self.seqno_seen = self.seqno
+        self.manager.log.debug ("Call: handled hangup")
     # end def handle_Hangup
 
     def handle_Newcallerid (self) :
@@ -542,7 +565,7 @@ class Call (object) :
 
     def _set_id (self, uniqueid) :
         self.uniqueid = self.id = uniqueid
-        callid = call_id (self.uniqueid)
+        callid = call_id (self.uniqueid, self.exact_id)
         assert (callid)
         if self.callid :
             assert (callid == self.callid)
@@ -571,6 +594,10 @@ class Call (object) :
     def __nonzero__ (self) :
         """ Returns False when call finished or failed.
         """
+        self.manager.log.debug \
+            ( "Call: nonzero-check: %s %s %s %s %s"
+            % (self.fail, self.uids_seen, self.sure, self.uniqueid, self.uids)
+            )
         if self.fail :
             return False
         if not self.uids_seen :
@@ -579,6 +606,7 @@ class Call (object) :
             return self.uniqueid in self.uids
         return bool (self.uids)
     # end def __nonzero__
+    __bool__ = __nonzero__
 # end class Call
 
 class Call_Manager (object) :
@@ -605,13 +633,20 @@ class Call_Manager (object) :
         , port          = 5038
         , match_account = False
         , cfg           = None
+        , log           = None
         ) :
         if cfg :
             self.cfg = cfg
         else :
             self.cfg = cfg  = Config (config = config, path = cfgpath)
+        self.log            = log
+        if self.log is None :
+            class X :
+                debug = error = info = lambda x : 0
+            self.log = X
         self.manager        = mgr = asterisk.manager.Manager ()
         self.match_account  = match_account
+        self.exact_id       = self.cfg.get ('EXACT_UNIQUEID', True)
         self.open_calls     = {} # by actionid
         self.open_by_id     = {} # by callid (part of uniqueid)
         self.open_by_chan   = {} # by channel
@@ -664,9 +699,12 @@ class Call_Manager (object) :
             suffix = self.cfg.CHANNEL_SUFFIX
         if account == '' :
             account = self.cfg.ACCOUNT_CODE
+        channel = '%s/%s%s' % (type, number, suffix)
+        self.log.debug \
+            ("Call: channel: %s match: %s" % (channel, self.cfg.MATCH_CHANNEL))
         actionid  = self.originate \
             ( self.cfg.MATCH_CHANNEL
-            , channel      = '%s/%s%s' % (type, number, suffix)
+            , channel      = channel
             , exten        = call_extension or self.cfg.CALL_EXTENSION
             , context      = call_context   or self.cfg.CALL_CONTEXT
             , priority     = call_priority  or self.cfg.CALL_PRIORITY
@@ -729,8 +767,11 @@ class Call_Manager (object) :
 
         result = self.manager.originate (*args, **kw)
         #print ("Originate:", result.__dict__, file = stderr)
+        self.log.debug ("Call: Originate: %s" % result.__dict__)
         actionid = result.headers ['ActionID']
         uniqueid = result.headers.get ('Uniqueid')
+        self.log.debug \
+            ("Call: actionid: %s uniqueid: %s" % (actionid, uniqueid))
         call = Call \
             ( self
             , actionid
@@ -759,9 +800,11 @@ class Call_Manager (object) :
             except Empty :
                 return
             #print ("Received event: %s" % event.name, event.headers)
+            self.log.debug \
+                ('Call: Received event: %s %s' % (event.name, event.headers))
             assert ('Uniqueid' in event.headers)
             uniqueid = event.headers ['Uniqueid']
-            callid   = call_id (uniqueid)
+            callid   = call_id (uniqueid, self.exact_id)
             channel  = event.headers.get ('Channel')
             actionid = event.headers.get ('ActionID')
             # test: probably not working as it strips running counter
@@ -771,11 +814,15 @@ class Call_Manager (object) :
             if channel in self.open_by_chan :
                 call = self.open_by_chan [channel]
                 del self.open_by_chan [channel]
+                self.log.debug \
+                    ("Call: match channel %s set_id: %s" % (channel, uniqueid))
                 call.set_id (event)
             account = event.headers.get ('AccountCode')
             if account in self.open_by_acct :
                 call = self.open_by_acct [account]
                 del self.open_by_acct [account]
+                self.log.debug \
+                    ("Call: match account %s set_id: %s" % (account, uniqueid))
                 call.set_id (event)
             if callid in self.open_by_id or actionid in self.open_calls :
                 # Handle event with actionid first, otherwise this
@@ -783,10 +830,16 @@ class Call_Manager (object) :
                 # be finished -- might result in reason not getting set
                 # from OriginateResponse.
                 self._handle_queued_event (event)
+                self.log.debug ("Call: handled event")
                 if actionid in self.open_calls and callid :
                     call = self.open_calls [actionid]
+                    self.log.debug \
+                        ( "Call: match actionid %s set_id: %s"
+                        % (actionid, uniqueid)
+                        )
                     call.set_id (event)
             else :
+                self.log.debug ("Call: unhandled event")
                 self.unhandled.append (event)
     # end def queue_handler
 
@@ -794,6 +847,7 @@ class Call_Manager (object) :
         """ Called when one of our calls knows its callid. """
         assert (call.callid not in self.open_by_id)
         self.open_by_id [call.callid] = call
+        self.log.debug ("Call: Register: %s" % call.callid)
         new_unhandled = []
         for e in self.unhandled :
             if not self._handle_queued_event (e) :
@@ -822,9 +876,11 @@ class Call_Manager (object) :
         """
         #print ("Handling event: %s" % event.name, event.headers, file = stderr)
         uniqueid = event.headers ['Uniqueid']
-        callid   = call_id (uniqueid)
+        callid   = call_id (uniqueid, self.exact_id)
         actionid = event.headers.get ('ActionID')
         if callid in self.open_by_id :
+            self.log.debug \
+                ("Call: handled by callid: %s %s" % (callid, event.name))
             call = self.open_by_id [callid]
             call.append (event)
             if not call :
@@ -834,6 +890,8 @@ class Call_Manager (object) :
                 del self.open_by_id [callid]
             return True
         elif actionid :
+            self.log.debug \
+                ("Call: handled by actionid: %s %s" % (actionid, event.name))
             call = self.open_calls.get (actionid)
             if call is not None :
                 call.append (event)

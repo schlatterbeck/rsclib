@@ -23,7 +23,10 @@ from __future__ import print_function
 
 import asterisk.manager
 from sys                import stderr
-from Queue              import Queue, Empty
+try :
+    from queue          import Queue, Empty
+except ImportError :
+    from Queue          import Queue, Empty
 from time               import sleep
 from random             import randint
 from rsclib.Config_File import Config_File
@@ -530,8 +533,10 @@ class Call (object) :
 
     @property
     def seqno (self) :
-        if self.id == '<null>' :
+        if self.id == '<null>' or self.id == '<unknown>' :
             return None
+        if '.' not in self.id :
+            return int (self.id)
         return int (self.id.rsplit ('.', 1) [1])
     # end def seqno
 
@@ -868,10 +873,12 @@ if __name__ == "__main__" :
     number = sys.argv [1]
     cm = Call_Manager ()
     cm.call (number)
-    for k, v in cm.closed_calls.iteritems () :
+    for k in cm.closed_calls :
+        v = cm.closed_calls [k]
         print ("Call: %s: %s (%s)" % (k, v.causetext, v.dialstatus))
         for event in v.events :
             print ("  Event: %s" % event.name)
-            for ek, ev in event.headers.iteritems () :
+            for ek in event.headers :
+                ev = event.headers [ek]
                 print ("    %s: %s" % (ek, ev))
     cm.close ()

@@ -132,7 +132,7 @@ class Cluster_Resource (Cluster_Info) :
 
     def __repr__ (self) :
         s = [self.__super.__repr__ ()]
-        for node, f in sorted (self.fail.iteritems ()) :
+        for node, f in sorted (self.fail.items ()) :
             s.append ("    " + repr (f))
         return '\n'.join (s)
     # end def __repr__
@@ -246,10 +246,10 @@ class Cluster_Status (Exec) :
 
     def __repr__ (self) :
         res = ['Nodes:']
-        for n in self.nodes.itervalues () :
+        for n in self.nodes.values () :
             res.append (str (n))
         res.append ('Resources:')
-        for r in self.resources.itervalues () :
+        for r in self.resources.values () :
             res.append (str (r))
         return '\n'.join (res)
     # end def __repr__

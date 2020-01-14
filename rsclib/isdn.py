@@ -74,7 +74,7 @@ class ISDN_Interface (autosuper) :
     def register (self, port) :
         self.ports [port.number] = port
         if not hasattr (self, 'basechan') :
-            ports = list (sorted (self.ports.iterkeys ()))
+            ports = list (sorted (self.ports.keys ()))
             self._tc = ports [-1] - ports [0]
             self._bc = ports [0]
     # end def register
@@ -101,6 +101,7 @@ class Xorcom_Interface (Parser) :
         down.
     """
 
+    encoding = None
     re_layer = re.compile (r"^[0-9]+\s+Layer 1:\s+([A-Z]+)")
     re_dchan = re.compile (r"^D-Channel:.*[(]([a-z]+)\s?.*[)]$")
 
@@ -238,13 +239,13 @@ class ISDN_Port (autosuper) :
 
     def __str__ (self) :
         d = dict (self.__dict__)
-        d.update ((k, getattr (self, k)) for k in self.keys.iterkeys ())
-        for k in self.ignore.iterkeys () :
+        d.update ((k, getattr (self, k)) for k in self.keys)
+        for k in self.ignore :
             del d [k]
         return ', '.join \
             ( "%s = %s"
             % (k, (repr (v), repr (v)[1:])[repr (v).startswith ('u')])
-             for k, v in sorted (d.iteritems ())
+             for k, v in sorted (d.items ())
              if k [0] != '_' and v is not None
             )
     # end def __str__
@@ -263,6 +264,7 @@ class LCR_Ports (Parser, Exec) :
         rsclib.
     """
 
+    encoding = None
     re_empty = re.compile (r"^$")
     re_start = re.compile (r"^([0-9-a-zA-Z]+):\s*$")
     re_param = re.compile (r"\s+([-a-z0-9 ]*[a-zA-Z0-9])\s+=\s+(.*)$")
@@ -325,6 +327,7 @@ class DAHDI_Ports (Parser, Exec) :
         rsclib.
     """
 
+    encoding = None
     re_empty = re.compile (r"^$")
     re_start = re.compile (r"^\[([0-9]+)\]$")
     re_param = re.compile (r"([-a-z0-9_]+)=\s*(.*)$")
@@ -430,7 +433,7 @@ class ISDN_Ports (Log) :
     def __iter__ (self) :
         return iter \
             ( sorted
-                ( ISDN_Port.by_portnumber.itervalues ()
+                ( ISDN_Port.by_portnumber.values ()
                 , key = lambda x : (x.architecture, x.number)
                 )
             )
@@ -720,7 +723,8 @@ framing=CCS
     if len (sys.argv) == 2 and sys.argv [1] == 'test' :
         lcr_init (parsestring = lcr_output)
         DAHDI_Ports (parsestring = dahdi_output)
-        for n, p in sorted (ISDN_Port.by_portnumber.iteritems ()) :
+        for n in sorted (ISDN_Port.by_portnumber) :
+            p = ISDN_Port.by_portnumber [n]
             print (n, p)
             print (p.channel)
     else :

@@ -90,7 +90,8 @@ class PDF_Signature :
             raise Signature_Error ("PDF File doesn't seem to have a signature")
         if '/ByteRange' not in sig :
             raise Signature_Unknown ("Not a byte range signature")
-        for k, v in self.supported.iteritems () :
+        for k in self.supported :
+            v = self.supported [k]
             if '/%s' % k not in sig :
                 raise Signature_Unknown ("Signature doesn't define %s" % k)
             stype = sig ['/%s' % k]
@@ -275,7 +276,8 @@ class PDF_Trodat_Signature :
         assert (signator.tag == "signator")
         for node in signator :
             print ("%s: %s" % (node.tag, node.text), end = '')
-            for k, v in node.attrib.iteritems () :
+            for k in node.attrib :
+                v = node.attrib [k]
                 print ("%s = %s " % (k, v), end = '')
             print ('')
         for c in "TSTInfo_Xml DocumentHash LtcSignature".split () :

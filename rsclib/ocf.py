@@ -328,19 +328,21 @@ class Dahdi_Resource_Mixin (Resource) :
             # and when dahdi is not running the dahdi_scan called will
             # exit with nonzero exit code.
             self.log.error (status)
-        for p in ISDN_Port.by_portnumber.itervalues () :
+        for p in ISDN_Port.by_portnumber.values () :
             if p.interface in self.interfaces :
                 if p.l1 != 'up' or p.l2 != 'up' :
                     self.log.error ("Interface %s not up" % p.interface)
                     self.interfaces [p.interface] = False
                 else :
                     self.interfaces [p.interface] = True
-        for k, v in self.interfaces.iteritems () :
+        for k in self.interfaces :
+            v = self.interfaces [k]
             if v is None :
                 self.log.error ("Interface %s not found" % k)
                 return self.OCF_NOT_RUNNING
         if self.need_ports :
-            for k, v in self.interfaces.iteritems () :
+            for k in self.interfaces :
+                v = self.interfaces [k]
                 if v :
                     break
             else :

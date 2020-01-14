@@ -120,6 +120,7 @@ class Asterisk_Probe (Log) :
 if __name__ == '__main__' :
     ap = Asterisk_Probe ()
     d = ap.probe_apps ()
-    for k, v in d.iteritems () :
+    for k in d :
+        v = d [k]
         print ("%s: %s" % (k, v))
     ap.close ()

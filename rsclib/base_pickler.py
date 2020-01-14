@@ -29,7 +29,8 @@ class Base_Pickler (autosuper) :
 
     def __getstate__ (self) :
         d   = dict ()
-        for n, (k, v) in enumerate (self.__dict__.iteritems ()) :
+        for n, k in enumerate (self.__dict__) :
+            v = self.__dict__ [k]
             d [k] = self.pickle_exceptions.get (k, v)
         return d
     # end def __getstate__

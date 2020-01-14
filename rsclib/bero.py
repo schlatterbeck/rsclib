@@ -179,7 +179,8 @@ class Bnfos_Command (object) :
     def usage (cls) :
         u = []
         l = 0
-        for k, c in cls.by_highlevel_command.iteritems () :
+        for k in cls.by_highlevel_command :
+            c = cls.by_highlevel_command [k]
             param = "<%(key)s>" % c.__dict__
             if c.type == 'b' :
                 param = '{0|1}'

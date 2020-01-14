@@ -89,7 +89,12 @@ class Exec (Log) :
     # end def error
 
     def exec_pipe \
-        ( self, args, stdin = None, ignore_err = False, shell = False) :
+        ( self, args
+        , stdin      = None
+	, ignore_err = False
+	, shell      = False
+	, charset    = 'utf-8'
+	) :
         popen_stdin = None
         if stdin is not None :
             popen_stdin = PIPE
@@ -100,7 +105,7 @@ class Exec (Log) :
             , stderr = PIPE
             , shell  = shell
             )
-        stdout, stderr = p.communicate (stdin)
+        stdout, stderr = (x.decode (charset) for x in p.communicate (stdin))
         self.stderr = err = ' '.join (stderr.rstrip ().split ('\n'))
         if p.returncode != 0 :
             arg = args [0]

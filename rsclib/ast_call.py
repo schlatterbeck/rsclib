@@ -661,14 +661,14 @@ class Call_Manager (object) :
             account = self.cfg.ACCOUNT_CODE
         actionid  = self.originate \
             ( self.cfg.MATCH_CHANNEL
-            , channel   = '%s/%s%s' % (type, number, suffix)
-            , exten     = call_extension or self.cfg.CALL_EXTENSION
-            , context   = call_context   or self.cfg.CALL_CONTEXT
-            , priority  = call_priority  or self.cfg.CALL_PRIORITY
-            , caller_id = caller_id      or self.cfg.CALLER_ID
-            , account   = account
-            , async     = True
-            , variables = vars
+            , channel      = '%s/%s%s' % (type, number, suffix)
+            , exten        = call_extension or self.cfg.CALL_EXTENSION
+            , context      = call_context   or self.cfg.CALL_CONTEXT
+            , priority     = call_priority  or self.cfg.CALL_PRIORITY
+            , caller_id    = caller_id      or self.cfg.CALLER_ID
+            , account      = account
+            , asynchronous = True
+            , variables    = vars
             )
         self.call_by_number [actionid] = number
         # maybe call already terminated or we have a permission problem:

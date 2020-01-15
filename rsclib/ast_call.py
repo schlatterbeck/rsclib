@@ -427,6 +427,173 @@ class Call (object) :
     4
     >>> m.close ()
     >>> a.close ()
+
+    # Testing with exact_id = True (new default)
+    # The call manager would match via the account-code on the third
+    # event (NewAccountCode) and replay the first and second events.
+    # Thus we *first* feed the NewAccountCode event to set_id.
+    # Note that the Call_Manager would not feed events without exactly
+    # matching id to the Call, so we leave out those events
+    >>> a = 'dab-7739-00000005'
+    >>> m = Mock_Manager ()
+    >>> m.exact_id = True
+    >>> c = Call (m, a, context = 'linecheck', account = 940215951)
+    >>> bool (c)
+    True
+    >>> e1 = Event ({'Event': 'NewAccountCode'
+    ...            , 'Privilege': 'call,all'
+    ...            , 'Channel': 'DAHDI/i1/0268263976-10'
+    ...            , 'ChannelState': '1'
+    ...            , 'ChannelStateDesc': 'Rsrvd'
+    ...            , 'CallerIDNum': '<unknown>'
+    ...            , 'CallerIDName': '<unknown>'
+    ...            , 'ConnectedLineNum': '<unknown>'
+    ...            , 'ConnectedLineName': '<unknown>'
+    ...            , 'Language': 'de'
+    ...            , 'AccountCode': '940215951'
+    ...            , 'Context': 'extern'
+    ...            , 'Exten': 's'
+    ...            , 'Priority': '1'
+    ...            , 'Uniqueid': '1579033769.60'
+    ...            , 'Linkedid': '1579033769.60'
+    ...            , 'OldAccountCode': ''
+    ...            })
+    >>> c.set_id (e1)
+    register
+
+    >>> e = Event ({'Event': 'Newchannel'
+    ...            , 'Privilege': 'call,all'
+    ...            , 'Channel': 'DAHDI/i1/0268263976-10'
+    ...            , 'ChannelState': '1'
+    ...            , 'ChannelStateDesc': 'Rsrvd'
+    ...            , 'CallerIDNum': '<unknown>'
+    ...            , 'CallerIDName': '<unknown>'
+    ...            , 'ConnectedLineNum': '<unknown>'
+    ...            , 'ConnectedLineName': '<unknown>'
+    ...            , 'Language': 'en'
+    ...            , 'AccountCode': ''
+    ...            , 'Context': 'extern'
+    ...            , 'Exten': 's'
+    ...            , 'Priority': '1'
+    ...            , 'Uniqueid': '1579033769.60'
+    ...            , 'Linkedid': '1579033769.60'
+    ...            })
+    >>> c.append (e)
+    >>> bool (c)
+    True
+    >>> e = Event ({'Event': 'DAHDIChannel'
+    ...            , 'Privilege': 'call,all'
+    ...            , 'Channel': 'DAHDI/i1/0268263976-10'
+    ...            , 'ChannelState': '1'
+    ...            , 'ChannelStateDesc': 'Rsrvd'
+    ...            , 'CallerIDNum': '<unknown>'
+    ...            , 'CallerIDName': '<unknown>'
+    ...            , 'ConnectedLineNum': '<unknown>'
+    ...            , 'ConnectedLineName': '<unknown>'
+    ...            , 'Language': 'de'
+    ...            , 'AccountCode': ''
+    ...            , 'Context': 'extern'
+    ...            , 'Exten': 's'
+    ...            , 'Priority': '1'
+    ...            , 'Uniqueid': '1579033769.60'
+    ...            , 'Linkedid': '1579033769.60'
+    ...            , 'DAHDISpan': '1'
+    ...            , 'DAHDIChannel': '1'
+    ...            })
+    >>> c.append (e)
+    >>> bool (c)
+    True
+
+    >>> c.append (e1)
+    >>> bool (c)
+    True
+
+    >>> e = Event ({'Event': 'NewCallerid'
+    ...            , 'Privilege': 'call,all'
+    ...            , 'Channel': 'DAHDI/i1/0268263976-10'
+    ...            , 'ChannelState': '1'
+    ...            , 'ChannelStateDesc': 'Rsrvd'
+    ...            , 'CallerIDNum': '47110815'
+    ...            , 'CallerIDName': '<unknown>'
+    ...            , 'ConnectedLineNum': '<unknown>'
+    ...            , 'ConnectedLineName': '<unknown>'
+    ...            , 'Language': 'de'
+    ...            , 'AccountCode': '940215951'
+    ...            , 'Context': 'extern'
+    ...            , 'Exten': 's'
+    ...            , 'Priority': '1'
+    ...            , 'Uniqueid': '1579033769.60'
+    ...            , 'Linkedid': '1579033769.60'
+    ...            , 'CID-CallingPres': '0 (Presentation Allowed, Not Screened)'
+    ...            })
+    >>> c.append (e)
+    >>> bool (c)
+    True
+
+    >>> e = Event ({'Event': 'NewConnectedLine'
+    ...            , 'Privilege': 'call,all'
+    ...            , 'Channel': 'DAHDI/i1/0268263976-10'
+    ...            , 'ChannelState': '1'
+    ...            , 'ChannelStateDesc': 'Rsrvd'
+    ...            , 'CallerIDNum': '47110815'
+    ...            , 'CallerIDName': '<unknown>'
+    ...            , 'ConnectedLineNum': '47110815'
+    ...            , 'ConnectedLineName': '<unknown>'
+    ...            , 'Language': 'de'
+    ...            , 'AccountCode': '940215951'
+    ...            , 'Context': 'extern'
+    ...            , 'Exten': 's'
+    ...            , 'Priority': '1'
+    ...            , 'Uniqueid': '1579033769.60'
+    ...            , 'Linkedid': '1579033769.60'
+    ...            })
+    >>> c.append (e)
+    >>> bool (c)
+    True
+
+    >>> e = Event ({'Event': 'Newstate'
+    ...            , 'Privilege': 'call,all'
+    ...            , 'Channel': 'DAHDI/i1/0268263976-10'
+    ...            , 'ChannelState': '3'
+    ...            , 'ChannelStateDesc': 'Dialing'
+    ...            , 'CallerIDNum': '47110815'
+    ...            , 'CallerIDName': '<unknown>'
+    ...            , 'ConnectedLineNum': '47110815'
+    ...            , 'ConnectedLineName': '<unknown>'
+    ...            , 'Language': 'de'
+    ...            , 'AccountCode': '940215951'
+    ...            , 'Context': 'extern'
+    ...            , 'Exten': 's'
+    ...            , 'Priority': '1'
+    ...            , 'Uniqueid': '1579033769.60'
+    ...            , 'Linkedid': '1579033769.60'
+    ...            })
+    >>> c.append (e)
+    >>> bool (c)
+    True
+
+    >>> e = Event ({'Event': 'Hangup'
+    ...            , 'Privilege': 'call,all'
+    ...            , 'Channel': 'DAHDI/i1/0268263976-10'
+    ...            , 'ChannelState': '3'
+    ...            , 'ChannelStateDesc': 'Dialing'
+    ...            , 'CallerIDNum': '47110815'
+    ...            , 'CallerIDName': '<unknown>'
+    ...            , 'ConnectedLineNum': '47110815'
+    ...            , 'ConnectedLineName': '<unknown>'
+    ...            , 'Language': 'de'
+    ...            , 'AccountCode': '940215951'
+    ...            , 'Context': 'extern'
+    ...            , 'Exten': 's'
+    ...            , 'Priority': '1'
+    ...            , 'Uniqueid': '1579033769.60'
+    ...            , 'Linkedid': '1579033769.60'
+    ...            , 'Cause': '17'
+    ...            , 'Cause-txt': 'User busy'
+    ...            })
+    >>> c.append (e)
+    >>> bool (c)
+    False
     """
 
     def __init__ \

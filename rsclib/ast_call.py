@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2008-15 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2008-20 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -100,17 +100,30 @@ class Call (object) :
     >>> class Mock_Manager :
     ...     def register (*args, **kw) :
     ...         print ("register")
+    ...     exact_id  = False
+    ...     class log (object) :
+    ...         debug = info = error = lambda x : 0
     >>>
     >>> from asterisk.astemu import AsteriskEmu, Event
     >>>
     >>> m = Mock_Manager ()
     >>> c = Call (m, '4711', 'asterisk-2633-1243166465.17142')
     register
+    >>> c.seqno
+    17142
+    >>> c.min_seqno
+    17142
     >>> e = Event ({'Uniqueid': 'asterisk-1243166465.17141'
     ...           , 'Privilege': 'call,all'
     ...           , 'Event': 'Newchannel'
     ...           , 'Channel': 'lcr/12284'})
     >>> c.append (e)
+    >>> c.seqno
+    17141
+    >>> c.min_seqno
+    17142
+    >>> c.uids
+    {}
     >>> bool (c)
     True
     >>> c = Call (m, '4712', 'asterisk-2633-1243303265.18231')
@@ -126,6 +139,10 @@ class Call (object) :
     >>> m = Mock_Manager ()
     >>> c = Call (m, '00000007','1333330442.4619','','linecheck','1588267611')
     register
+    >>> c.seqno
+    4619
+    >>> c.min_seqno
+    4619
     >>> e1 = Event ({'AccountCode': '', 'Uniqueid': '1333330442.4619'
     ...            , 'ChannelState': '1', 'Exten': '', 'CallerIDNum': ''
     ...            , 'Context': '', 'CallerIDName': '', 'Privilege': 'call,all'
@@ -198,6 +215,10 @@ class Call (object) :
     ...            , 'Channel': 'lcr/4590'
     ...            })
     >>> c.append (eC)
+    >>> c.seqno
+    4619
+    >>> c.min_seqno
+    4619
     >>> eD = Event (dict ( Event = 'OriginateResponse', Privilege = 'call,all'
     ...                  , ActionID = 'ruf1lszsrv-00000007'
     ...                  , Response = 'Failure'
@@ -210,6 +231,9 @@ class Call (object) :
     ...                  , CallerIDName = '<unknown>'
     ...                  ))
     >>> c.append (eD)
+    >>> c.seqno
+    >>> c.min_seqno
+    4619
     >>> bool (c)
     False
     >>> c.reason
@@ -218,6 +242,8 @@ class Call (object) :
     >>> c = Call (m, '00000007', '1333330442.4619', '', 'linecheck')
     register
     >>> c.append (e1)
+    >>> bool (c)
+    True
     >>> c.append (e2)
     >>> c.append (e3)
     >>> c.append (e4)
@@ -225,11 +251,23 @@ class Call (object) :
     >>> c.append (e6)
     >>> c.append (e7)
     >>> c.append (e8)
+    >>> bool (c)
+    True
     >>> c.append (e9)
+    >>> bool (c)
+    True
     >>> c.append (eA)
+    >>> bool (c)
+    True
     >>> c.append (eB)
+    >>> bool (c)
+    True
     >>> c.append (eC)
+    >>> bool (c)
+    True
     >>> c.append (eD)
+    >>> (c.fail, c.uids_seen, c.sure, c.uniqueid, c.uids)
+    (False, True, False, '1333330442.4619', {'1333330442.4621': True})
     >>> bool (c)
     True
     >>> c = Call (m, '00000007', '1333330442.4619', '', 'linecheck')
@@ -429,13 +467,15 @@ class Call (object) :
 
     def append (self, event) :
         self.event = event
-        self.id    = event.headers ['Uniqueid']
-        if self.id == '<null>' :
+        id = event.headers ['Uniqueid']
+        if not self.exact_id or not self.seqno :
+            self.id = id
+        if id == '<null>' or id == 'unknown>' :
             if self.actionid != self.event.headers.get ('ActionID') :
                 return
         self.events.append (event)
         # ignore calls in progress with lower seqno
-        if self.seqno and self.seqno < self.min_seqno :
+        if self.min_seqno and self.seqno and self.seqno < self.min_seqno :
             return
         if self.id != '<null>' and self.id != '<unknown>' :
             self.uids [self.id] = True
@@ -556,6 +596,8 @@ class Call (object) :
 
     @property
     def seqno (self) :
+        if not getattr (self, 'id', None) :
+            return None
         if self.id == '<null>' or self.id == '<unknown>' :
             return None
         if '.' not in self.id :
@@ -580,7 +622,8 @@ class Call (object) :
         actionid = event.headers.get ('ActionID')
         assert (not actionid or actionid == self.actionid)
         uniqueid = event.headers ['Uniqueid']
-        assert (uniqueid != '<null>')
+        assert uniqueid
+        assert (uniqueid != '<null>' and uniqueid != '<unknown>')
         self._set_id (uniqueid)
     # end def set_id
 

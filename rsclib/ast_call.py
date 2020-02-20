@@ -909,7 +909,10 @@ class Call_Manager (object) :
             suffix = self.cfg.CHANNEL_SUFFIX
         if account == '' :
             account = self.cfg.ACCOUNT_CODE
-        channel = '%s/%s%s' % (type, number, suffix)
+        t = type + '/'
+        if type.endswith ('/') or type.endswith (':') :
+            t = type
+        channel = '%s%s%s' % (t, number, suffix)
         self.log.debug \
             ("Call: channel: %s match: %s" % (channel, self.cfg.MATCH_CHANNEL))
         actionid  = self.originate \

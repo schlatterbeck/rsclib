@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2009-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2009-20 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -22,11 +22,38 @@
 
 from __future__ import print_function
 import re
+import requests
+from csv                import DictReader
 from rsclib.autosuper   import autosuper
 from rsclib.stateparser import Parser
 from rsclib.execute     import Exec, Exec_Error, Log
 from rsclib.Config_File import Config_File
 from rsclib.ast_probe   import Asterisk_Probe
+try :
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib   import urlencode
+import xml.etree.ElementTree as ElementTree
+
+def parse_ast_cfg (txt) :
+    sections = {}
+    key = None
+    for line in txt.split ('\n') :
+        if not line.strip () :
+            continue
+        if line.startswith ('#') :
+            continue
+        if line.startswith ('[') :
+            line = line.rstrip ()
+            assert line.endswith (']')
+            key = line [1:-1]
+            sections [key] = {}
+            sect = sections [key]
+        else :
+            k, v = (x.strip () for x in line.split ('=', 1))
+            sect [k] = v
+    return sections
+# end def parse_ast_cfg
 
 class Config (Config_File) :
 
@@ -36,6 +63,9 @@ class Config (Config_File) :
             , ASTERISK_HOST         = 'localhost'
             , ASTERISK_MGR_ACCOUNT  = 'user'
             , ASTERISK_MGR_PASSWORD = 'secret'
+            , BERO_USER             = 'admin'
+            , BERO_PASSWORD         = 'admin'
+            , BERO_HOSTS            = ['berovoip']
             )
     # end def __init__
 
@@ -170,11 +200,16 @@ class ISDN_Port (autosuper) :
         self.name      = name
         if not self.name :
             self.name  = "%s" % self.number
-        self._status   = kw.get ('status', None)
-        self._mode     = kw.get ('mode',   None)
-        self._l1       = kw.get ('l1',     None)
-        self._l2       = kw.get ('l2',     None)
+        self._status   = kw.get ('status',   None)
+        self._mode     = kw.get ('mode',     None)
+        self._l1       = kw.get ('l1',       None)
+        self._l2       = kw.get ('l2',       None)
+        self.protocol  = kw.get ('protocol', None)
         self.usage     = kw.get ('usage')
+        if 'suffix' in kw :
+            self.suffix = kw ['suffix']
+        if 'user' in kw :
+            self.user   = kw ['user']
         # register:
         self.iface.register (self)
         key = "%s/%s" % (self.architecture, number)
@@ -188,16 +223,18 @@ class ISDN_Port (autosuper) :
 
     def channel_with_offset (self, offset = 0, force_dchan = False) :
         if self.architecture == 'LCR' :
-            return 'LCR/%s' % self.interface
+            return '%s/%s' % (self.iface.architecture, self.iface)
         if offset > self.iface.tc :
             raise ValueError ("Offset: %s > %s" % (offset, self.iface.tc))
+        if self.iface.type.startswith ('PJSIP') :
+            return "PJSIP/%s/sip:" % self.user
         if  (   self.iface.type.startswith ('digital-')
             and self.iface.tc == 3
             and offset == self.iface.bc + self.iface.tc - 1
             and not force_dchan
             ) :
             raise ValueError ("D-Channel: %s" % (self.iface.bc + offset))
-        return 'dahdi/%s' % (self.iface.bc + offset)
+        return '%s/%s' % (self.iface.architecture, self.iface.bc + offset)
     # end def channel
 
     @property
@@ -213,7 +250,10 @@ class ISDN_Port (autosuper) :
 
     @property
     def mode (self) :
-        return self._mode or self.iface.mode
+        m = self._mode
+        if m and m.endswith ('-mode') :
+            m = self._mode [:-5]
+        return m or self.iface.mode
     # end def mode
 
     @property
@@ -255,7 +295,6 @@ class ISDN_Port (autosuper) :
     # end def __name__
 
 # end class ISDN_Port
-
 
 class LCR_Ports (Parser, Exec) :
     """ Represent all ISDN ports of Linux Call Router
@@ -314,6 +353,10 @@ class LCR_Ports (Parser, Exec) :
             self.port.usage = int (value)
         elif name :
             if name in ('status', 'l1', 'l2', 'mode') :
+                if name == 'mode' :
+                    v = value.split (' ')
+                    value = v [0]
+                    self.port.protocol = v [1]
                 setattr (self.port, '_%s' % name, value)
             else :
                 setattr (self.port, name, value)
@@ -399,6 +442,137 @@ class DAHDI_Ports (Parser, Exec) :
 
 # end class DAHDI_Ports
 
+class Bero_Ports (Log) :
+    """ Beronet SIP/ISDN gateway: We are initialized with a
+        configuration object passed in from the client.
+        In this config we find the necessary BERO_HOSTS, BERO_USER and
+        BERO_PASSWORD settings. If BERO_HOSTS is not set we log an error
+        message and exit.
+    """
+
+    def __init__ (self, host, cfg, **kw) :
+        self.__super.__init__ (** kw)
+        self.host = host
+        self.cfg  = cfg
+        self.session = requests.session ()
+        self.session.auth = (cfg.BERO_USER, cfg.BERO_PASSWORD)
+        proto = cfg.get ('BERO_PROTOCOL', 'http')
+        self.url = "%s://%s/app/api/api.php?" % (proto, host)
+        # Doesn't support JSON (yet?)
+        # self.headers = dict (Accept = 'application/json')
+        self.headers = {}
+        self.parse ()
+    # end def __init__
+
+    def get (self, cmd, textonly = False, **params) :
+        d = dict (params)
+        d ['apiCommand'] = cmd
+        r = self.session.get (self.url + urlencode (d), headers = self.headers)
+        if not (200 <= r.status_code <= 299) :
+            raise RuntimeError \
+                ( 'Invalid get result: %s: %s\n    %s'
+                % (r.status_code, r.reason, r.text)
+                )
+        if textonly :
+            return r.text
+        txt = [x.strip () for x in r.text.split ('\n')]
+        c, stat = txt [0].split (':', 1)
+        if c != cmd or stat != 'success' :
+            raise RuntimeError \
+                ('Invalid get result: with good status code: %s' % (txt [0]))
+        return '\n'.join (txt [1:])
+    # end def get
+
+    def get_config (self) :
+        """ The config of the bero device is XML with text sections that
+            need to be parsed. The only way to get specific parts of the
+            config seems to be via retrieving the whole config "backup".
+        """
+        txt = self.get ('ConfigurationCreateBackup', textonly = True)
+        root = ElementTree.fromstring (txt)
+        assert len (root) == 1
+        config = root [0]
+        for element in config :
+            if element.tag != 'File' :
+                continue
+            name = element.find ('Name').text.strip ()
+            if name == 'isgw.dialplan' :
+                self.dialplan = {}
+                content = element.find ('Contents')
+                lines = content.text.strip ().lstrip (';').split ('\n')
+                dr = DictReader (lines, delimiter = '\t')
+                for l in dr :
+                    if l ['From'].startswith ('sip') :
+                        t = l ['FromID']
+                        assert t.startswith ('d:')
+                        g = l ['ToID']
+                        assert g.startswith ('g:')
+                        self.dialplan [g [2:]] = t [2:]
+            if name == 'isgw.isdn' :
+                sects = parse_ast_cfg (element.find ('Contents').text)
+                self.groups = {}
+                self.group_by_port = {}
+                for k in sects :
+                    if k == 'general' :
+                        continue
+                    self.groups [k] = sects [k]
+                    ports = list \
+                        (k.strip () for k in
+                         self.groups [k]['ports'].split (',')
+                        )
+                    for p in ports :
+                        self.group_by_port [p] = k
+            if name == 'isgw.sip' :
+                sects = parse_ast_cfg (element.find ('Contents').text)
+                self.sip_accounts = {}
+                for k in sects :
+                    if k == 'general' :
+                        continue
+                    self.sip_accounts [k] = sects [k]
+    # end def get_config
+
+    def parse (self) :
+        """ parse port listing, this has the following format:
+            LISTING ISDN STATE
+            * Port 1 Type TE Prot. PTP L2Link UP L1Link:UP Blocked:0
+            * Port 2 Type TE Prot. PTP L2Link UP L1Link:UP Blocked:0
+            * Port 3 Type NT Prot. PTP L2Link DOWN L1Link:DOWN Blocked:0
+            * Port 4 Type NT Prot. PTP L2Link UP L1Link:UP Blocked:0
+        """
+        r    = re.compile \
+            (r'^.*Port[ :]+([0-9]+)\s+Type[ :]+(\S+)\s+Prot[ .:]+(\S+)\s+'
+             r'L2Link[ :]+(\S+)\s+L1Link[ :]+(\S+)\s+Blocked[ :]+([0-9]+)'
+            )
+        stat = self.get ('TelephonyGetIsdnState').split ('\n')
+        assert stat [0].startswith ('LISTING')
+        self.get_config ()
+        for st in stat [1:] :
+            m = r.search (st)
+            g = m.groups ()
+            #print (g)
+            block = 'blocked'
+            if g [5] == '0' :
+                block = 'unblocked'
+            group   = self.group_by_port [g [0]]
+            sipline = self.dialplan [group]
+            sipuser = self.sip_accounts [sipline]['user']
+            name    = '%s:%s:%s@%s' % (group, sipline, sipuser, self.host)
+            sipact  = '%s@%s' % (sipuser, self.host)
+            iface = ISDN_Interface ('PJSIP/%s' % sipact, 'PJSIP')
+            ISDN_Port \
+                ( int (g [0]), iface, name
+                , mode     = g [1] + '-mode'
+                , l1       = g [4].lower ()
+                , l2       = g [3].lower ()
+                , status   = block
+                , protocol = g [2].lower ()
+                , suffix   = '@%s' % self.host
+                , user     = sipuser
+                )
+    # end def parse
+
+# end class Bero_Ports
+
 def lcr_init (** kw) :
     """ Parse once """
     try :
@@ -428,6 +602,10 @@ class ISDN_Ports (Log) :
             lcr_init (** kw)
         if 'DAHDISendKeypadFacility' in d or 'dahdi' in d :
             DAHDI_Ports (** kw)
+        if 'bero' in d and cfg.get ('BERO_HOSTS', []) :
+            hosts = cfg.get ('BERO_HOSTS', [])
+            for h in hosts :
+                Bero_Ports (h, self.cfg, ** kw)
     # end def __init__
 
     def __iter__ (self) :
@@ -727,7 +905,32 @@ framing=CCS
             p = ISDN_Port.by_portnumber [n]
             print (n, p)
             print (p.channel)
+    elif len (sys.argv) > 1 and sys.argv [1] == 'bero' :
+        cfg   = Config ()
+        hosts = cfg.get ('BERO_HOSTS', [])
+        for h in hosts :
+            bp = Bero_Ports (h, cfg)
+            #print (bp.get ('TelephonyGetIsdnState'))
+            #print (bp.get ('TelephonyGetInfo', Action = 'hi'))
+            #print (bp.get ('TelephonyGetInfo', Action = 'i'))
+        for n in sorted (ISDN_Port.by_portnumber) :
+            p = ISDN_Port.by_portnumber [n]
+            suffix = getattr (p, 'suffix', '')
+            print \
+                ( n, p
+                , "span:", p.span
+                , "ifname:", p.ifname
+                , "channel:", p.channel
+                , "suffix:", suffix
+                )
     else :
         p = ISDN_Ports ()
         for port in p :
-            print (port)
+            suffix = getattr (port, 'suffix', '')
+            print \
+                ( port
+                , "span:", port.span
+                , "ifname:", port.ifname
+                , "channel:", port.channel
+                , "suffix:", suffix
+                )

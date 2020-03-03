@@ -909,19 +909,22 @@ class Call_Manager (object) :
             suffix = self.cfg.CHANNEL_SUFFIX
         if account == '' :
             account = self.cfg.ACCOUNT_CODE
-        channel = '%s/%s%s' % (type, number, suffix)
+        t = type + '/'
+        if type.endswith ('/') or type.endswith (':') :
+            t = type
+        channel = '%s%s%s' % (t, number, suffix)
         self.log.debug \
             ("Call: channel: %s match: %s" % (channel, self.cfg.MATCH_CHANNEL))
         actionid  = self.originate \
             ( self.cfg.MATCH_CHANNEL
-            , channel      = channel
-            , exten        = call_extension or self.cfg.CALL_EXTENSION
-            , context      = call_context   or self.cfg.CALL_CONTEXT
-            , priority     = call_priority  or self.cfg.CALL_PRIORITY
-            , caller_id    = caller_id      or self.cfg.CALLER_ID
-            , account      = account
-            , asynchronous = True
-            , variables    = vars
+            , channel   = channel
+            , exten     = call_extension or self.cfg.CALL_EXTENSION
+            , context   = call_context   or self.cfg.CALL_CONTEXT
+            , priority  = call_priority  or self.cfg.CALL_PRIORITY
+            , caller_id = caller_id      or self.cfg.CALLER_ID
+            , account   = account
+            , run_async = True
+            , variables = vars
             )
         self.call_by_number [actionid] = number
         # maybe call already terminated or we have a permission problem:

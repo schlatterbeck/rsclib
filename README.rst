@@ -114,6 +114,12 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.56: ast_call, isdn
+
+    - The ast_call now is brought to latest version of pyst and asterisk
+    - isdn module now supports remote isdn via isdn gateway
+    - various python3 fixes
+
 Version 0.55: LOCKDIR
 
     - Now it's possible to set the locking directory (default is still

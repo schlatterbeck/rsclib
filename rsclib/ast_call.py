@@ -978,6 +978,7 @@ class Call_Manager (object) :
         if 'account' in kw and self.match_account :
             random_account = True
 
+        self.log.debug ("Call: originate: args: %s kw: %s" % (args, kw))
         result = self.manager.originate (*args, **kw)
         #print ("Originate:", result.__dict__, file = stderr)
         self.log.debug ("Call: Originate: %s" % result.__dict__)

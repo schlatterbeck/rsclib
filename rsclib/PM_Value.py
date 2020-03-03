@@ -142,7 +142,7 @@ def _define_convop (func) :
 # end _define_convop
 
 for name in \
-    ( '__add__',      '__sub__', '__mul__', '__truediv__'
+    ( '__add__',      '__sub__', '__mul__', '__truediv__', '__div__'
     , '__floordiv__', '__mod__', '__pow__', '__lshift__', '__rshift__'
     , '__and__',      '__xor__', '__or__'
     ) :

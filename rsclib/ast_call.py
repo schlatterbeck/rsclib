@@ -887,7 +887,7 @@ class Call_Manager (object) :
         """ Originate a call using parameters from configuration.
             Parameter override is possible via call parameters.
             The timeout is used for the queue_handler timeout. The
-            call_delay is passed as a "DELAY" variable to asterisk for
+            call_delay is passed as a "CALL_DELAY" variable to asterisk for
             use in the dialplan. Same for sound passed as variable
             "SOUND". The channel variables (and the number) are used for
             constructing the asterisk channel. The call parameters are

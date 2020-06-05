@@ -583,9 +583,17 @@ def lcr_init (** kw) :
 
 class ISDN_Ports (Log) :
 
-    def __init__ (self, config = 'ast_isdn', cfgpath = '/etc/ast_isdn', ** kw) :
+    def __init__ \
+        ( self
+        , cfg     = None
+        , config  = 'ast_isdn'
+        , cfgpath = '/etc/ast_isdn'
+        , ** kw
+        ) :
         self.__super.__init__ (** kw)
-        self.cfg     = cfg = Config (config = config, path = cfgpath)
+        self.cfg = cfg
+        if cfg is None :
+            self.cfg = cfg = Config (config = config, path = cfgpath)
 
         arch = self.cfg.get ('ISDN_ARCHITECTURE')
         if arch :

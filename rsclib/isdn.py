@@ -450,6 +450,11 @@ class Bero_Ports (Log) :
         message and exit.
     """
 
+    # We need to keep track of the number of interfaces we have
+    # registered, we keep numbering interfaces for each new host with
+    # the largest number + 1
+    maxid   = 0
+
     def __init__ (self, host, cfg, **kw) :
         self.__super.__init__ (** kw)
         self.host = host
@@ -541,6 +546,11 @@ class Bero_Ports (Log) :
         return sipuser, name, iface
     # end def get_group_info
 
+    def get_id (self) :
+        self.__class__.maxid += 1
+        return self.__class__.maxid
+    # end def get_id
+
     def parse_gsm (self) :
         """ parse port listing, this has the following format:
             LISTING GSM STATE
@@ -572,7 +582,7 @@ class Bero_Ports (Log) :
             #print (g)
             sipuser, name, iface = self.get_group_info (g [0])
             ISDN_Port \
-                ( int (g [0]), iface, name
+                ( self.get_id (), iface, name
                 , mode     = 'GSM-mode'
                 , l1       = 'up' if int (g [3]) else 'down'
                 , l2       = 'up' if int (g [3]) else 'down'
@@ -606,7 +616,7 @@ class Bero_Ports (Log) :
                 block = 'unblocked'
             sipuser, name, iface = self.get_group_info (g [0])
             ISDN_Port \
-                ( int (g [0]), iface, name
+                ( self.get_id (), iface, name
                 , mode     = g [1] + '-mode'
                 , l1       = g [4].lower ()
                 , l2       = g [3].lower ()

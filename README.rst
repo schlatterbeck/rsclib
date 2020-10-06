@@ -114,6 +114,11 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.57: isdn
+
+    - Add parsing of beronet GSM modules
+    - Support multiple bero devices with same numbering
+
 Version 0.56: ast_call, isdn
 
     - The ast_call now is brought to latest version of pyst and asterisk

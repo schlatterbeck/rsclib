@@ -461,7 +461,9 @@ class Bero_Ports (Log) :
         # Doesn't support JSON (yet?)
         # self.headers = dict (Accept = 'application/json')
         self.headers = {}
-        self.parse ()
+        self.get_config ()
+        self.parse_isdn ()
+        self.parse_gsm  ()
     # end def __init__
 
     def get (self, cmd, textonly = False, **params) :
@@ -492,6 +494,8 @@ class Bero_Ports (Log) :
         root = ElementTree.fromstring (txt)
         assert len (root) == 1
         config = root [0]
+        self.groups = {}
+        self.group_by_port = {}
         for element in config :
             if element.tag != 'File' :
                 continue
@@ -504,24 +508,14 @@ class Bero_Ports (Log) :
                 for l in dr :
                     if l ['From'].startswith ('sip') :
                         t = l ['FromID']
-                        assert t.startswith ('d:')
+                        # t [0] seems to be arbitrary alphabetic char
+                        assert t [1] == ':'
                         g = l ['ToID']
                         assert g.startswith ('g:')
                         self.dialplan [g [2:]] = t [2:]
             if name == 'isgw.isdn' :
                 sects = parse_ast_cfg (element.find ('Contents').text)
-                self.groups = {}
-                self.group_by_port = {}
-                for k in sects :
-                    if k == 'general' :
-                        continue
-                    self.groups [k] = sects [k]
-                    ports = list \
-                        (k.strip () for k in
-                         self.groups [k]['ports'].split (',')
-                        )
-                    for p in ports :
-                        self.group_by_port [p] = k
+                self.parse_group (sects)
             if name == 'isgw.sip' :
                 sects = parse_ast_cfg (element.find ('Contents').text)
                 self.sip_accounts = {}
@@ -529,9 +523,67 @@ class Bero_Ports (Log) :
                     if k == 'general' :
                         continue
                     self.sip_accounts [k] = sects [k]
+            if name == 'isgw.lte' :
+                sects = parse_ast_cfg (element.find ('Contents').text)
+                self.parse_group (sects)
     # end def get_config
 
-    def parse (self) :
+    def get_group_info (self, gport) :
+        group   = self.group_by_port [gport]
+        if group not in self.dialplan :
+            raise ValueError \
+                ('Invalid config: Missing group %s in dialplan' % group)
+        sipline = self.dialplan [group]
+        sipuser = self.sip_accounts [sipline]['user']
+        name    = '%s:%s:%s@%s' % (group, sipline, sipuser, self.host)
+        sipact  = '%s@%s' % (sipuser, self.host)
+        iface = ISDN_Interface ('PJSIP/%s' % sipact, 'PJSIP')
+        return sipuser, name, iface
+    # end def get_group_info
+
+    def parse_gsm (self) :
+        """ parse port listing, this has the following format:
+            LISTING GSM STATE
+            * Port 1 Provider: HoT Pin Counter: 3 Reg Status: 1
+              RSSI: -81 dBm BER: 0.8% - 1.6% Tech: E-UTRAN/LTE/4G
+            * port 1 SERVINFO: 1300,-81,"HoT","23203",00000EE,00EC,32,3,-113
+            * port 1 SPN:
+            * port 1 CREG: 2,1,"36EC","119FE0C",7
+            * Port 2 Provider: HoT Pin Counter: 3 Reg Status: 1
+              RSSI: -81 dBm BER: 1.6% - 3.2% Tech: E-UTRAN/LTE/4G
+            * port 2 SERVINFO: 1300,-81,"HoT","23203",00000EE,00EC,32,3,-112
+            * port 2 SPN:
+            * port 2 CREG: 2,1,"36EC","119FE0C",7
+            (Note that the RSSI continues on same line with Port we just
+            don't currently parse this)
+        """
+        r    = re.compile \
+            (r'^.*Port[ :]+([0-9]+)\s+Provider[ :]+(\S+)\s+'
+             r'Pin Counter[ :]+([0-9]+)\s+Reg Status[ :]+([0-9]+)'
+            )
+        stat = self.get ('TelephonyGetGsmState').split ('\n')
+        assert stat [0].startswith ('LISTING')
+        for st in stat [1:] :
+            # Ignore secondary lines with lowercase 'port'
+            if not st.startswith ('* Port') :
+                continue
+            m = r.search (st)
+            g = m.groups ()
+            #print (g)
+            sipuser, name, iface = self.get_group_info (g [0])
+            ISDN_Port \
+                ( int (g [0]), iface, name
+                , mode     = 'GSM-mode'
+                , l1       = 'up' if int (g [3]) else 'down'
+                , l2       = 'up' if int (g [3]) else 'down'
+                , status   = 'unblocked'
+                , protocol = 'GSM'
+                , suffix   = '@%s' % self.host
+                , user     = sipuser
+                )
+    # end def parse_isdn
+
+    def parse_isdn (self) :
         """ parse port listing, this has the following format:
             LISTING ISDN STATE
             * Port 1 Type TE Prot. PTP L2Link UP L1Link:UP Blocked:0
@@ -545,7 +597,6 @@ class Bero_Ports (Log) :
             )
         stat = self.get ('TelephonyGetIsdnState').split ('\n')
         assert stat [0].startswith ('LISTING')
-        self.get_config ()
         for st in stat [1:] :
             m = r.search (st)
             g = m.groups ()
@@ -553,12 +604,7 @@ class Bero_Ports (Log) :
             block = 'blocked'
             if g [5] == '0' :
                 block = 'unblocked'
-            group   = self.group_by_port [g [0]]
-            sipline = self.dialplan [group]
-            sipuser = self.sip_accounts [sipline]['user']
-            name    = '%s:%s:%s@%s' % (group, sipline, sipuser, self.host)
-            sipact  = '%s@%s' % (sipuser, self.host)
-            iface = ISDN_Interface ('PJSIP/%s' % sipact, 'PJSIP')
+            sipuser, name, iface = self.get_group_info (g [0])
             ISDN_Port \
                 ( int (g [0]), iface, name
                 , mode     = g [1] + '-mode'
@@ -569,7 +615,20 @@ class Bero_Ports (Log) :
                 , suffix   = '@%s' % self.host
                 , user     = sipuser
                 )
-    # end def parse
+    # end def parse_isdn
+
+    def parse_group (self, sections) :
+        for key in sections :
+            if key == 'general' :
+                continue
+            self.groups [key] = sections [key]
+            ports = list \
+                (k.strip () for k in
+                 self.groups [key]['ports'].split (',')
+                )
+            for p in ports :
+                self.group_by_port [p] = key
+    # end def parse_group
 
 # end class Bero_Ports
 

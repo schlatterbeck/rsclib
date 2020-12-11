@@ -122,8 +122,8 @@ class Exec (Log) :
 # end class Exec
 
 class Lock_Mixin (_Named) :
-    def __init__ (self, *args, **kw) :
-        self.need_unlock = True
+    def __init__ (self, do_lock = True, *args, **kw) :
+        self.need_unlock = False
         self.__super.__init__ (*args, **kw)
         lockdir = os.environ.get ('LOCKDIR', '/var/lock')
         if getattr (self, 'lockfile', None) :
@@ -135,7 +135,13 @@ class Lock_Mixin (_Named) :
             self.lockfile = lf
         else :
             self.lockfile = os.path.join (lockdir, '%s.lock' % self.clsname)
+        if do_lock :
+            self.lock ()
+    # end def __init__
+
+    def lock (self) :
         atexit.register (self.unlock)
+        self.need_unlock = True
         try :
             fd = os.open (self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR)
             f  = os.fdopen (fd, 'w')
@@ -148,7 +154,7 @@ class Lock_Mixin (_Named) :
             self.need_unlock = False
             self.log.error ('Lockfile exists: %s' % self.lockfile)
             self.lock_fail ()
-    # end def __init__
+    # end def lock
 
     def lock_fail (self) :
         """ By default we exit when locking fails. A derived class may
@@ -162,9 +168,32 @@ class Lock_Mixin (_Named) :
             os.unlink (self.lockfile)
         self.need_unlock = False # prevent second attempt at removal
     # end def unlock
+    __del__  = unlock
 
-    __del__ = unlock
+    def __exit__ (self, tp, value, tb) :
+        if tb :
+            self.log_exception ()
+        # We do *not* return True, we didn't handle the exception
+    # end def __exit__
+
+    def __enter__ (self) :
+        assert not self.need_unlock
+        self.lock ()
+    # end def __enter__
+
 # end class Lock_Mixin
+
+class Lock (Log, Lock_Mixin) :
+
+    def __init__ (self, lockfile = None, ** kw) :
+        self.lockfile = lockfile
+        prefix = None
+        if lockfile :
+            prefix = lockfile.replace ('/', '-')
+        self.__super.__init__ (do_lock = False, log_prefix = prefix, ** kw)
+    # end def __init__
+
+# end class Lock
 
 def exitstatus (cmd, status) :
     if not status :

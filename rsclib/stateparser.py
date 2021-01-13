@@ -82,7 +82,7 @@ class Transition (Debug) :
             self.debug \
                 (2, "match: %s (act = %s)" % (self.pattern, self.act_name))
             return self._transition ()
-        if not isinstance (self.pattern, string_types) :
+        if isinstance (self.pattern, re.Pattern) :
             m = self.pattern.search (line)
             if m :
                 self.debug (2, "match: <regex> (act = %s)" % self.act_name)

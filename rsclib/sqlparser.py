@@ -30,7 +30,7 @@ import csv
 from   datetime           import datetime, time, tzinfo, timedelta
 from   rsclib.stateparser import Parser, Parse_Error
 from   rsclib.autosuper   import autosuper
-from   rsclib.pycompat    import ustr
+from   rsclib.pycompat    import ustr, string_types
 
 class TZ (tzinfo) :
     def __init__ (self, offset = 0) :
@@ -95,15 +95,16 @@ class SQL_Type (autosuper) :
         # decimal dot if the microsecond part was all zero to make it
         # roundtrip
         if getattr (self, 'dtfmt', None) :
-            return value.strftime (self.dtfmt)
+            return value.strftime (self.dtfmt).encode ('ascii')
         if getattr (self, 'timefmt', None) :
-            return value.strftime (self.timefmt).rstrip (b'0').rstrip (b'.')
-        return repr (value)
+            v = value.strftime (self.timefmt).encode ('ascii')
+            return v.rstrip (b'0').rstrip (b'.')
+        return repr (value).encode ('ascii')
     # end def format
 
     def typ (self, tn) :
         if self.parameters :
-            return "%s(%s)" % (tn, ','.join (self.parameters))
+            return b"%s(%s)" % (tn, b','.join (self.parameters))
         return tn
     # end def typ
 
@@ -139,17 +140,27 @@ class SQL_boolean (SQL_Type) :
 class SQL_double (SQL_Type) :
 
     def __call__ (self, f) :
-        if f == '\\N' or f == 'NULL' :
+        if f == b'\\N' or f == b'NULL' :
             return None
         return float (f)
     # end def __call__
 
 # end class SQL_double
 
+class SQL_real (SQL_Type) :
+
+    def __call__ (self, f) :
+        if f == b'\\N' or f == b'NULL' :
+            return None
+        return float (f)
+    # end def __call__
+
+# end class SQL_real
+
 class SQL_integer (SQL_Type) :
 
     def __call__ (self, i) :
-        if i == '\\N' or i == 'NULL' :
+        if i == b'\\N' or i == b'NULL' :
             return None
         return int (i)
     # end def __call__
@@ -165,9 +176,9 @@ class SQL_numeric (SQL_Type) :
     # end def __init__
 
     def __call__ (self, n) :
-        if n == '\\N' or n == 'NULL' :
+        if n == b'\\N' or n == b'NULL' :
             return None
-        a, b = n.split ('.')
+        a, b = n.split (b'.')
         return (int (a), int (b))
     # end def __call__
 
@@ -328,7 +339,7 @@ class SQL_character (SQL_Type) :
     def format (self, dialect, typ, value) :
         if value is None :
             return dialect.sql_null
-        return value.encode ('utf-8')
+        return value
     # end def format
 
 # end class SQL_character
@@ -374,6 +385,8 @@ class SQL_Timestamp_Without_Zone (SQL_Type) :
     timefmt = '%Y-%m-%d %H:%M:%S.%f'
 
     def __call__ (self, ts) :
+        if isinstance (ts, type (b'')) :
+            ts = ts.decode ('ascii')
         if ts == '\\N' or ts == 'NULL' or ts == '0000-00-00 00:00:00' :
             return None
         fmt = self.timefmt
@@ -508,28 +521,47 @@ class ACL (autosuper) :
 # end class ACL
 
 class Name_Item (autosuper) :
-    name_re = re.compile ('[^a-zA-Z0-9_]')
+    name_re = re.compile (b'[^a-zA-Z0-9_]')
 
     # Probably lots of keywords missing
     keywords = dict.fromkeys \
-        (('time', 'order', 'position', 'interval', 'null', 'update'))
+        ((b'time', b'order', b'position', b'interval', b'null', b'update'))
 
     def __init__ (self, name) :
+        self.with_schema = False
         self.name = name
         self.__super.__init__ ()
     # end def __init__
 
     @property
     def quoted_name (self) :
-        return b"'%s'" % self.name.encode ('utf-8')
+        return b"'%s'" % self.name
     # end def quoted_name
 
     @property
+    def quoted_fullname (self) :
+        n = self.name
+        if self.with_schema :
+            n = b'.'.join ((self.schema, self.name))
+        return b"'%s'" % n
+    # end def quoted_fullname
+
+    @property
     def formatted_name (self) :
+        n = self.name
+        if self.with_schema :
+            n = b'.'.join ((self.schema, self.name))
         if self.name in self.keywords or self.name_re.search (self.name) :
-            return b'"%s"' % self.name.encode ('utf-8')
-        return self.name.encode ('utf-8')
+            return b'"%s"' % n
+        return n
     # end def formatted_name
+
+    @property
+    def short_name (self) :
+        if self.name in self.keywords or self.name_re.search (self.name) :
+            return b'"%s"' % self.name
+        return self.name
+    # end def short_name
 
 # end class Name_Item
 
@@ -540,21 +572,25 @@ class Column (Name_Item) :
         self.typecl    = typecl
         self.nullable  = nullable
         self.sequences = []
+        self.seq_names = {}
         self.default   = None
         self.__super.__init__ (name)
     # end def __init__
 
     def append_sequence (self, seq) :
+        if seq.name in self.seq_names :
+            return
         self.sequences.append (seq)
+        self.seq_names [seq.name] = seq
         seq.column = self
     # end def append_sequence
 
     def as_pgsql (self) :
         r = [self.formatted_name]
-        r.append (self.typecl.typ (self.typ).encode ('utf-8'))
+        r.append (self.typecl.typ (self.typ))
         if self.default :
             r.append (b'DEFAULT')
-            r.append (self.default.encode ('utf-8'))
+            r.append (self.default)
         if not self.nullable :
             r.append (b'NOT NULL')
         return b' '.join (r)
@@ -575,7 +611,7 @@ class Extension (Name_Item) :
         r.append (b'')
         r.append (b'--')
         x = []
-        x.append (b'-- Name: %s' % self.formatted_name)
+        x.append (b'-- Name: %s' % self.short_name)
         x.append (b'Type: EXTENSION')
         x.append (b'Schema: -')
         x.append (b'Owner: ')
@@ -591,7 +627,7 @@ class Extension (Name_Item) :
         if self.type :
             r.append (b'--')
             x = []
-            x.append (b'-- Name: EXTENSION %s' % self.formatted_name)
+            x.append (b'-- Name: EXTENSION %s' % self.short_name)
             x.append (b'Type: COMMENT')
             x.append (b'Schema: -')
             x.append (b'Owner: ')
@@ -621,7 +657,7 @@ class Foreign_Key (Name_Item) :
         r = []
         r.append (b'--')
         x = []
-        x.append (b'-- Name: %s' % self.formatted_name)
+        x.append (b'-- Name: %s' % self.short_name)
         x.append (b'Type: FK CONSTRAINT')
         x.append (b'Schema: %s' % self.table.schema.encode ('utf-8'))
         x.append (b'Owner: %s' % self.table.owner.encode ('utf-8'))
@@ -648,9 +684,10 @@ class Foreign_Key (Name_Item) :
 class Index (Name_Item) :
 
     def __init__ (self, name, typ, columns, ops) :
-        self.typ     = typ
-        self.columns = columns
-        self.ops     = ops
+        self.typ       = typ
+        self.columns   = columns
+        self.ops       = ops
+        self.is_unique = False
         self.__super.__init__ (name)
     # end def __init__
 
@@ -658,19 +695,24 @@ class Index (Name_Item) :
         r = []
         r.append (b'--')
         x = []
-        x.append (b'-- Name: %s' % self.formatted_name)
+        x.append (b'-- Name: %s' % self.short_name)
         x.append (b'Type: INDEX')
-        x.append (b'Schema: %s' % self.table.schema.encode ('utf-8'))
-        x.append (b'Owner: %s' % self.table.owner.encode ('utf-8'))
-        x.append (b'Tablespace: %s' % self.table.tspace.encode ('utf-8'))
+        x.append (b'Schema: %s' % self.table.schema)
+        x.append (b'Owner: %s' % self.table.owner)
+        if self.table.tspace :
+            x.append (b'Tablespace: %s' % self.table.tspace)
         r.append (b'; '.join (x))
         r.append (b'--')
         r.append (b'')
+        u = b''
+        if self.is_unique :
+            u = b'UNIQUE '
         r.append \
-            ( b'CREATE INDEX %s ON %s USING %s (%s);'
-            % ( self.formatted_name
+            ( b'CREATE %sINDEX %s ON %s USING %s (%s);'
+            % ( u
+              , self.formatted_name
               , self.table.formatted_name
-              , self.typ.encode ('utf-8')
+              , self.typ
               , b', '.join (self.col_as_pgsql (c) for c in self.columns)
               )
             )
@@ -681,7 +723,7 @@ class Index (Name_Item) :
 
     def col_as_pgsql (self, column) :
         name = column.name
-        op   = self.ops.get (name, b'').encode ('utf-8')
+        op   = self.ops.get (name, b'')
         if op :
             return b' '.join ((column.formatted_name, op))
         return column.formatted_name
@@ -703,11 +745,12 @@ class Key (Name_Item) :
         r = []
         r.append (b'--')
         x = []
-        x.append (b'-- Name: %s' % self.formatted_name)
+        x.append (b'-- Name: %s %s' % (self.table.short_name, self.short_name))
         x.append (b'Type: CONSTRAINT')
-        x.append (b'Schema: %s' % self.table.schema.encode ('utf-8'))
-        x.append (b'Owner: %s' % self.table.owner.encode ('utf-8'))
-        x.append (b'Tablespace: %s' % self.table.tspace.encode ('utf-8'))
+        x.append (b'Schema: %s' % self.table.schema)
+        x.append (b'Owner: %s' % self.table.owner)
+        if self.table.tspace :
+            x.append (b'Tablespace: %s' % self.table.tspace)
         r.append (b'; '.join (x))
         r.append (b'--')
         r.append (b'')
@@ -715,7 +758,7 @@ class Key (Name_Item) :
         r.append \
             ( b'    ADD CONSTRAINT %s %s (%s);'
             % ( self.formatted_name
-              , self.typ.encode ('utf-8')
+              , self.typ
               , b', '.join (k.formatted_name for k in self.columns)
               )
             )
@@ -735,10 +778,7 @@ class Set_Statement (Name_Item) :
 
     def as_pgsql (self) :
         r = []
-        r.append \
-            ( b'SET %s = %s;'
-            % (self.formatted_name, self.value.encode ('utf-8'))
-            )
+        r.append (b'SET %s = %s;' % (self.formatted_name, self.value))
         return b'\n'.join (r)
     # end def as_pgsql
 
@@ -750,6 +790,10 @@ class DB_Object (Name_Item) :
         self.owner  = ''
         self.schema = ''
         self.__super.__init__ (name)
+        if b'.' in self.name :
+            # Should only contain a single dot
+            self.schema, self.name = self.name.split (b'.')
+            self.with_schema = True
     # end def __init__
 
     def set_schema (self, schema) :
@@ -770,11 +814,8 @@ class DB_Object (Name_Item) :
         r = []
         if self.owner :
             r.append \
-                ( b'ALTER TABLE %s.%s OWNER TO %s;'
-                % ( self.schema.encode ('utf-8')
-                  , self.formatted_name
-                  , self.owner.encode ('utf-8')
-                  )
+                ( b'ALTER TABLE %s OWNER TO %s;'
+                % (self.formatted_name, self.owner)
                 )
             r.append (b'')
         return b'\n'.join (r)
@@ -799,40 +840,41 @@ class Sequence (DB_Object) :
         r = []
         r.append (b'--')
         x = []
-        x.append (b'-- Name: %s' % self.formatted_name)
+        x.append (b'-- Name: %s' % self.short_name)
         x.append (b'Type: SEQUENCE')
-        x.append (b'Schema: %s' % self.schema.encode ('utf-8'))
-        x.append (b'Owner: %s' % self.owner.encode ('utf-8'))
+        x.append (b'Schema: %s' % self.schema)
+        x.append (b'Owner: %s' % self.owner)
         r.append (b'; '.join (x))
         r.append (b'--')
         r.append (b'')
         r.append (b'CREATE SEQUENCE %s' % self.formatted_name)
-        r.append (b'    START WITH %s' % self.start)
-        r.append (b'    INCREMENT BY %s' % self.inc)
+        r.append (b'    START WITH %d' % self.start)
+        r.append (b'    INCREMENT BY %d' % self.inc)
         if self.min is None :
             r.append (b'    NO MINVALUE')
         if self.max is None :
             r.append (b'    NO MAXVALUE')
-        r.append (b'    CACHE %s;' % self.cache)
-        r.append (b'')
+        r.append (b'    CACHE %d;' % self.cache)
         r.append (b'')
         r.append (self.owner_as_pgsql ())
-        r.append (b'--')
-        x = []
-        x.append (b'-- Name: %s' % self.formatted_name)
-        x.append (b'Type: SEQUENCE OWNED BY')
-        x.append (b'Schema: %s' % self.schema.encode ('utf-8'))
-        x.append (b'Owner: %s' % self.owner.encode ('utf-8'))
-        r.append (b'; '.join (x))
-        r.append (b'--')
-        r.append (b'')
-        col = self.column.name.encode ('utf-8')
-        tbl = self.column.table.name.encode ('utf-8')
-        r.append \
-            ( b'ALTER SEQUENCE %s OWNED BY %s.%s;'
-            % (self.formatted_name, tbl, col)
-            )
-        r.append (b'')
+        if getattr (self, 'column', None) :
+            r.append (b'')
+            r.append (b'--')
+            x = []
+            x.append (b'-- Name: %s' % self.short_name)
+            x.append (b'Type: SEQUENCE OWNED BY')
+            x.append (b'Schema: %s' % self.schema)
+            x.append (b'Owner: %s' % self.owner)
+            r.append (b'; '.join (x))
+            r.append (b'--')
+            r.append (b'')
+            col = self.column.name
+            tbl = self.column.table
+            r.append \
+                ( b'ALTER SEQUENCE %s OWNED BY %s.%s;'
+                % (self.formatted_name, tbl, col)
+                )
+            r.append (b'')
         r.append (b'')
         return b'\n'.join (r)
     # end def as_pgsql
@@ -841,10 +883,10 @@ class Sequence (DB_Object) :
         r = []
         r.append (b'--')
         x = []
-        x.append (b'-- Name: %s' % self.column.formatted_name)
+        x.append (b'-- Name: %s' % self.column.short_name)
         x.append (b'Type: DEFAULT')
-        x.append (b'Schema: %s' % self.schema.encode ('utf-8'))
-        x.append (b'Owner: %s' % self.owner.encode ('utf-8'))
+        x.append (b'Schema: %s' % self.schema)
+        x.append (b'Owner: %s' % self.owner)
         r.append (b'; '.join (x))
         r.append (b'--')
         r.append (b'')
@@ -860,14 +902,36 @@ class Sequence (DB_Object) :
         r.append (b'')
         return b'\n'.join (r)
     # end def default_as_pgsql
+
+    def init_as_pgsql (self) :
+        r = []
+        r.append (b'--')
+        x = []
+        x.append (b'-- Name: %s' % self.short_name)
+        x.append (b'Type: SEQUENCE SET')
+        x.append (b'Schema: %s' % self.schema)
+        x.append (b'Owner: %s' % self.owner)
+        r.append (b'; '.join (x))
+        r.append (b'--')
+        r.append (b'')
+        tf = [b'false', b'true'][self.booly]
+        r.append \
+            ( b'SELECT pg_catalog.setval(%s, %d, %s);'
+            % (self.quoted_fullname, self.value, tf)
+            )
+        r.append (b'')
+        r.append (b'')
+        return b'\n'.join (r)
+    # end def init_as_pgsql
+
 # end class Sequence
 
 class Table (DB_Object) :
 
     def __init__ (self, name) :
-        self.owner        = ''
-        self.schema       = ''
-        self.tspace       = ''
+        self.owner        = b''
+        self.schema       = b''
+        self.tspace       = b''
         self.columns      = []
         self.by_col       = {}
         self.contents     = []
@@ -893,7 +957,7 @@ class Table (DB_Object) :
     def append_index (self, idx) :
         self.indeces.append (idx)
         idx.table = self
-    # end def append_key
+    # end def append_index
 
     def append_key (self, key) :
         self.keys.append (key)
@@ -911,11 +975,12 @@ class Table (DB_Object) :
         r = []
         r.append (b'--')
         x = []
-        x.append (b'-- Name: %s' % self.formatted_name)
+        x.append (b'-- Name: %s' % self.short_name)
         x.append (b'Type: TABLE')
-        x.append (b'Schema: %s' % self.schema.encode ('utf-8'))
-        x.append (b'Owner: %s' % self.owner.encode ('utf-8'))
-        x.append (b'Tablespace: %s' % self.tspace.encode ('utf-8'))
+        x.append (b'Schema: %s' % self.schema)
+        x.append (b'Owner: %s' % self.owner)
+        if self.tspace :
+            x.append (b'Tablespace: %s' % self.tspace)
         r.append (b'; '.join (x))
         r.append (b'--')
         r.append (b'')
@@ -947,10 +1012,10 @@ class Table (DB_Object) :
         r = []
         r.append (b'--')
         x = []
-        x.append (b'-- Data for Name: %s' % self.formatted_name)
+        x.append (b'-- Data for Name: %s' % self.short_name)
         x.append (b'Type: TABLE DATA')
-        x.append (b'Schema: %s' % self.schema.encode ('utf-8'))
-        x.append (b'Owner: %s' % self.owner.encode ('utf-8'))
+        x.append (b'Schema: %s' % self.schema)
+        x.append (b'Owner: %s' % self.owner)
         r.append (b'; '.join (x))
         r.append (b'--')
         r.append (b'')
@@ -964,6 +1029,8 @@ class Table (DB_Object) :
             for col in self.columns :
                 cn = col.name
                 v = line [cn]
+                if isinstance (v, string_types) :
+                    v = v.encode ('utf-8')
                 c.append (col.typecl.format (dialect_pg, col.typ, v))
             r.append (b'\t'.join (c))
         r.append (b'\\.')
@@ -971,22 +1038,7 @@ class Table (DB_Object) :
         r.append (b'')
         for col in self.columns :
             for seq in col.sequences :
-                r.append (b'--')
-                x = []
-                x.append (b'-- Name: %s' % seq.formatted_name)
-                x.append (b'Type: SEQUENCE SET')
-                x.append (b'Schema: %s' % self.schema.encode ('utf-8'))
-                x.append (b'Owner: %s' % self.owner.encode ('utf-8'))
-                r.append (b'; '.join (x))
-                r.append (b'--')
-                r.append (b'')
-                tf = [b'false', b'true'][seq.booly]
-                r.append \
-                    ( b'SELECT pg_catalog.setval(%s, %s, %s);'
-                    % (seq.quoted_name, seq.value, tf)
-                    )
-                r.append (b'')
-                r.append (b'')
+                r.append (seq.init_as_pgsql ())
         return b'\n'.join (r)
     # end def content_as_pgsql
 
@@ -1040,6 +1092,9 @@ class SQL_Parser (Parser) :
     re_index   = re.compile (br'CREATE INDEX (\S+) ON (\S+) USING (\S+) '
                              br'\(([^)]+)\);'
                             )
+    re_uindex  = re.compile (br'CREATE UNIQUE INDEX (\S+) ON (\S+) USING (\S+) '
+                             br'\(([^)]+)\);'
+                            )
     re_set     = re.compile (br'SET (\S+) = ([^;]+);')
     re_ext     = re.compile (br'CREATE EXTENSION IF NOT EXISTS (\S+) '
                              br'WITH SCHEMA (\S+);'
@@ -1061,6 +1116,7 @@ class SQL_Parser (Parser) :
         , ["init",  re_sq_set,  "init",  "seq_setval"]
         , ["init",  re_ato,     "cons",  "cons_start"]
         , ["init",  re_index,   "init",  "create_index"]
+        , ["init",  re_uindex,  "init",  "create_uindex"]
         , ["init",  re_set,     "init",  "set_stmt"]
         , ["init",  re_ext,     "init",  "ext_stmt"]
         , ["init",  re_comment, "init",  "ext_comment"]
@@ -1087,6 +1143,7 @@ class SQL_Parser (Parser) :
         self.tables            = {}
         self.tablenames        = []
         self.sequences         = {}
+        self.free_seq          = {}
         self.fix_double_encode = fix_double_encode
         self.objects           = []
         self.extensions        = {}
@@ -1113,9 +1170,15 @@ class SQL_Parser (Parser) :
             df = tbl.seq_defaults ()
             if df :
                 r.append (df)
+        for sn in self.free_seq :
+            seq = self.free_seq [sn]
+            r.append (seq.as_pgsql ())
         for tn in self.tablenames :
             tbl = self.tables [tn]
             r.append (tbl.content_as_pgsql ())
+        for sn in self.free_seq :
+            seq = self.free_seq [sn]
+            r.append (seq.init_as_pgsql ())
         keys = []
         for tn in self.tablenames :
             tbl  = self.tables [tn]
@@ -1150,7 +1213,7 @@ class SQL_Parser (Parser) :
     def cons_end (self, state, new_state, match) :
         name = match.group (1)
         typ  = match.group (2)
-        cns  = match.group (3).split (',')
+        cns  = match.group (3).split (b',')
         cols = []
         for c in cns :
             c = c.strip ()
@@ -1165,7 +1228,7 @@ class SQL_Parser (Parser) :
         fields  = self.fields
         dfields = line.split (b'\t')
         # compensate for rstrip
-        for x in xrange (len (fields) - len (dfields)) :
+        for x in range (len (fields) - len (dfields)) :
             dfields.append (b'')
         tbl.contents.append \
             (adict ((a, tbl [a].typecl (b)) for a, b in zip (fields, dfields)))
@@ -1174,29 +1237,35 @@ class SQL_Parser (Parser) :
     def copy_start (self, state, new_state, match) :
         self.tablename = match.group (1)
         self.table     = self.tables [self.tablename]
-        self.fields    = [x.strip ('"') for x in match.group (2).split (', ')]
+        self.fields    = [x.strip (b'"') for x in match.group (2).split (b', ')]
     # end def copy_start
 
     def create_index (self, state, new_state, match) :
         name = match.group (1)
         tbl  = self.tables [match.group (2)]
         typ  = match.group (3)
-        cns  = match.group (4).split (',')
+        cns  = match.group (4).split (b',')
         cols = []
         ops  = {}
         for c in cns :
             c = c.strip ()
-            cops = c.split (' ', 1)
-            op  = ''
+            cops = c.split (b' ', 1)
+            op  = b''
             if len (cops) > 1 :
                 c = cops [0]
                 op = cops [1]
                 ops [c] = op
-            c = c.strip ('"')
+            c = c.strip (b'"')
             col = tbl [c]
             cols.append (col)
         tbl.append_index (Index (name, typ, cols, ops))
     # end def create_index
+
+    def create_uindex (self, state, new_state, match) :
+        r = self.create_index (state, new_state, match)
+        tbl = self.tables [match.group (2)]
+        tbl.indeces [-1].is_unique = True
+    # end def create_uindex
 
     def dump (self) :
         for tn in self.tablenames :
@@ -1241,10 +1310,10 @@ class SQL_Parser (Parser) :
     def insert (self, state, new_state, match) :
         """ This asumes the whole insert statement is one line. """
         name   = match.group (1)
-        tpl    = match.group (2).split ('),(')
+        tpl    = match.group (2).split (b'),(')
         tuples = []
         for t in tpl :
-            tuples.append (t.replace ('\\n', '\n').replace ('\\r', '\r'))
+            tuples.append (t.replace (b'\\n', b'\n').replace (b'\\r', b'\r'))
         tbl    = self.tables [name]
         fields = tbl.columns
         reader = csv.reader \
@@ -1261,12 +1330,13 @@ class SQL_Parser (Parser) :
         schema = ''
         name   = match.group (1)
         owner  = match.group (2)
-        if '.' in name :
-            schema, name = name.rsplit ('.', 1)
-        if name in self.tables :
-            obj = self.tables [name]
+        ename  = name
+        if b'.' in name :
+            schema, name = name.rsplit (b'.', 1)
+        if ename in self.tables :
+            obj = self.tables [ename]
         else :
-            obj = self.sequences [name]
+            obj = self.sequences [ename]
         obj.set_owner (owner)
         obj.set_schema (schema)
     # end def owner
@@ -1282,6 +1352,7 @@ class SQL_Parser (Parser) :
         tbl = self.tables [tbln]
         col = tbl [coln]
         col.append_sequence (seq)
+        del self.free_seq [name]
     # end def seq_alter
 
     def seq_cache (self, state, new_state, match) :
@@ -1304,13 +1375,14 @@ class SQL_Parser (Parser) :
         name = match.group (1)
         seq  = self.sequences [name]
         seq.value = int (match.group (2))
-        seq.booly = (match.group (3) == 'true')
+        seq.booly = (match.group (3) == b'true')
     # end def seq_inc
 
     def seq_start (self, state, new_state, match) :
         name = match.group (1)
         self.seq = Sequence (name)
         self.sequences [name] = self.seq
+        self.free_seq  [name] = self.seq
     # end def seq_start
 
     def seq_startwith (self, state, new_state, match) :
@@ -1344,48 +1416,50 @@ class SQL_Parser (Parser) :
             name, typ, rest = line.split (None, 2)
         except ValueError :
             name, typ = line.split (None, 1)
-            if typ.endswith (',') :
+            if typ.endswith (b',') :
                 typ = typ [:-1]
-            rest = ''
-        typ  = typ.rstrip (',')
-        rest = rest.rstrip (',')
-        if '(' in typ :
-            pars = typ [typ.index ('(') + 1:typ.index (')')].split (',')
-        elif '(' in rest :
-            pars = rest [rest.index ('(') + 1:rest.index (')')].split (',')
-        if name.startswith ('"') or name.startswith ('`') :
+            rest = b''
+        typ  = typ.rstrip (b',')
+        rest = rest.rstrip (b',')
+        if b'(' in typ :
+            pars = typ [typ.index (b'(') + 1:typ.index (b')')].split (b',')
+        elif b'(' in rest :
+            pars = rest [rest.index (b'(') + 1:rest.index (b')')].split (b',')
+        if name.startswith (b'"') or name.startswith (b'`') :
             name = name [1:-1]
-        tn = typ.split ('(', 1) [0]
-        if tn == 'character' and rest.startswith ('varying') :
-            tn = 'character varying'
-        if rest.startswith ('with time zone') :
-            tn = tn + ' with time zone'
-        if rest.startswith ('without time zone') :
-            tn = tn + ' without time zone'
-        if typ.startswith ('int(') or typ.startswith ('tinyint(') :
-            typ = 'integer'
-        if typ.startswith ('varchar') :
-            typ = 'varchar'
-        if typ.startswith ('enum') :
-            typ = 'enum'
-        if typ.startswith ('numeric') :
-            typ = 'numeric'
-        if name in ('PRIMARY', 'UNIQUE') and typ == 'KEY' :
+        tn = typ.split (b'(', 1) [0]
+        if tn == b'character' and rest.startswith (b'varying') :
+            tn = b'character varying'
+        if rest.startswith (b'with time zone') :
+            tn = tn + b' with time zone'
+        if rest.startswith (b'without time zone') :
+            tn = tn + b' without time zone'
+        if typ.startswith (b'int(') or typ.startswith (b'tinyint(') :
+            typ = b'integer'
+        if typ.startswith (b'varchar') :
+            typ = b'varchar'
+        if typ.startswith (b'enum') :
+            typ = b'enum'
+        if typ.startswith (b'numeric') :
+            typ = b'numeric'
+        if name in (b'PRIMARY', b'UNIQUE') and typ == b'KEY' :
             # FIXME: Should produce a key object
             self.table.append_key (line)
             return
-        if name == 'KEY' :
+        if name == b'KEY' :
             # FIXME: Should produce a key object
             self.table.append_key (line)
             return
-        if name == 'CONSTRAINT' :
+        if name == b'CONSTRAINT' :
             self.table.append_constraint (line)
             return
-        method = getattr (self, 'type_' + typ, self.type_default)
+        t = typ.decode ('ascii')
+        r = rest.decode ('ascii')
+        method = getattr (self, 'type_' + t, self.type_default)
         nullable = True
-        if rest.endswith ('NOT NULL') :
+        if rest.endswith (b'NOT NULL') :
             nullable = False
-        col = Column (name, tn, method (typ, rest, pars), nullable)
+        col = Column (name, tn, method (t, r, pars), nullable)
         self.table.append_column (col)
         m = self.re_default.search (rest)
         if m :
@@ -1393,7 +1467,7 @@ class SQL_Parser (Parser) :
     # end def table_entry
 
     def table_start (self, state, new_state, match) :
-        name = match.group (1).strip ('`')
+        name = match.group (1).strip (b'`')
         self.table = self.tables  [name] = Table (name)
         self.tablenames.append (name)
     # end def table_start
@@ -1453,5 +1527,5 @@ if __name__ == "__main__" :
         f = sys.stdin
     c = SQL_Parser ()
     c.parse    (f)
-    print (c.as_pgsql ())
+    print (c.as_pgsql ().decode ('utf-8'))
 ### __END__ sqlparser

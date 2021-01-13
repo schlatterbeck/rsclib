@@ -28,6 +28,8 @@ from rsclib.autosuper    import autosuper
 from rsclib.base_pickler import Base_Pickler
 from rsclib.pycompat     import string_types
 
+pattern_type = type (re.compile (''))
+
 class Parse_Error (ValueError) : pass
 
 class Debug (autosuper) :
@@ -82,7 +84,7 @@ class Transition (Debug) :
             self.debug \
                 (2, "match: %s (act = %s)" % (self.pattern, self.act_name))
             return self._transition ()
-        if isinstance (self.pattern, re.Pattern) :
+        if isinstance (self.pattern, pattern_type) :
             m = self.pattern.search (line)
             if m :
                 self.debug (2, "match: <regex> (act = %s)" % self.act_name)

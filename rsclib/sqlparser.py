@@ -1170,13 +1170,13 @@ class SQL_Parser (Parser) :
             df = tbl.seq_defaults ()
             if df :
                 r.append (df)
-        for sn in self.free_seq :
+        for sn in sorted (self.free_seq) :
             seq = self.free_seq [sn]
             r.append (seq.as_pgsql ())
         for tn in self.tablenames :
             tbl = self.tables [tn]
             r.append (tbl.content_as_pgsql ())
-        for sn in self.free_seq :
+        for sn in sorted (self.free_seq) :
             seq = self.free_seq [sn]
             r.append (seq.init_as_pgsql ())
         keys = []

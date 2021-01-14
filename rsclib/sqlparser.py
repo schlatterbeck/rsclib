@@ -460,8 +460,18 @@ class adict (dict) :
     def __getattr__ (self, key) :
         if key in self :
             return self [key]
+        if isinstance (key, ustr) :
+            k = key.encode ('utf-8')
+            if k in self :
+                return self [k]
         raise AttributeError (key)
     # end def __getattr__
+
+    def __setattr__ (self, key, value) :
+        if isinstance (key, ustr) :
+            key = key.encode ('utf-8')
+        self [key] = value
+    # end def __setattr__
 
     def set_done (self, done = True) :
         self.done = done

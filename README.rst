@@ -114,6 +114,11 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.58: sqlparser
+
+    - Fix python3 string handling for sqlparser
+    - Small fix in stateparser
+
 Version 0.57: isdn
 
     - Add parsing of beronet GSM modules

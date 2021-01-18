@@ -451,6 +451,9 @@ def make_naive (dt) :
 # end make_naive
 
 class adict (dict) :
+    """ A dictionary that is a little more tolerant *and* is able to
+        access elements with an attribute access.
+    """
 
     def __init__ (self, *args, **kw) :
         self.done = False
@@ -458,12 +461,15 @@ class adict (dict) :
     # end def __init__
 
     def __getattr__ (self, key) :
-        if key in self :
-            return self [key]
-        if isinstance (key, ustr) :
-            k = key.encode ('utf-8')
+        if key.startswith ('public') :
+            key = key.split ('.', 1) [-1]
+        for k in key, 'public.' + key :
             if k in self :
                 return self [k]
+            if isinstance (k, ustr) :
+                k = k.encode ('utf-8')
+                if k in self :
+                    return self [k]
         raise AttributeError (key)
     # end def __getattr__
 
@@ -509,18 +515,12 @@ class ACL (autosuper) :
         for (name, schema, frm) in self.revoke :
             r.append \
                 ( b'REVOKE %s ON SCHEMA %s FROM %s;'
-                % ( name.encode ('utf-8')
-                  , schema.encode ('utf-8')
-                  , frm.encode ('utf-8')
-                  )
+                % (name, schema, frm)
                 )
         for (name, schema, to) in self.grant :
             r.append \
                 ( b'GRANT %s ON SCHEMA %s TO %s;'
-                % ( name.encode ('utf-8')
-                  , schema.encode ('utf-8')
-                  , to.encode ('utf-8')
-                  )
+                % (name, schema, to)
                 )
         if self.grant or self.revoke :
             r.append (b'')
@@ -630,7 +630,7 @@ class Extension (Name_Item) :
         r.append (b'')
         r.append \
             ( b'CREATE EXTENSION IF NOT EXISTS %s WITH SCHEMA %s;'
-            % (self.formatted_name, self.schema.encode ('utf-8'))
+            % (self.formatted_name, self.schema)
             )
         r.append (b'')
         r.append (b'')
@@ -646,7 +646,7 @@ class Extension (Name_Item) :
             r.append (b'')
             r.append \
                 ( b"COMMENT ON EXTENSION %s IS '%s';"
-                % (self.formatted_name, self.type.encode ('utf-8'))
+                % (self.formatted_name, self.type)
                 )
             r.append (b'')
             r.append (b'')
@@ -824,8 +824,8 @@ class DB_Object (Name_Item) :
         r = []
         if self.owner :
             r.append \
-                ( b'ALTER TABLE %s OWNER TO %s;'
-                % (self.formatted_name, self.owner)
+                ( b'ALTER TABLE %s.%s OWNER TO %s;'
+                % (self.schema, self.name, self.owner)
                 )
             r.append (b'')
         return b'\n'.join (r)
@@ -1150,9 +1150,9 @@ class SQL_Parser (Parser) :
         ]
 
     def __init__ (self, fix_double_encode = False, *args, **kw) :
-        self.tables            = {}
+        self.tables            = adict ()
         self.tablenames        = []
-        self.sequences         = {}
+        self.sequences         = adict ()
         self.free_seq          = {}
         self.fix_double_encode = fix_double_encode
         self.objects           = []
@@ -1342,13 +1342,14 @@ class SQL_Parser (Parser) :
         owner  = match.group (2)
         ename  = name
         if b'.' in name :
-            schema, name = name.rsplit (b'.', 1)
-        if ename in self.tables :
-            obj = self.tables [ename]
-        else :
-            obj = self.sequences [ename]
-        obj.set_owner (owner)
-        obj.set_schema (schema)
+            schema, ename = name.rsplit (b'.', 1)
+        for n in ename, name :
+            for d in self.tables, self.sequences :
+                obj = d.get (n, None)
+                if obj is not None :
+                    obj.set_owner (owner)
+                    obj.set_schema (schema)
+                    return
     # end def owner
 
     def revoke_stmt (self, state, new_state, match) :

@@ -114,6 +114,10 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.59: sqlparser
+
+    - Support older postgresql versions, tested 9.6
+
 Version 0.58: sqlparser
 
     - Fix python3 string handling for sqlparser

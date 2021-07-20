@@ -82,3 +82,10 @@ def assert_raises (exception, substr, function, * args) :
             assert False
     assert False
 # end def assert_raises
+
+if PY2 :
+    bytes_ord = ord
+    tobytes   = chr
+else :
+    bytes_ord = lambda x : x
+    tobytes   = lambda x : bytes ([x])

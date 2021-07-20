@@ -87,7 +87,7 @@ def binom (n, m) :
     """ Compute binomial coefficient of n, m """
     b = [0] * (n + 1)
     b [0] = 1
-    for i in xrange (1, n + 1) :
+    for i in range (1, n + 1) :
         b [i] = 1
         j = i - 1
         while j > 0 :

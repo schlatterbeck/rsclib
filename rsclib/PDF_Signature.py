@@ -159,7 +159,7 @@ class PDF_Signature :
         """
         hash = "%08x" % name.as_hash ()
         path = os.path.join (self.cert_location, hash)
-        for ext in xrange (10) :
+        for ext in range (10) :
             try :
                 cert = X509.load_cert ("%s.%s" % (path, ext))
                 if cert.get_subject ().as_der () == name.as_der () :

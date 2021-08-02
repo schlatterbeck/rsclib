@@ -1,6 +1,5 @@
 #!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
-# Copyright (C) 2011-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2011-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -21,11 +20,17 @@
 # ****************************************************************************
 
 from __future__ import print_function
-from math import pi, log
+from math import pi, log, sqrt
 
+# According to Wikipedia
+# https://de.wikipedia.org/wiki/Magnetische_Feldkonstante
+# mu0 is no longer defined in terms of pi
+# c is exact because the meter is defined by c
+mu0  = 1.2566370621219e-6
 c    = 299792458
-mu0  = 4e-7 * pi
 eps0 = 1. / (mu0 * c**2)
+#mu0  = 4e-7 * pi
+#eps0 = 8.854187812813e-12
 
 def cylindrical (l, r1, r2) :
     return 2 * pi * eps0 * l / log (r2 / float (r1))

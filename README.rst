@@ -114,6 +114,11 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.60: Python3 fixes
+    - hexdump
+    - xrange
+    - compatibility for bytes iterator
+
 Version 0.59: sqlparser
 
     - Support older postgresql versions, tested 9.6

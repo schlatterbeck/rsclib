@@ -114,6 +114,9 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.61: sqlparser
+    - Allow filtering during reading of sql dump
+
 Version 0.60: Python3 fixes
     - hexdump
     - xrange

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2012-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2012-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -1158,11 +1158,26 @@ class SQL_Parser (Parser) :
         self.objects           = []
         self.extensions        = {}
         self.acl               = ACL ()
+        self.droptable         = {}
+        self.emptytable        = {}
+        self.cb                = {}
         # remember column names in creation order, should really use an
         # OrderedDict in self.tables but this means at least python2.7
         self.columns  = {}
         self.__super.__init__ (*args, **kw)
     # end def __init__
+
+    def register_empty_table (self, tablename) :
+        self.emptytable [tablename.encode ('utf-8')] = True
+    # end def register_empty_table
+
+    def register_drop_table (self, tablename) :
+        self.droptable [tablename.encode ('utf-8')] = True
+    # end def register_drop_table
+
+    def register_table_callback (self, tablename, method) :
+        self.cb [tablename.encode ('utf-8')] = method
+    # end def register_table_callback
 
     def as_pgsql (self) :
         r = []
@@ -1236,23 +1251,40 @@ class SQL_Parser (Parser) :
         line    = self.line.rstrip (b'\n')
         tbl     = self.table
         fields  = self.fields
+        if tbl is None or fields is None :
+            return
         dfields = line.split (b'\t')
         # compensate for rstrip
         for x in range (len (fields) - len (dfields)) :
             dfields.append (b'')
-        tbl.contents.append \
-            (adict ((a, tbl [a].typecl (b)) for a, b in zip (fields, dfields)))
+        contents = adict \
+            ((a, tbl [a].typecl (b)) for a, b in zip (fields, dfields))
+        doit = True
+        if tbl.name in self.cb :
+            doit = self.cb [tbl.name](contents)
+        if doit :
+            tbl.contents.append (contents)
     # end def copy_entry
 
     def copy_start (self, state, new_state, match) :
-        self.tablename = match.group (1)
-        self.table     = self.tables [self.tablename]
+        name  = match.group (1)
+        table = self.tables.get (name)
+        if not table :
+            self.table = self.tablename = self.fields = None
+            return
+        if table.name in self.droptable or table.name in self.emptytable :
+            self.table = self.tablename = self.fields = None
+            return
+        self.tablename = name
+        self.table     = table
         self.fields    = [x.strip (b'"') for x in match.group (2).split (b', ')]
     # end def copy_start
 
     def create_index (self, state, new_state, match) :
         name = match.group (1)
-        tbl  = self.tables [match.group (2)]
+        tbl  = self.tables.get (match.group (2))
+        if not tbl :
+            return
         typ  = match.group (3)
         cns  = match.group (4).split (b',')
         cols = []
@@ -1412,15 +1444,18 @@ class SQL_Parser (Parser) :
             But the dump is in utf-8 anyway (!)
         """
         m = self.re_charset.search (self.line)
-        for c in self.table.columns :
-            if 0 and m :
-                c.charset = m.group (1)
-            if self.fix_double_encode :
-                c.typecl.fix_double_encode = True
+        if self.table is not None :
+            for c in self.table.columns :
+                if 0 and m :
+                    c.charset = m.group (1)
+                if self.fix_double_encode :
+                    c.typecl.fix_double_encode = True
         self.table = None
     # end def table_end
 
     def table_entry (self, state, new_state, match) :
+        if self.table is None :
+            return
         line = self.line.strip ()
         pars = ()
         try :
@@ -1479,8 +1514,12 @@ class SQL_Parser (Parser) :
 
     def table_start (self, state, new_state, match) :
         name = match.group (1).strip (b'`')
-        self.table = self.tables  [name] = Table (name)
-        self.tablenames.append (name)
+        tbl  = Table (name)
+        if tbl.name in self.droptable :
+            self.table = None
+        else :
+            self.table = self.tables [name] = tbl
+            self.tablenames.append (name)
     # end def table_start
 
     # Magic type methods for SQL types:

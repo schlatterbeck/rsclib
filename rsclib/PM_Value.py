@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# Copyright (C) 2005-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+#!/usr/bin/python3
+# Copyright (C) 2005-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -20,7 +20,7 @@
 # ****************************************************************************
 
 from __future__ import division
-from pycompat   import long_type
+from rsclib.pycompat  import long_type
 import operator
 from rsclib.autosuper import autosuper
 
@@ -81,6 +81,12 @@ class PM_Value (autosuper) :
         0
         >>> b.missing
         1
+        >>> a = PM_Value (1)
+        >>> b = PM_Value (2)
+        >>> a // b
+        0
+        >>> a / b
+        0.5
     """
 
     def __init__ (self, value = None, missing = 0) :
@@ -142,7 +148,7 @@ def _define_convop (func) :
 # end _define_convop
 
 for name in \
-    ( '__add__',      '__sub__', '__mul__', '__truediv__', '__div__'
+    ( '__add__',      '__sub__', '__mul__', '__truediv__'
     , '__floordiv__', '__mod__', '__pow__', '__lshift__', '__rshift__'
     , '__and__',      '__xor__', '__or__'
     ) :

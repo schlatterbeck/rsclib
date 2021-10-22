@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# Copyright (C) 2005-07 Dr. Ralf Schlatterbeck Open Source Consulting.
+#!/usr/bin/python3
+# Copyright (C) 2005-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -70,6 +70,7 @@ class Config_File (autosuper) :
     def has_key (self, key) :
         return self.dict.has_key (key)
     # end def has_key
+    __contains__ = has_key
 
     def get (self, key, val = None) :
         return self.dict.get (key, val)

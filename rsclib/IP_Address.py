@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# Copyright (C) 2005-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+#!/usr/bin/python3
+# Copyright (C) 2005-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -222,7 +222,7 @@ class IP_Address (IP_Meta) :
             mask = self._bitlen
         inc = 1 << (self._bitlen - mask)
         if mask < self._mask :
-            raise StopIteration
+            return
         # xrange doesn't support long ints :-( see xxrange import above
         for i in xrange (0, self._broadcast - self._ip + 1, inc) :
             yield self.__class__ (i + self._ip, mask)

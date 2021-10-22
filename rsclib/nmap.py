@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# Copyright (C) 2010-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+#!/usr/bin/python3
+# Copyright (C) 2010-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -161,6 +161,13 @@ class Host (autosuper) :
                or cmp (self.ports, other.ports)
                )
     # end def __cmp__
+
+    def __lt__ (self, other) :
+        return \
+            (  self.ip < other.ip
+            or self.ip == other.ip and self.ports < other.ports
+            )
+    # end def __lt__
 
     def __repr__ (self) :
         ret = []

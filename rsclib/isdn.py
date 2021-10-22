@@ -1,6 +1,5 @@
-#!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
-# Copyright (C) 2009-20 Dr. Ralf Schlatterbeck Open Source Consulting.
+#!/usr/bin/python3
+# Copyright (C) 2009-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -104,7 +103,7 @@ class ISDN_Interface (autosuper) :
     def register (self, port) :
         self.ports [port.number] = port
         if not hasattr (self, 'basechan') :
-            ports = list (sorted (self.ports.keys ()))
+            ports = list (sorted (self.ports))
             self._tc = ports [-1] - ports [0]
             self._bc = ports [0]
     # end def register

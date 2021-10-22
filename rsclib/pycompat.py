@@ -1,6 +1,5 @@
-#!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
-# Copyright (C) 2013-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+#!/usr/bin/python3
+# Copyright (C) 2013-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -26,8 +25,9 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-
+import io
 import sys
+
 PY2 = sys.version_info [0] == 2
 if PY2 :
     text_type    = unicode
@@ -89,3 +89,8 @@ if PY2 :
 else :
     bytes_ord = lambda x : x
     tobytes   = lambda x : bytes ([x])
+
+if PY2 :
+    StringIO = io.BytesIO
+else :
+    StringIO = io.StringIO

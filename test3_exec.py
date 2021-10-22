@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # test exec framework for multi-pipe
 import time
 import sys
@@ -33,4 +33,4 @@ p1.wait ()
 
 for p in (p1, p2, p3, p4) :
     if p.status :
-        print exitstatus (p.name, p.status)
+        print (exitstatus (p.name, p.status))

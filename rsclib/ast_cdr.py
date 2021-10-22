@@ -1,6 +1,5 @@
-#!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
-# Copyright (C) 2009 Dr. Ralf Schlatterbeck Open Source Consulting.
+#!/usr/bin/python3
+# Copyright (C) 2009-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -20,6 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
+from __future__ import print_function
 import csv
 import time
 from   gzip             import open as gzopen
@@ -97,7 +97,7 @@ class CDR_Parser (autosuper) :
     """ Parse Asterisk CDR records, see CDR_Parser.fields for an
         explanation of asterisk CDR fields.
 
-        >>> from io import StringIO
+        >>> from rsclib.pycompat import StringIO
         >>> line = ('"","3","11","attendo","3","lcr/439","IAX2/pbx-14597",'
         ...         '"Read","dtmf||20|noanswer||3","2009-04-23 15:16:52",'
         ...         '"2009-04-23 15:16:52","2009-04-23 15:17:37",45,45,'

@@ -1,6 +1,5 @@
-#!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
-# Copyright (C) 2007-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+#!/usr/bin/python3
+# Copyright (C) 2007-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -20,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-from __future__          import unicode_literals
+from __future__          import unicode_literals, print_function
 
 import re
 import sys
@@ -35,7 +34,7 @@ class Parse_Error (ValueError) : pass
 class Debug (autosuper) :
     def debug (self, level, * msg) :
         if self.verbose >= level :
-            print >> sys.stderr, ' '.join (unicode (x) for x in msg)
+            print (' '.join (unicode (x) for x in msg), file = sys.stderr)
             sys.stderr.flush ()
     # end def debug
 # end class Debug

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # test exec framework for multi-pipe
 import time
 import sys
@@ -26,10 +26,10 @@ p1.append (p3)
 
 stdout, stderr = p1.communicate ()
 
-print "STDOUT"
-print stdout,
+print ("STDOUT")
+print (stdout, end = '')
 print "STDERR"
-print stderr,
+print (stderr, end = '')
 
 for p in (p1, p2, p3) :
     if p.status :

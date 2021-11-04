@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (C) 2005-12 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -49,7 +49,7 @@ setup \
     , packages         = ['rsclib']
     , platforms        = 'Any'
     , url              = "http://rsclib.sourceforge.net/"
-    , scripts          = ['ast_sip_check']
+    , scripts          = ['bin/ast_sip_check', 'bin/rsclib-hexdump']
     , python_requires  = rq
     , download_url     = \
         "%(download)s/%(VERSION)s/rsclib-%(VERSION)s.tar.gz" % locals ()
@@ -64,5 +64,8 @@ setup \
         , 'Programming Language :: Python :: 3'
         , 'Programming Language :: Python :: 3.5'
         , 'Programming Language :: Python :: 3.6'
+        , 'Programming Language :: Python :: 3.7'
+        , 'Programming Language :: Python :: 3.8'
+        , 'Programming Language :: Python :: 3.9'
         ]
     )

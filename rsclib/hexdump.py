@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2011-19 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2011-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -33,7 +33,7 @@ def ascii (s) :
     return s
 # end def ascii
 
-def hexdump (s, start = 0, show_addr = True) :
+def hexdump (s, start = 0, show_addr = True, last_addr = True) :
     """
     >>> a = b'1234567890abcdefghijklmnopqrstuv'
     >>> print (hexdump (a + b'\\xce\\x02\\xb9\x49', show_addr = False))
@@ -48,14 +48,16 @@ def hexdump (s, start = 0, show_addr = True) :
     assert isinstance (s, type (b''))
     r = []
     for x in range (len (s) // 16 + 1) :
+        slc  = s [x*16:(x+1)*16]
         adr  = '%08x'  % (start + x * 16)
         hex  = '%-48s' % ' '.join \
-            ("%02x" % bytes_ord (k) for k in s [x*16:(x+1)*16])
-        char = '%-16s' % ''.join (ascii (k) for k in s [x*16:(x+1)*16])
+            ("%02x" % bytes_ord (k) for k in slc)
+        char = '%-16s' % ''.join (ascii (k) for k in slc)
         vars = (adr, hex, char)
         if not show_addr :
             vars = (hex, char)
-        r.append ('  '.join (vars))
+        if last_addr or slc :
+            r.append ('  '.join (vars))
     return '\n'.join (r)
 # end def hexdump
 

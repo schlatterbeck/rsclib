@@ -1,0 +1,22 @@
+#!/usr/bin/python3
+
+import sys
+from rsclib.hexdump import hexdump
+
+def hexdump_f (f, bs = 512) :
+    adr = 0
+    while 1 :
+        b = f.read (bs)
+        if not b :
+            break
+        print (hexdump (b, adr, last_addr = False))
+        adr += bs
+
+if len (sys.argv) > 1 :
+    for fn in sys.argv [1:] :
+        if len (sys.argv) > 2 :
+            print ("FILE: %s" % fn)
+        with open (fn, 'rb') as f :
+            hexdump_f (f)
+else :
+    hexdump_f (sys.stdin.buffer)

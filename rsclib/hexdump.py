@@ -61,7 +61,7 @@ def hexdump (s, start = 0, show_addr = True, last_addr = True) :
     return '\n'.join (r)
 # end def hexdump
 
-def unhexdump (iterable) :
+def unhexdump (iterable, file = None) :
     """ Convert a hex-dump to binary
     """
     bin = []
@@ -73,7 +73,7 @@ def unhexdump (iterable) :
         if end :
             raise ValueError ("Unknown hexdump format")
         x = line.split ('  ', 2)
-        if len (x) <= 2 :
+        if len (x) == 1 :
             h = x [0]
         else :
             h = x [1]
@@ -89,6 +89,12 @@ def unhexdump (iterable) :
             method = lambda x : b''.join (chr (c) for c in x)
         else :
             method = bytes
-        bin.append (method ((int (k, 16)) for k in h))
+        if file :
+            file.write (method ((int (k, 16)) for k in h))
+        else :
+            bin.append (method ((int (k, 16)) for k in h))
+    if file :
+        file.flush ()
+        return None
     return b''.join (bin)
 # end def unhexdump

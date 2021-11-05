@@ -1,0 +1,30 @@
+#!/usr/bin/python3
+
+import sys
+from argparse       import ArgumentParser
+from rsclib.hexdump import unhexdump
+
+cmd = ArgumentParser ()
+cmd.add_argument \
+    ( 'input_file'
+    , help  = "Input hexdump file to convert to binary"
+    , nargs = '?'
+    )
+cmd.add_argument \
+    ( '-o', '--output-file'
+    , help  = "Output file for writing binary"
+    )
+args = cmd.parse_args ()
+if args.output_file :
+    with open (args.output_file, 'wb') as f_out :
+        if args.input_file :
+            with open (args.input_file, 'r') as f_in :
+                unhexdump (f_in, f_out)
+        else :
+            unhexdump (sys.stdin, f_out)
+else :
+    if args.input_file :
+        with open (args.input_file, 'r') as f_in :
+            unhexdump (f_in, sys.stdout.buffer)
+    else :
+        unhexdump (sys.stdin, sys.stdout.buffer)

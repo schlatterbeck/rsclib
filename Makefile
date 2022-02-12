@@ -28,13 +28,10 @@ all: $(VERSION)
 
 $(VERSION): $(SRC)
 
-dist: all
-	python setup.py sdist --formats=gztar,zip
-
 clean:
 	rm -f MANIFEST rsclib/Version.py notes changes default.css    \
 	      README.html README.aux README.dvi README.log README.out \
 	      README.tex announce_pypi
 	rm -rf dist build upload upload_homepage ReleaseNotes.txt
 
-include $(RELEASETOOLS)/Makefile-sf
+include $(RELEASETOOLS)/Makefile-pyrelease

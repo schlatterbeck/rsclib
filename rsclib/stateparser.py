@@ -200,5 +200,11 @@ class Parser (Debug, Base_Pickler) :
         state = state.match ()
         return state
     # end def pop
+
+    def endpop (self, state = None, new_state = None, match = None) :
+        """ Pop stack *after* handling the current line
+        """
+        return self.stack.pop ()
+    # end def endpop
 # end class Parser
 

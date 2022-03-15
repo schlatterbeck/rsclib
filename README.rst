@@ -114,6 +114,11 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.62: Python3 fixes
+    - More Python3 fixes
+    - Update of stateparser
+    - hexdump/unhexdump
+
 Version 0.61: sqlparser
     - Allow filtering during reading of sql dump
 

@@ -87,7 +87,7 @@ if PY2 :
     bytes_ord = ord
     tobytes   = chr
 else :
-    bytes_ord = lambda x : x
+    bytes_ord = lambda x : x if isinstance (x, int) else ord (x)
     tobytes   = lambda x : bytes ([x])
 
 if PY2 :

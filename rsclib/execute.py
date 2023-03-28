@@ -64,8 +64,22 @@ class Log (_Named) :
             handler.setFormatter (formatter)
             self.log.addHandler  (handler)
             self.log.setLevel    (log_level)
+            self.syslog_handler = handler
         self.__super.__init__ (*args, **kw)
     # end def __init__
+
+    def add_stderr_handler (self, level = None):
+        formatter = logging.Formatter \
+            ('%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+        handler = logging.StreamHandler (sys.stderr)
+        if level is None:
+            level = logging.INFO
+        handler.setLevel     (level)
+        handler.setFormatter (formatter)
+        self.log.addHandler  (handler)
+        self.stderr_handler = handler
+    # end def add_stderr_handler
 
     def log_exception (self) :
         for l in format_exc ().split ('\n') :
@@ -91,10 +105,10 @@ class Exec (Log) :
     def exec_pipe \
         ( self, args
         , stdin      = None
-	, ignore_err = False
-	, shell      = False
-	, charset    = 'utf-8'
-	) :
+        , ignore_err = False
+        , shell      = False
+        , charset    = 'utf-8'
+        ) :
         popen_stdin = None
         if stdin is not None :
             popen_stdin = PIPE

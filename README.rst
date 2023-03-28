@@ -113,6 +113,10 @@ Alternatively get it from pypi and/or install via pip.
 
 Changes
 -------
+
+Version 0.64: Small execute.Log updates
+    - Add add_stderr_handler method to also log to stderr
+
 Version 0.63: Python3 fixes
     - Fix bytes_ord to also deal with a bytes object in python3
 

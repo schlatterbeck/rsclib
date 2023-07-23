@@ -15,7 +15,7 @@ RSCLIB=ast_call.py ast_cdr.py ast_probe.py autosuper.py base_pickler.py \
 VERSIONPY=rsclib/Version.py
 VERSION=$(VERSIONPY)
 README=README.rst
-SRC=Makefile setup.py $(RSCLIB:%.py=rsclib/%.py) \
+SRC=Makefile setup.py pyproject.toml $(RSCLIB:%.py=rsclib/%.py) \
     MANIFEST.in $(README) README.html
 
 USERNAME=schlatterbeck

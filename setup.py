@@ -49,10 +49,13 @@ setup \
     , packages         = ['rsclib']
     , platforms        = 'Any'
     , url              = "http://rsclib.sourceforge.net/"
-    , scripts          = [ 'bin/ast_sip_check'
-                         , 'bin/rsclib-hexdump'
-                         , 'bin/rsclib-unhexdump'
-                         ]
+    , entry_points     = dict
+        ( console_scripts =
+            [ "ast_sip_check=rsclib.ast_probe:sip_check"
+            , "rsclib-hexdump=rsclib.hexdump:hexdump_cmd"
+            , "rsclib-unhexdump=rsclib.hexdump:unhexdump_cmd"
+            ]
+        )
     , python_requires  = rq
     , download_url     = \
         "%(download)s/%(VERSION)s/rsclib-%(VERSION)s.tar.gz" % locals ()

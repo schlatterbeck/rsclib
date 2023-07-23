@@ -114,21 +114,33 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.65: Use pyproject.toml
+
+    - Use new-style packaging with pyproject.toml, old-style setup.py is
+      still available
+    - Use console script entry points instead of explicit scripts in
+      directory bin
+
 Version 0.64: Small execute.Log updates
+
     - Add add_stderr_handler method to also log to stderr
 
 Version 0.63: Python3 fixes
+
     - Fix bytes_ord to also deal with a bytes object in python3
 
 Version 0.62: Python3 fixes
+
     - More Python3 fixes
     - Update of stateparser
     - hexdump/unhexdump
 
 Version 0.61: sqlparser
+
     - Allow filtering during reading of sql dump
 
 Version 0.60: Python3 fixes
+
     - hexdump
     - xrange
     - compatibility for bytes iterator

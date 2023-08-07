@@ -59,4 +59,4 @@ rsclib-hexdump   = "rsclib.hexdump:hexdump_cmd"
 rsclib-unhexdump = "rsclib.hexdump:unhexdump_cmd"
 
 [tool.setuptools.dynamic]
-version = {attr = "rsclib.Version.VERSION"}
+version = {attr = "rsclib.__version__"}

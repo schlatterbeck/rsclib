@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (C) 2005-21 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-23 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -20,27 +20,20 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-try :
-    from rsclib.Version import VERSION
-except :
-    VERSION = None
-from distutils.core import setup, Extension
+import sys
+from setuptools import setup, Extension
+sys.path.insert (1, '.')
+from rsclib import __version__
 
-description = []
-f = open ('README.rst')
-logo_stripped = False
-for line in f :
-    if not logo_stripped and line.strip () :
-        continue
-    logo_stripped = True
-    description.append (line)
+with open ('README.rst') as f:
+    description = f.read ()
 
 license     = 'GNU Library or Lesser General Public License (LGPL)'
 download    = 'http://downloads.sourceforge.net/project/rsclib/rsclib'
 rq          = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
 setup \
     ( name             = "rsclib"
-    , version          = VERSION
+    , version          = __version__
     , description      = "Misc. basic stuff needed by RSCs tools"
     , long_description = ''.join (description)
     , license          = license
@@ -58,7 +51,7 @@ setup \
         )
     , python_requires  = rq
     , download_url     = \
-        "%(download)s/%(VERSION)s/rsclib-%(VERSION)s.tar.gz" % locals ()
+        "%(download)s/%(__version__)s/rsclib-%(__version__)s.tar.gz" % locals ()
     , classifiers      = \
         [ 'Development Status :: 5 - Production/Stable'
         , 'License :: OSI Approved :: ' + license

@@ -394,7 +394,7 @@ class Process (Log):
             sibling_files.append (c.stdin)
         # For dup2 in redirect to do its job:
         if len (self.children) == 1:
-            self.stdout = self.stdouts.keys () [0]
+            self.stdout = list (self.stdouts) [0]
         if self.stderr_child:
             pipe = os.pipe ()
             self.stderr = os.fdopen (pipe [1], 'w')

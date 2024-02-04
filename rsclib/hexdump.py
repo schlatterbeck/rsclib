@@ -73,19 +73,29 @@ def unhexdump (iterable, file = None):
             continue
         if end:
             raise ValueError ("Unknown hexdump format")
-        x = line.split ('  ', 2)
+        x = line.split ('  ', 1)
         if len (x) == 1:
             h = x [0]
         else:
             h = x [1]
-            assert len (x [0]) <= 8
+            assert len (x [0]) <= 10
         # Probably last line with only an address
         if ' ' not in h and len (x) == 1 and len (h) > 2:
             end = True
             continue
-        h = h.strip ().split (' ')
+        # Determine format: split the thing and throw away last element
+        # if that is longer than 2.
+        h = h.strip ().split ()
         if len (h [0]) > 2:
             h = h [1:]
+        if len (h) > 16:
+            h = h [:16]
+        if len (h [-1]) != 2:
+            h = h [:-1]
+        assert len (h [0])  == 2
+        assert len (h [-1]) == 2
+        assert len (h) <= 16
+
         if sys.version_info [0] < 3:
             method = lambda x: b''.join (chr (c) for c in x)
         else:

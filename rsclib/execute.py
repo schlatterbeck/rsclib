@@ -1,6 +1,5 @@
-#!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
-# Copyright (C) 2009-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+#!/usr/bin/python3
+# Copyright (C) 2009-24 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -108,6 +107,7 @@ class Exec (Log):
         , ignore_err = False
         , shell      = False
         , charset    = 'utf-8'
+        , do_split   = True
         ):
         popen_stdin = None
         if stdin is not None:
@@ -131,7 +131,9 @@ class Exec (Log):
                 self.error (e)
             if not ignore_err:
                 raise Exec_Error (msg, p.returncode)
-        return stdout.rstrip ().split ('\n')
+        if do_split:
+            return stdout.rstrip ().split ('\n')
+        return stdout
     # end def exec_pipe
 # end class Exec
 

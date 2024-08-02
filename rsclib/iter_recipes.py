@@ -182,3 +182,19 @@ except ImportError :
             for j in range (i+1, r) :
                 indices [j] = indices [j-1] + 1
             yield tuple (pool [i] for i in indices)
+
+try :
+    from itertools import batched
+except ImportError :
+    def batched (x, n):
+        b = []
+        x = iter (x)
+        while True:
+            for k in range (n):
+                try:
+                    b.append (next (x))
+                except StopIteration:
+                    yield b
+                    return
+            yield b
+            b = []

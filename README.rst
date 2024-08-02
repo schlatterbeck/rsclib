@@ -118,9 +118,9 @@ Changes
 
 Version 0.66: Hexdump parsing, iter_recipes.batched
 
-    - Add iter_recipes.batched which appears in Python 3.12
-    - Hexdump parsing is more tolerant now
-    - Some overlooked Python3 changes
+- Add iter_recipes.batched which appears in Python 3.12
+- Hexdump parsing is more tolerant now
+- Some overlooked Python3 changes
 
 Version 0.65: Use pyproject.toml
 

@@ -116,6 +116,12 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.67: Bugfixes in rational and iter_recipes.batched
+
+- iter_recipes.batched now doesn't return an empty batch
+- Rename Rational module to rational
+- Fix division in rational module
+
 Version 0.66: Hexdump parsing, iter_recipes.batched
 
 - Add iter_recipes.batched which appears in Python 3.12

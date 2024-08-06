@@ -194,7 +194,8 @@ except ImportError :
                 try:
                     b.append (next (x))
                 except StopIteration:
-                    yield b
+                    if b:
+                        yield b
                     return
             yield b
             b = []

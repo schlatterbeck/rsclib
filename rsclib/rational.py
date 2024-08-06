@@ -1,6 +1,5 @@
 #!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
-# Copyright (C) 2007-17 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2007-24 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -152,10 +151,7 @@ class Rational (autosuper) :
             other = self.__class__ (other)
         p = self.p * other.q
         q = self.q * other.p
-        if q < 0 :
-            p = -p
-            q = -q
-        return self.__class__ (p, q)
+        return p // q
     # end def __floordiv__
 
     def __rfloordiv__ (self, other) :
@@ -163,6 +159,23 @@ class Rational (autosuper) :
             other = self.__class__ (other)
         return other // self
     # end def __rfloordiv__
+
+    def __truediv__ (self, other) :
+        if not isinstance (other, self.__class__) :
+            other = self.__class__ (other)
+        p = self.p * other.q
+        q = self.q * other.p
+        if q < 0 :
+            p = -p
+            q = -q
+        return self.__class__ (p, q)
+    # end def __truediv__
+
+    def __rtruediv__ (self, other) :
+        if not isinstance (other, self.__class__) :
+            other = self.__class__ (other)
+        return other / self
+    # end def __rtruediv__
 
     def __int__ (self) :
         return int (self.p // self.q)
@@ -192,10 +205,6 @@ class Rational (autosuper) :
     def __radd__ (self, other) :
         return self + other
     # end def __radd__
-
-    def __rdiv__ (self, other) :
-        return self.__class__ (other) // self
-    # end def __rdiv__
 
     def __repr__ (self) :
         if self.q == 1 :

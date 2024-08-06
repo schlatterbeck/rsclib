@@ -9,7 +9,7 @@ RSCLIB=ast_call.py ast_cdr.py ast_probe.py autosuper.py base_pickler.py \
     bero.py capacitance.py Config_File.py crm.py execute.py grepmime.py \
     hexdump.py inductance.py __init__.py IP_Address.py isdn.py          \
     iter_recipes.py lc_resonator.py Math.py nmap.py ocf.py              \
-    PDF_Signature.py Phone.py PM_Value.py pycompat.py Rational.py       \
+    PDF_Signature.py Phone.py PM_Value.py pycompat.py rational.py       \
     sqlparser.py stateparser.py TeX_CSV_Writer.py timeout.py            \
     trafficshape.py
 VERSIONPY=rsclib/Version.py

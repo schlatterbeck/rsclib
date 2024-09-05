@@ -112,6 +112,8 @@ class Exec (Log):
         popen_stdin = None
         if stdin is not None:
             popen_stdin = PIPE
+        if isinstance (stdin, str):
+            stdin = stdin.encode ('utf-8')
         p = Popen \
             ( args
             , stdin  = popen_stdin

@@ -116,6 +116,10 @@ Alternatively get it from pypi and/or install via pip.
 Changes
 -------
 
+Version 0.68: License change
+
+- Change license from LGPL to MIT
+
 Version 0.67: Bugfixes in rational and iter_recipes.batched
 
 - iter_recipes.batched now doesn't return an empty batch
